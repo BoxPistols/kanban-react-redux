@@ -1,4 +1,8 @@
-node_modules
-.cache
-dist
+# npm
+node_modules/
+
+# Parcel
+/.cache/
+/dist/
+
 yarn-error.log
