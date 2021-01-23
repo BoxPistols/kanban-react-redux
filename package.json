@@ -5,6 +5,8 @@
     "tsc": "tsc"
   },
   "devDependencies": {
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
     "parcel-bundler": "^1.12.4",
     "typescript": "^4.1.3"
   },

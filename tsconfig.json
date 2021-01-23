@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    // Target latest browsers
+  // Target latest browsers
     "target": "ES2019",
     "lib":  ["ES2019", "DOM", "DOM.Iterable"],
 
@@ -9,6 +9,12 @@
 
     // Required for some packages.
     "moduleResolution": "Node",
+
+    // `import React` instead of `import * as React`
+    "allowSyntheticDefaultImports": true,
+
+    // <div /> => React.createElement("div")
+    "jsx": "react",
 
     // Only for type checks.
     "incremental": true,
