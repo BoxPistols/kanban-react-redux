@@ -1,43 +1,65 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
+import styled from 'styled-components'
 
 function App() {
     return (
         <div>
-            <header>
-                <div>Kanban board</div>
+            <Container>
 
-                <input placeholder='Filter cards' />
-            </header>
+                <Header>
+                    <Logo>Kanban board</Logo>
+                    <CardFilter placeholder="Filter cards" />
+                </Header>
 
-            <div>
-                <section>
-                    <h3>TODO</h3>
+                <MainArea>
 
-                    <article>朝食をとる🍞</article>
-                    <article>SNSをチェックする🐦</article>
-                    <article>布団に入る (:3[___]</article>
-                </section>
+                    <Column>
 
-                <section>
-                    <h3>Doing</h3>
+                        <ColumnHeader>TODO</ColumnHeader>
 
-                    <article>顔を洗う👐</article>
-                    <article>歯を磨く🦷</article>
-                </section>
+                        <Card>朝食をとる🍞</Card>
+                        <Card>SNSをチェックする🐦</Card>
+                        <Card>布団に入る (:3[___]</Card>
+                    </Column>
 
-                <section>
-                    <h3>Waiting</h3>
-                </section>
+                    <Column>
+                        <ColumnHeader>Doing</ColumnHeader>
+                        <Card>顔を洗う👐</Card>
+                        <Card>歯を磨く🦷</Card>
+                    </Column>
 
-                <section>
-                    <h3>Done</h3>
+                    <Column>
+                        <ColumnHeader>Waiting</ColumnHeader>
+                    </Column>
 
-                    <article>布団から出る (:3っ)っ -=三[＿＿]</article>
-                </section>
-            </div>
+                    <Column>
+                        <ColumnHeader>Done</ColumnHeader>
+                        <Card>布団から出る (:3っ)っ -=三[＿＿]</Card>
+                    </Column>
+
+                </MainArea>
+
+            </Container>
+
         </div>
     )
 }
+
+const Container = styled.div``
+
+const Header = styled.div``
+
+const Logo = styled.div``
+
+const CardFilter = styled.input``
+
+const MainArea = styled.div``
+
+const Column = styled.div``
+
+const ColumnHeader = styled.div``
+
+const Card = styled.div``
 
 ReactDOM.render(<App />, document.getElementById('app'))
