@@ -105,6 +105,7 @@ const Column = styled.div`
    flex-flow: column;
    width: 355px;
    height: 100%;
+   min-height: 80vh;
    border: solid 1px ${color.Silver};
    border-radius: 6px;
    background-color: ${color.LightSilver};
