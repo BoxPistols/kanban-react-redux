@@ -1,9 +1,5 @@
-# React-Redux Kanban
+# React kanban
 
-tags: `myapp` , `react`
-
-> This note is yours
-
-## :memo: Where do I start?
-
-tsx
+* React
+* tsx
+* styled components
