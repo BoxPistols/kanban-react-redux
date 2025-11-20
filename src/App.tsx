@@ -1,39 +1,112 @@
-import React from 'react'
+import { useEffect, useMemo } from 'react'
 import styled from 'styled-components'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import { useState } from 'react'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
+import { Card as CardComponent } from './Card'
+import { useKanbanStore } from './store/kanbanStore'
+import type { ColumnType } from './types'
+
+const COLUMNS: { id: ColumnType; title: string }[] = [
+  { id: 'TODO', title: 'TODO' },
+  { id: 'Doing', title: 'Doing' },
+  { id: 'Waiting', title: 'Waiting' },
+  { id: 'Done', title: 'Done' }
+]
 
 export function App() {
-    return (
-        <Container>
-            <Header />
+  const { cards, searchQuery, subscribeToCards } = useKanbanStore()
+  const [activeId, setActiveId] = useState<string | null>(null)
 
-            <MainArea>
-                <HorizontalScroll>
-                    <Column
-                        title="TODO"
-                        cards={[
-                            { id: 'a', text: '朝食をとる🍞' },
-                            { id: 'b', text: 'SNSをチェックする🐦' },
-                            { id: 'c', text: '布団に入る (:3[___]' },
-                        ]}
-                    />
-                    <Column
-                        title="Doing"
-                        cards={[
-                            { id: 'd', text: '顔を洗う👐' },
-                            { id: 'e', text: '歯を磨く🦷' },
-                        ]}
-                    />
-                    <Column title="Waiting" cards={[]} />
-                    <Column
-                        title="Done"
-                        cards={[{ id: 'f', text: '布団から出る (:3っ)っ -=三[＿＿]' }]}
-                    />
-                </HorizontalScroll>
-            </MainArea>
-        </Container>
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8
+      }
+    })
+  )
+
+  useEffect(() => {
+    const unsubscribe = subscribeToCards()
+    return () => unsubscribe()
+  }, [subscribeToCards])
+
+  const filteredCards = useMemo(() => {
+    if (!searchQuery) return cards
+    return cards.filter(card =>
+      card.text.toLowerCase().includes(searchQuery.toLowerCase())
     )
+  }, [cards, searchQuery])
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveId(null)
+
+    if (!over) return
+
+    const activeCard = cards.find(c => c.id === active.id)
+    if (!activeCard) return
+
+    const overId = over.id as string
+    const overColumn = COLUMNS.find(col => col.id === overId)
+
+    if (overColumn && activeCard.columnId !== overColumn.id) {
+      const { moveCard } = useKanbanStore.getState()
+      const cardsInNewColumn = cards.filter(c => c.columnId === overColumn.id)
+      const newOrder = cardsInNewColumn.length
+      moveCard(activeCard.id, overColumn.id, newOrder)
+    }
+  }
+
+  const activeCard = activeId ? cards.find(c => c.id === activeId) : null
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <Container>
+        <Header />
+
+        <MainArea>
+          <HorizontalScroll>
+            {COLUMNS.map(column => {
+              const columnCards = filteredCards
+                .filter(card => card.columnId === column.id)
+                .sort((a, b) => a.order - b.order)
+
+              return (
+                <Column
+                  key={column.id}
+                  id={column.id}
+                  title={column.title}
+                  cards={columnCards}
+                />
+              )
+            })}
+          </HorizontalScroll>
+        </MainArea>
+
+        <DragOverlay>
+          {activeCard ? <CardComponent card={activeCard} isDragging /> : null}
+        </DragOverlay>
+      </Container>
+    </DndContext>
+  )
 }
 
 const Container = styled.div`

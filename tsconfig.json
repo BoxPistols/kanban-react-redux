@@ -1,30 +1,30 @@
 {
     "compilerOptions": {
-        // Target latest browsers
-        "target": "ES2019",
-        "lib": [
-            "ES2019",
-            "DOM",
-            "DOM.Iterable"
-        ],
-        // Required: Use module="ESNext" so that TS won't compile/disallow any ESM syntax.
+        "target": "ES2020",
+        "useDefineForClassFields": true,
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
         "module": "ESNext",
-        // Required for some packages.
-        "moduleResolution": "Node",
-        // `import React` instead of `import * as React`
-        "allowSyntheticDefaultImports": true,
-        // <div /> => React.createElement("div")
-        "jsx": "react",
-        // Only for type checks.
-        "incremental": true,
-        "outDir": "./.ts-cache/",
-        // cf. https://github.com/DefinitelyTyped/DefinitelyTyped/issues/33311
-        // cf. https://stackoverflow.com/a/55540896
         "skipLibCheck": true,
-        // Useful type checks.
-        "strictNullChecks": true
+
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "jsx": "react-jsx",
+
+        /* Linting */
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+
+        /* Additional */
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true
     },
-    "include": [
-        "./src/**/*"
-    ]
+    "include": ["src"],
+    "references": [{ "path": "./tsconfig.node.json" }]
 }
