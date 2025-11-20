@@ -1,5 +1,6 @@
 import styled from 'styled-components'
-import { useDraggable } from '@dnd-kit/core'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { CheckIcon as _CheckIcon, TrashIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
@@ -13,8 +14,19 @@ export function Card({
   isDragging?: boolean
 }) {
   const { deleteCard } = useKanbanStore()
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: card.id
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: isSortableDragging
+  } = useSortable({
+    id: card.id,
+    data: {
+      type: 'card',
+      card
+    }
   })
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -24,17 +36,16 @@ export function Card({
     }
   }
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      }
-    : undefined
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition
+  }
 
   return (
     <Container
       ref={setNodeRef}
       style={style}
-      $isDragging={isDragging}
+      $isDragging={isDragging || isSortableDragging}
       {...listeners}
       {...attributes}
     >
