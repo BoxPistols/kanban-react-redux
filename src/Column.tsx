@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import styled from 'styled-components'
 import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import * as color from './color'
 import { Card } from './Card'
 import { PlusIcon } from './icon'
@@ -38,6 +39,8 @@ export function Column({
     setInputMode(false)
   }
 
+  const cardIds = cards.map(card => card.id)
+
   return (
     <Container ref={setNodeRef}>
       <Header>
@@ -56,9 +59,11 @@ export function Column({
       )}
 
       <VerticalScroll>
-        {cards.map(card => (
-          <Card key={card.id} card={card} />
-        ))}
+        <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+          {cards.map(card => (
+            <Card key={card.id} card={card} />
+          ))}
+        </SortableContext>
       </VerticalScroll>
     </Container>
   )

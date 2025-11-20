@@ -7,7 +7,8 @@ import {
   doc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import type { Card, ColumnType } from '../types'
@@ -24,6 +25,7 @@ interface KanbanState {
   updateCard: (id: string, updates: Partial<Card>) => Promise<void>
   deleteCard: (id: string) => Promise<void>
   moveCard: (cardId: string, newColumnId: ColumnType, newOrder: number) => Promise<void>
+  reorderCards: (updates: { id: string; order: number; columnId?: ColumnType }[]) => Promise<void>
   setSearchQuery: (query: string) => void
   subscribeToCards: () => () => void
 }
@@ -103,18 +105,51 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     }
   },
 
+  reorderCards: async (updates) => {
+    try {
+      set({ isLoading: true, error: null })
+      const batch = writeBatch(db)
+
+      updates.forEach(({ id, order, columnId }) => {
+        const cardRef = doc(db, 'cards', id)
+        const updateData: Record<string, unknown> = {
+          order,
+          updatedAt: Date.now()
+        }
+        if (columnId !== undefined) {
+          updateData.columnId = columnId
+        }
+        batch.update(cardRef, updateData)
+      })
+
+      await batch.commit()
+      set({ isLoading: false })
+    } catch (error) {
+      console.error('Error reordering cards:', error)
+      set({ error: 'カードの並べ替えに失敗しました', isLoading: false })
+    }
+  },
+
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   subscribeToCards: () => {
+    set({ isLoading: true, error: null })
     const q = query(collection(db, 'cards'), orderBy('order'))
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const cards: Card[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Card))
+        const cards: Card[] = snapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            text: data.text ?? '',
+            columnId: data.columnId ?? 'TODO',
+            order: data.order ?? 0,
+            createdAt: data.createdAt ?? Date.now(),
+            updatedAt: data.updatedAt ?? Date.now()
+          } as Card
+        })
         set({ cards, isLoading: false, error: null })
       },
       (error) => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import styled from 'styled-components'
 import {
   DndContext,
@@ -9,12 +9,12 @@ import {
   useSensor,
   useSensors
 } from '@dnd-kit/core'
-import { useState } from 'react'
+import { arrayMove } from '@dnd-kit/sortable'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
 import { useKanbanStore } from './store/kanbanStore'
-import type { ColumnType } from './types'
+import type { Card as CardType, ColumnType } from './types'
 
 const COLUMNS: { id: ColumnType; title: string }[] = [
   { id: 'TODO', title: 'TODO' },
@@ -24,7 +24,7 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 ]
 
 export function App() {
-  const { cards, searchQuery, subscribeToCards } = useKanbanStore()
+  const { cards, searchQuery, subscribeToCards, reorderCards } = useKanbanStore()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
@@ -47,6 +47,19 @@ export function App() {
     )
   }, [cards, searchQuery])
 
+  const cardsByColumn = useMemo(() => {
+    const grouped = filteredCards.reduce<Record<ColumnType, CardType[]>>((acc, card) => {
+      (acc[card.columnId] = acc[card.columnId] || []).push(card)
+      return acc
+    }, {} as Record<ColumnType, CardType[]>)
+
+    Object.values(grouped).forEach(columnCards =>
+      columnCards.sort((a, b) => a.order - b.order)
+    )
+
+    return grouped
+  }, [filteredCards])
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
   }
@@ -57,17 +70,74 @@ export function App() {
 
     if (!over) return
 
-    const activeCard = cards.find(c => c.id === active.id)
+    const activeId = active.id as string
+    const overId = over.id as string
+
+    const activeCard = cards.find(c => c.id === activeId)
     if (!activeCard) return
 
-    const overId = over.id as string
+    // Check if dropping on a column or a card
     const overColumn = COLUMNS.find(col => col.id === overId)
+    const overCard = cards.find(c => c.id === overId)
 
-    if (overColumn && activeCard.columnId !== overColumn.id) {
-      const { moveCard } = useKanbanStore.getState()
-      const cardsInNewColumn = cards.filter(c => c.columnId === overColumn.id)
-      const newOrder = cardsInNewColumn.length
-      moveCard(activeCard.id, overColumn.id, newOrder)
+    if (overCard) {
+      // Dropping on a card - handle sorting within same or different column
+      const activeColumnId = activeCard.columnId
+      const overColumnId = overCard.columnId
+
+      if (activeColumnId === overColumnId) {
+        // Same column - reorder within column
+        const columnCards = cardsByColumn[activeColumnId] || []
+        const oldIndex = columnCards.findIndex(c => c.id === activeId)
+        const newIndex = columnCards.findIndex(c => c.id === overId)
+
+        if (oldIndex !== newIndex) {
+          const reorderedCards = arrayMove(columnCards, oldIndex, newIndex)
+          const updates = reorderedCards.map((card, index) => ({
+            id: card.id,
+            order: index
+          }))
+          reorderCards(updates)
+        }
+      } else {
+        // Different column - move card to new column at specific position
+        const targetColumnCards = cardsByColumn[overColumnId] || []
+        const targetIndex = targetColumnCards.findIndex(c => c.id === overId)
+
+        // Create new order for the moved card and update all cards in target column
+        const updates: { id: string; order: number; columnId?: ColumnType }[] = []
+
+        // Update the moved card
+        updates.push({
+          id: activeId,
+          order: targetIndex,
+          columnId: overColumnId
+        })
+
+        // Update cards in the target column that come after the insertion point
+        targetColumnCards.forEach((card, index) => {
+          if (index >= targetIndex) {
+            updates.push({
+              id: card.id,
+              order: index + 1
+            })
+          }
+        })
+
+        reorderCards(updates)
+      }
+    } else if (overColumn) {
+      // Dropping on a column - add to end of column
+      if (activeCard.columnId !== overColumn.id) {
+        const targetColumnCards = cardsByColumn[overColumn.id] || []
+        const newOrder = targetColumnCards.length
+
+        reorderCards([{
+          id: activeId,
+          order: newOrder,
+          columnId: overColumn.id
+        }])
+      }
     }
   }
 
@@ -85,9 +155,7 @@ export function App() {
         <MainArea>
           <HorizontalScroll>
             {COLUMNS.map(column => {
-              const columnCards = filteredCards
-                .filter(card => card.columnId === column.id)
-                .sort((a, b) => a.order - b.order)
+              const columnCards = cardsByColumn[column.id] || []
 
               return (
                 <Column
