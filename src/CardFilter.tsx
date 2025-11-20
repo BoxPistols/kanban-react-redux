@@ -1,15 +1,21 @@
-import React from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { SearchIcon as _SearchIcon } from './icon'
+import { useKanbanStore } from './store/kanbanStore'
 
 export function CardFilter() {
-    return (
-        <Container>
-            <SearchIcon />
-            <Input placeholder="Filter cards" />
-        </Container>
-    )
+  const { searchQuery, setSearchQuery } = useKanbanStore()
+
+  return (
+    <Container>
+      <SearchIcon />
+      <Input
+        placeholder="Filter cards"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+    </Container>
+  )
 }
 
 const Container = styled.label`

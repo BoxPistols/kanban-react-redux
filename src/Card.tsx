@@ -1,31 +1,61 @@
-import React from 'react'
 import styled from 'styled-components'
+import { useDraggable } from '@dnd-kit/core'
 import * as color from './color'
 import { CheckIcon as _CheckIcon, TrashIcon } from './icon'
+import { useKanbanStore } from './store/kanbanStore'
+import type { Card as CardType } from './types'
 
-export function Card({ text }: { text?: string }) {
-    return (
-        <Container>
-            <CheckIcon />
+export function Card({
+  card,
+  isDragging = false
+}: {
+  card: CardType
+  isDragging?: boolean
+}) {
+  const { deleteCard } = useKanbanStore()
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: card.id
+  })
 
-            {text?.split(/(https?:\/\/\S+)/g).map((fragment, i) =>
-                i % 2 === 0 ? (
-                    <Text key={i}>{fragment}</Text>
-                ) : (
-                        <Link key={i} href={fragment}>
-                            {fragment}
-                        </Link>
-                    ),
-            )}
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (window.confirm('このカードを削除しますか？')) {
+      await deleteCard(card.id)
+    }
+  }
 
-            <DeleteButton />
-        </Container>
-    )
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      }
+    : undefined
+
+  return (
+    <Container
+      ref={setNodeRef}
+      style={style}
+      $isDragging={isDragging}
+      {...listeners}
+      {...attributes}
+    >
+      <CheckIcon />
+
+      {card.text.split(/(https?:\/\/\S+)/g).map((fragment, i) =>
+        i % 2 === 0 ? (
+          <Text key={i}>{fragment}</Text>
+        ) : (
+          <Link key={i} href={fragment}>
+            {fragment}
+          </Link>
+        )
+      )}
+
+      <DeleteButton onClick={handleDelete} />
+    </Container>
+  )
 }
 
-const Container = styled.div.attrs({
-    draggable: true,
-})`
+const Container = styled.div<{ $isDragging?: boolean }>`
   position: relative;
   border: solid 1px ${color.Silver};
   border-radius: 6px;
@@ -33,6 +63,8 @@ const Container = styled.div.attrs({
   padding: 8px 32px;
   background-color: ${color.White};
   cursor: move;
+  opacity: ${props => (props.$isDragging ? 0.5 : 1)};
+  touch-action: none;
 `
 
 const CheckIcon = styled(_CheckIcon)`

@@ -1,52 +1,67 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import styled from 'styled-components'
+import { useDroppable } from '@dnd-kit/core'
 import * as color from './color'
 import { Card } from './Card'
 import { PlusIcon } from './icon'
 import { InputForm as _InputForm } from './InputForm'
+import { useKanbanStore } from './store/kanbanStore'
+import type { Card as CardType, ColumnType } from './types'
+
 export function Column({
-    title,
-    cards,
+  id,
+  title,
+  cards
 }: {
-    title?: string
-    cards: {
-        id: string
-        text?: string
-    }[]
+  id: ColumnType
+  title: string
+  cards: CardType[]
 }) {
-    const totalCount = cards.length
+  const { addCard } = useKanbanStore()
+  const { setNodeRef } = useDroppable({ id })
 
-    const [text, setText] = useState('')
+  const [text, setText] = useState('')
+  const [inputMode, setInputMode] = useState(false)
 
-    const [inputMode, setInputMode] = useState(false)
-    const toggleInput = () => setInputMode(v => !v)
-    const confirmInput = () => setText('')
-    const cancelInput = () => setInputMode(false)
+  const toggleInput = () => setInputMode(v => !v)
 
-    return (
-        <Container>
-            <Header>
-                <CountBadge>{totalCount}</CountBadge>
-                <ColumnName>{title}</ColumnName>
+  const confirmInput = async () => {
+    if (text.trim()) {
+      await addCard(text.trim(), id)
+      setText('')
+      setInputMode(false)
+    }
+  }
 
-                <AddButton onClick={toggleInput} />
-            </Header>
+  const cancelInput = () => {
+    setText('')
+    setInputMode(false)
+  }
 
-            {inputMode && (
-                <InputForm
-                    value={text}
-                    onChange={setText}
-                    onConfirm={confirmInput}
-                    onCancel={cancelInput}
-                />
-            )}
-            <VerticalScroll>
-                {cards.map(({ id, text }) => (
-                    <Card key={id} text={text} />
-                ))}
-            </VerticalScroll>
-        </Container>
-    )
+  return (
+    <Container ref={setNodeRef}>
+      <Header>
+        <CountBadge>{cards.length}</CountBadge>
+        <ColumnName>{title}</ColumnName>
+        <AddButton onClick={toggleInput} />
+      </Header>
+
+      {inputMode && (
+        <InputForm
+          value={text}
+          onChange={setText}
+          onConfirm={confirmInput}
+          onCancel={cancelInput}
+        />
+      )}
+
+      <VerticalScroll>
+        {cards.map(card => (
+          <Card key={card.id} card={card} />
+        ))}
+      </VerticalScroll>
+    </Container>
+  )
 }
 
 const Container = styled.div`
