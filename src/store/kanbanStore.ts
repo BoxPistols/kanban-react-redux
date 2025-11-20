@@ -134,6 +134,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
   subscribeToCards: () => {
     set({ isLoading: true, error: null })
+    set({ isLoading: true, error: null })
     const q = query(collection(db, 'cards'), orderBy('order'))
 
     const unsubscribe = onSnapshot(
