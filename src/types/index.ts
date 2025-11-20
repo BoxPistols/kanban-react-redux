@@ -17,6 +17,7 @@ export interface Card {
   id: string
   text: string
   columnId: ColumnType
+  boardId: string
   order: number
   createdAt: number
   updatedAt: number

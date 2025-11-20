@@ -12,11 +12,13 @@ import type { Card as CardType, ColumnType } from './types'
 export function Column({
   id,
   title,
-  cards
+  cards,
+  boardId
 }: {
   id: ColumnType
   title: string
   cards: CardType[]
+  boardId: string
 }) {
   const { addCard } = useKanbanStore()
   const { setNodeRef } = useDroppable({ id })
@@ -27,8 +29,8 @@ export function Column({
   const toggleInput = () => setInputMode(v => !v)
 
   const confirmInput = async () => {
-    if (text.trim()) {
-      await addCard(text.trim(), id)
+    if (text.trim() && boardId) {
+      await addCard(text.trim(), id, boardId)
       setText('')
       setInputMode(false)
     }

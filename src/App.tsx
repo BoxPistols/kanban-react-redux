@@ -26,7 +26,7 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 
 export function App() {
   const { cards, searchQuery, subscribeToCards, reorderCards } = useKanbanStore()
-  const { subscribeToBoards } = useBoardStore()
+  const { subscribeToBoards, currentBoardId } = useBoardStore()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
@@ -41,12 +41,14 @@ export function App() {
 
   useEffect(() => {
     const unsubscribeBoards = subscribeToBoards()
-    const unsubscribeCards = subscribeToCards()
-    return () => {
-      unsubscribeBoards()
-      unsubscribeCards()
-    }
-  }, [subscribeToBoards, subscribeToCards])
+    return () => unsubscribeBoards()
+  }, [subscribeToBoards])
+
+  useEffect(() => {
+    if (!currentBoardId) return
+    const unsubscribeCards = subscribeToCards(currentBoardId)
+    return () => unsubscribeCards()
+  }, [subscribeToCards, currentBoardId])
 
   const filteredCards = useMemo(() => {
     if (!searchQuery) return cards
@@ -162,18 +164,27 @@ export function App() {
 
         <MainArea>
           <HorizontalScroll>
-            {COLUMNS.map(column => {
-              const columnCards = cardsByColumn[column.id] || []
+            {!currentBoardId ? (
+              <EmptyState>
+                <EmptyIcon>📋</EmptyIcon>
+                <EmptyTitle>ボードを選択してください</EmptyTitle>
+                <EmptyText>ヘッダーの「+ ボード」ボタンから新しいボードを作成できます</EmptyText>
+              </EmptyState>
+            ) : (
+              COLUMNS.map(column => {
+                const columnCards = cardsByColumn[column.id] || []
 
-              return (
-                <Column
-                  key={column.id}
-                  id={column.id}
-                  title={column.title}
-                  cards={columnCards}
-                />
-              )
-            })}
+                return (
+                  <Column
+                    key={column.id}
+                    id={column.id}
+                    title={column.title}
+                    cards={columnCards}
+                    boardId={currentBoardId}
+                  />
+                )
+              })
+            )}
           </HorizontalScroll>
         </MainArea>
 
@@ -217,4 +228,35 @@ const HorizontalScroll = styled.div`
     flex: 0 0 16px;
     content: '';
   }
+`
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
+`
+
+const EmptyIcon = styled.div`
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+`
+
+const EmptyTitle = styled.h2`
+  font-size: 24px;
+  color: #344563;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+`
+
+const EmptyText = styled.p`
+  font-size: 16px;
+  color: #6B778C;
+  margin: 0;
+  max-width: 400px;
 `
