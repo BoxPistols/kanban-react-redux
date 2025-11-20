@@ -64,76 +64,99 @@ const Container = styled.div`
   align-items: center;
   gap: 8px;
   margin-left: 16px;
+  padding: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
 
   @media (max-width: 768px) {
     margin-left: 8px;
     gap: 4px;
+    padding: 4px 6px;
   }
 `
 
 const Select = styled.select`
-  padding: 6px 12px;
-  border: 1px solid ${color.Silver};
+  padding: 8px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
-  background-color: ${color.White};
-  color: ${color.Black};
-  font-size: 14px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: ${color.White};
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   max-width: 200px;
+  transition: all 0.2s;
 
   &:hover {
-    background-color: ${color.LightSilver};
+    background-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
-    outline: 2px solid ${color.Blue};
-    outline-offset: 2px;
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-color: ${color.White};
   }
 
-  @media (max-width: 768px) {
-    max-width: 150px;
-    font-size: 13px;
-    padding: 4px 8px;
-  }
-`
-
-const EditButton = styled.button`
-  padding: 4px 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: ${color.LightSilver};
-  }
-
-  @media (max-width: 768px) {
-    font-size: 14px;
-    padding: 2px 6px;
-  }
-`
-
-const AddButton = styled.button`
-  padding: 6px 12px;
-  border: 1px solid ${color.Silver};
-  border-radius: 4px;
-  background-color: ${color.White};
-  color: ${color.Blue};
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover {
-    background-color: ${color.Blue};
+  option {
+    background-color: ${color.Navy};
     color: ${color.White};
   }
 
   @media (max-width: 768px) {
+    max-width: 120px;
+    font-size: 13px;
+    padding: 6px 8px;
+  }
+`
+
+const EditButton = styled.button`
+  padding: 6px 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 4px;
+  color: ${color.White};
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 4px 6px;
+  }
+`
+
+const AddButton = styled.button`
+  padding: 8px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background-color: rgba(33, 150, 243, 0.8);
+  color: ${color.White};
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  &:hover {
+    background-color: ${color.Blue};
+    border-color: ${color.White};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 6px 10px;
   }
 `

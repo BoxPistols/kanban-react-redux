@@ -240,8 +240,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
       const unsubscribe = onSnapshot(
         q,
-        (snapshot) => {
-          const boards: Board[] = snapshot.docs.map(doc => {
+        async (snapshot) => {
+          let boards: Board[] = snapshot.docs.map(doc => {
             const data = doc.data()
             return {
               id: doc.id,
@@ -253,6 +253,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
               updatedAt: data.updatedAt ?? Date.now()
             } as Board
           })
+
+          // Create default board if none exist
+          if (boards.length === 0) {
+            await get().addBoard('マイボード', 'デフォルトのボード', '#0079BF')
+            return // Will be called again with new board
+          }
+
           set({ boards, isLoading: false, error: null })
 
           // Set first board as current if none selected
@@ -269,8 +276,25 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
       return unsubscribe
     } else {
-      const boards = loadBoardsFromLocalStorage()
-      const currentBoardId = loadCurrentBoardId()
+      let boards = loadBoardsFromLocalStorage()
+      let currentBoardId = loadCurrentBoardId()
+
+      // Create default board if none exist
+      if (boards.length === 0) {
+        const defaultBoard: Board = {
+          id: `board-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: 'マイボード',
+          description: 'デフォルトのボード',
+          color: '#0079BF',
+          labels: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+        boards = [defaultBoard]
+        saveBoardsToLocalStorage(boards)
+        currentBoardId = defaultBoard.id
+        saveCurrentBoardId(currentBoardId)
+      }
 
       set({ boards, currentBoardId, isLoading: false, error: null })
 
