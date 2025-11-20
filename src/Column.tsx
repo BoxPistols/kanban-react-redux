@@ -81,6 +81,16 @@ const Container = styled.div`
   > :not(:last-child) {
     flex-shrink: 0;
   }
+
+  @media (max-width: 768px) {
+    width: 280px;
+    min-width: 280px;
+  }
+
+  @media (max-width: 480px) {
+    width: 260px;
+    min-width: 260px;
+  }
 `
 
 const Header = styled.div`

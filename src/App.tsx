@@ -14,6 +14,7 @@ import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
 import { useKanbanStore } from './store/kanbanStore'
+import { useBoardStore } from './store/boardStore'
 import type { Card as CardType, ColumnType } from './types'
 
 const COLUMNS: { id: ColumnType; title: string }[] = [
@@ -25,20 +26,27 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 
 export function App() {
   const { cards, searchQuery, subscribeToCards, reorderCards } = useKanbanStore()
+  const { subscribeToBoards } = useBoardStore()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8
+        distance: 8,
+        delay: 100,
+        tolerance: 5
       }
     })
   )
 
   useEffect(() => {
-    const unsubscribe = subscribeToCards()
-    return () => unsubscribe()
-  }, [subscribeToCards])
+    const unsubscribeBoards = subscribeToBoards()
+    const unsubscribeCards = subscribeToCards()
+    return () => {
+      unsubscribeBoards()
+      unsubscribeCards()
+    }
+  }, [subscribeToBoards, subscribeToCards])
 
   const filteredCards = useMemo(() => {
     if (!searchQuery) return cards
