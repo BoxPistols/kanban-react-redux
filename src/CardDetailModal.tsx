@@ -1,5 +1,20 @@
 import { useState } from 'react'
 import styled from 'styled-components'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -8,6 +23,98 @@ import type { Card, ChecklistItem, Label } from './types'
 interface CardDetailModalProps {
   card: Card
   onClose: () => void
+}
+
+interface SortableChecklistItemProps {
+  item: ChecklistItem
+  isEditing: boolean
+  editingText: string
+  onToggle: () => void
+  onEdit: () => void
+  onDelete: () => void
+  onEditTextChange: (text: string) => void
+  onSaveEdit: () => void
+  onCancelEdit: () => void
+}
+
+function SortableChecklistItem({
+  item,
+  isEditing,
+  editingText,
+  onToggle,
+  onEdit,
+  onDelete,
+  onEditTextChange,
+  onSaveEdit,
+  onCancelEdit
+}: SortableChecklistItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  }
+
+  return (
+    <ChecklistItemRow ref={setNodeRef} style={style}>
+      <DragHandle {...attributes} {...listeners}>
+        ⋮⋮
+      </DragHandle>
+
+      {isEditing ? (
+        <>
+          <EditChecklistInput
+            type="text"
+            value={editingText}
+            onChange={(e) => onEditTextChange(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                onSaveEdit()
+              } else if (e.key === 'Escape') {
+                onCancelEdit()
+              }
+            }}
+            autoFocus
+          />
+          <SmallButton onClick={onSaveEdit} title="保存">
+            ✓
+          </SmallButton>
+          <SmallButton onClick={onCancelEdit} title="キャンセル">
+            ✕
+          </SmallButton>
+        </>
+      ) : (
+        <>
+          <Checkbox
+            type="checkbox"
+            checked={item.completed}
+            onChange={onToggle}
+          />
+          <ChecklistItemText
+            $completed={item.completed}
+            onDoubleClick={onEdit}
+            title="ダブルクリックで編集"
+          >
+            {item.text}
+          </ChecklistItemText>
+          <SmallButton onClick={onEdit} title="編集">
+            ✏️
+          </SmallButton>
+          <DeleteItemButton onClick={onDelete}>
+            ×
+          </DeleteItemButton>
+        </>
+      )}
+    </ChecklistItemRow>
+  )
 }
 
 export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
@@ -22,10 +129,20 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const [selectedLabels, setSelectedLabels] = useState<Label[]>(card.labels || [])
   const [checklist, setChecklist] = useState<ChecklistItem[]>(card.checklist || [])
   const [newChecklistItem, setNewChecklistItem] = useState('')
+  const [editingChecklistItem, setEditingChecklistItem] = useState<string | null>(null)
+  const [editingChecklistText, setEditingChecklistText] = useState('')
   const [dueDate, setDueDate] = useState(
     card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : ''
   )
   const [cardColor, setCardColor] = useState(card.color || '')
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8
+      }
+    })
+  )
 
   const progress = checklist.length > 0
     ? Math.round((checklist.filter(item => item.completed).length / checklist.length) * 100)
@@ -73,6 +190,42 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
   const deleteChecklistItem = (itemId: string) => {
     setChecklist(checklist.filter(item => item.id !== itemId))
+  }
+
+  const startEditChecklistItem = (item: ChecklistItem) => {
+    setEditingChecklistItem(item.id)
+    setEditingChecklistText(item.text)
+  }
+
+  const saveEditChecklistItem = () => {
+    if (!editingChecklistItem || !editingChecklistText.trim()) return
+    setChecklist(checklist.map(item =>
+      item.id === editingChecklistItem
+        ? { ...item, text: editingChecklistText }
+        : item
+    ))
+    setEditingChecklistItem(null)
+    setEditingChecklistText('')
+  }
+
+  const cancelEditChecklistItem = () => {
+    setEditingChecklistItem(null)
+    setEditingChecklistText('')
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = checklist.findIndex(item => item.id === active.id)
+    const newIndex = checklist.findIndex(item => item.id === over.id)
+
+    const reordered = arrayMove(checklist, oldIndex, newIndex)
+    const withUpdatedOrder = reordered.map((item, index) => ({
+      ...item,
+      order: index
+    }))
+    setChecklist(withUpdatedOrder)
   }
 
   const isDueSoon = !!(dueDate && new Date(dueDate).getTime() < Date.now() + 86400000) // 24 hours
@@ -171,23 +324,33 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                 <ProgressBar>
                   <ProgressFill $progress={progress} />
                 </ProgressBar>
-                <ChecklistItems>
-                  {checklist.map(item => (
-                    <ChecklistItemRow key={item.id}>
-                      <Checkbox
-                        type="checkbox"
-                        checked={item.completed}
-                        onChange={() => toggleChecklistItem(item.id)}
-                      />
-                      <ChecklistItemText $completed={item.completed}>
-                        {item.text}
-                      </ChecklistItemText>
-                      <DeleteItemButton onClick={() => deleteChecklistItem(item.id)}>
-                        ×
-                      </DeleteItemButton>
-                    </ChecklistItemRow>
-                  ))}
-                </ChecklistItems>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={checklist.map(item => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <ChecklistItems>
+                      {checklist.map(item => (
+                        <SortableChecklistItem
+                          key={item.id}
+                          item={item}
+                          isEditing={editingChecklistItem === item.id}
+                          editingText={editingChecklistText}
+                          onToggle={() => toggleChecklistItem(item.id)}
+                          onEdit={() => startEditChecklistItem(item)}
+                          onDelete={() => deleteChecklistItem(item.id)}
+                          onEditTextChange={setEditingChecklistText}
+                          onSaveEdit={saveEditChecklistItem}
+                          onCancelEdit={cancelEditChecklistItem}
+                        />
+                      ))}
+                    </ChecklistItems>
+                  </SortableContext>
+                </DndContext>
               </>
             )}
 
@@ -462,6 +625,50 @@ const ChecklistItemText = styled.span<{ $completed: boolean }>`
   color: ${color.Black};
   text-decoration: ${props => props.$completed ? 'line-through' : 'none'};
   opacity: ${props => props.$completed ? 0.6 : 1};
+  cursor: pointer;
+  user-select: none;
+`
+
+const DragHandle = styled.div`
+  cursor: grab;
+  color: ${color.Gray};
+  font-size: 14px;
+  padding: 0 4px;
+  flex-shrink: 0;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:hover {
+    color: ${color.Black};
+  }
+`
+
+const EditChecklistInput = styled.input`
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid ${color.Blue};
+  border-radius: 4px;
+  font-size: 14px;
+  outline: 2px solid ${color.Blue};
+  outline-offset: 2px;
+`
+
+const SmallButton = styled.button`
+  border: none;
+  background: ${color.LightSilver};
+  color: ${color.Black};
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: ${color.Silver};
+  }
 `
 
 const DeleteItemButton = styled.button`

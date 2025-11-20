@@ -24,6 +24,16 @@ const Container = styled.label`
   min-width: 300px;
   border: solid 1px ${color.Silver};
   border-radius: 3px;
+
+  @media (max-width: 768px) {
+    min-width: 200px;
+    max-width: 200px;
+  }
+
+  @media (max-width: 480px) {
+    min-width: 150px;
+    max-width: 150px;
+  }
 `
 
 const SearchIcon = styled(_SearchIcon)`

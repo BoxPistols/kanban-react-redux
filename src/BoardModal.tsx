@@ -51,7 +51,8 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
     }
   }, [board])
 
-  const handleAddLabel = async () => {
+  const handleAddLabel = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault()
     if (!boardId || !newLabelName.trim()) return
     await addLabelToBoard(boardId, {
       name: newLabelName,
@@ -59,6 +60,13 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
     })
     setNewLabelName('')
     setNewLabelColor(LABEL_COLORS[0])
+  }
+
+  const handleLabelKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddLabel()
+    }
   }
 
   const handleUpdateLabel = async () => {
@@ -179,19 +187,21 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                     type="text"
                     value={newLabelName}
                     onChange={(e) => setNewLabelName(e.target.value)}
+                    onKeyPress={handleLabelKeyPress}
                     placeholder="ラベル名"
                   />
                   <LabelColorPicker>
                     {LABEL_COLORS.map(c => (
                       <LabelColorOption
                         key={c}
+                        type="button"
                         $color={c}
                         $selected={newLabelColor === c}
                         onClick={() => setNewLabelColor(c)}
                       />
                     ))}
                   </LabelColorPicker>
-                  <AddLabelButton onClick={handleAddLabel}>
+                  <AddLabelButton type="button" onClick={handleAddLabel}>
                     追加
                   </AddLabelButton>
                 </LabelInputRow>
@@ -215,16 +225,17 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                             {LABEL_COLORS.map(c => (
                               <LabelColorOption
                                 key={c}
+                                type="button"
                                 $color={c}
                                 $selected={editingLabel.color === c}
                                 onClick={() => setEditingLabel({ ...editingLabel, color: c })}
                               />
                             ))}
                           </LabelColorPicker>
-                          <SaveLabelButton onClick={handleUpdateLabel}>
+                          <SaveLabelButton type="button" onClick={handleUpdateLabel}>
                             保存
                           </SaveLabelButton>
-                          <CancelLabelButton onClick={() => setEditingLabel(null)}>
+                          <CancelLabelButton type="button" onClick={() => setEditingLabel(null)}>
                             キャンセル
                           </CancelLabelButton>
                         </>
@@ -233,10 +244,10 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                           <LabelPreview $color={label.color}>
                             {label.name}
                           </LabelPreview>
-                          <EditLabelButton onClick={() => setEditingLabel(label)}>
+                          <EditLabelButton type="button" onClick={() => setEditingLabel(label)}>
                             編集
                           </EditLabelButton>
-                          <DeleteLabelButton onClick={() => handleDeleteLabel(label.id)}>
+                          <DeleteLabelButton type="button" onClick={() => handleDeleteLabel(label.id)}>
                             削除
                           </DeleteLabelButton>
                         </>
