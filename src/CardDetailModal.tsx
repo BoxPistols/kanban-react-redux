@@ -18,6 +18,8 @@ import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
+import { useThemeStore } from './store/themeStore'
+import { getTheme } from './theme'
 import type { Card, ChecklistItem, Label } from './types'
 
 interface CardDetailModalProps {
@@ -106,7 +108,7 @@ function SortableChecklistItem({
             {item.text}
           </ChecklistItemText>
           <SmallButton onClick={onEdit} title="編集">
-            ✏️
+            &#9998;
           </SmallButton>
           <DeleteItemButton onClick={onDelete}>
             ×
@@ -120,7 +122,9 @@ function SortableChecklistItem({
 export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const { updateCard } = useKanbanStore()
   const { boards, currentBoardId } = useBoardStore()
+  const { isDarkMode } = useThemeStore()
 
+  const theme = getTheme(isDarkMode)
   const currentBoard = boards.find(b => b.id === currentBoardId)
   const boardLabels = currentBoard?.labels || []
 
@@ -233,20 +237,21 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
   return (
     <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
-        <Header $color={cardColor}>
+      <Modal onClick={(e) => e.stopPropagation()} $theme={theme}>
+        <Header $color={cardColor} $theme={theme}>
           <TitleInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="カードのタイトル"
+            $theme={theme}
           />
-          <CloseButton onClick={onClose}>×</CloseButton>
+          <CloseButton onClick={onClose} $theme={theme}>×</CloseButton>
         </Header>
 
-        <Content>
+        <Content $theme={theme}>
           {/* Labels Section */}
           <Section>
-            <SectionTitle>ラベル</SectionTitle>
+            <SectionTitle $theme={theme}>ラベル</SectionTitle>
             <LabelsContainer>
               {boardLabels.map(label => (
                 <LabelTag
@@ -259,20 +264,21 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                 </LabelTag>
               ))}
               {boardLabels.length === 0 && (
-                <EmptyState>ボードにラベルを追加してください</EmptyState>
+                <EmptyState $theme={theme}>ボードにラベルを追加してください</EmptyState>
               )}
             </LabelsContainer>
           </Section>
 
           {/* Due Date Section */}
           <Section>
-            <SectionTitle>期限</SectionTitle>
+            <SectionTitle $theme={theme}>期限</SectionTitle>
             <DueDateInput
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               $isOverdue={isOverdue}
               $isDueSoon={isDueSoon && !isOverdue}
+              $theme={theme}
             />
             {isOverdue && <WarningText>期限切れです</WarningText>}
             {isDueSoon && !isOverdue && <WarningText $warning>まもなく期限です</WarningText>}
@@ -280,7 +286,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
           {/* Card Color Section */}
           <Section>
-            <SectionTitle>カードの色</SectionTitle>
+            <SectionTitle $theme={theme}>カードの色</SectionTitle>
             <ColorPicker>
               <ColorOption
                 $color=""
@@ -301,18 +307,19 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
           {/* Description Section */}
           <Section>
-            <SectionTitle>説明</SectionTitle>
+            <SectionTitle $theme={theme}>説明</SectionTitle>
             <DescriptionTextArea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="詳細な説明を入力..."
               rows={4}
+              $theme={theme}
             />
           </Section>
 
           {/* Checklist Section */}
           <Section>
-            <SectionTitle>
+            <SectionTitle $theme={theme}>
               チェックリスト
               {checklist.length > 0 && (
                 <ProgressText> ({progress}% 完了)</ProgressText>
@@ -361,15 +368,16 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                 onChange={(e) => setNewChecklistItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
                 placeholder="新しい項目を追加..."
+                $theme={theme}
               />
               <AddButton onClick={addChecklistItem}>追加</AddButton>
             </AddChecklistItemRow>
           </Section>
         </Content>
 
-        <Footer>
+        <Footer $theme={theme}>
           <SaveButton onClick={handleSave}>保存</SaveButton>
-          <CancelButton onClick={onClose}>キャンセル</CancelButton>
+          <CancelButton onClick={onClose} $theme={theme}>キャンセル</CancelButton>
         </Footer>
       </Modal>
     </Overlay>
@@ -391,8 +399,8 @@ const Overlay = styled.div`
   overflow-y: auto;
 `
 
-const Modal = styled.div`
-  background-color: ${color.White};
+const Modal = styled.div<{ $theme: any }>`
+  background-color: ${props => props.$theme.surface};
   border-radius: 8px;
   width: 100%;
   max-width: 600px;
@@ -403,42 +411,42 @@ const Modal = styled.div`
   margin: auto;
 `
 
-const Header = styled.div<{ $color?: string }>`
+const Header = styled.div<{ $color?: string; $theme: any }>`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px 20px;
-  border-bottom: 1px solid ${color.Silver};
+  border-bottom: 1px solid ${props => props.$theme.border};
   background-color: ${props => props.$color || 'transparent'};
   border-radius: 8px 8px 0 0;
   gap: 12px;
 `
 
-const TitleInput = styled.input`
+const TitleInput = styled.input<{ $theme: any }>`
   flex: 1;
   border: none;
   background: transparent;
   font-size: 20px;
   font-weight: 600;
-  color: ${color.Black};
+  color: ${props => props.$theme.text};
   padding: 4px 8px;
   border-radius: 4px;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: ${props => props.$theme.surfaceHover};
   }
 
   &:focus {
     outline: 2px solid ${color.Blue};
-    background-color: ${color.White};
+    background-color: ${props => props.$theme.inputBackground};
   }
 `
 
-const CloseButton = styled.button`
+const CloseButton = styled.button<{ $theme: any }>`
   border: none;
   background: none;
   font-size: 28px;
-  color: ${color.Gray};
+  color: ${props => props.$theme.textSecondary};
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -450,26 +458,27 @@ const CloseButton = styled.button`
   flex-shrink: 0;
 
   &:hover {
-    background-color: ${color.LightSilver};
-    color: ${color.Black};
+    background-color: ${props => props.$theme.surfaceHover};
+    color: ${props => props.$theme.text};
   }
 `
 
-const Content = styled.div`
+const Content = styled.div<{ $theme: any }>`
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  background-color: ${props => props.$theme.surface};
 `
 
 const Section = styled.div`
   margin-bottom: 24px;
 `
 
-const SectionTitle = styled.h3`
+const SectionTitle = styled.h3<{ $theme: any }>`
   margin: 0 0 12px 0;
   font-size: 14px;
   font-weight: 600;
-  color: ${color.Black};
+  color: ${props => props.$theme.text};
   display: flex;
   align-items: center;
 `
@@ -503,26 +512,27 @@ const LabelTag = styled.button<{ $color: string; $selected: boolean }>`
   }
 `
 
-const EmptyState = styled.div`
-  color: ${color.Gray};
+const EmptyState = styled.div<{ $theme: any }>`
+  color: ${props => props.$theme.textSecondary};
   font-size: 13px;
   font-style: italic;
 `
 
-const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
+const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: any }>`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid ${props =>
     props.$isOverdue ? color.Red :
     props.$isDueSoon ? '#FF9F1A' :
-    color.Silver
+    props.$theme.border
   };
   border-radius: 4px;
   font-size: 14px;
+  color: ${props => props.$theme.text};
   background-color: ${props =>
     props.$isOverdue ? '#FFE5E5' :
     props.$isDueSoon ? '#FFF4E5' :
-    color.White
+    props.$theme.inputBackground
   };
 
   &:focus {
@@ -558,13 +568,14 @@ const ColorOption = styled.button<{ $color: string; $selected: boolean }>`
   }
 `
 
-const DescriptionTextArea = styled.textarea`
+const DescriptionTextArea = styled.textarea<{ $theme: any }>`
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid ${color.Silver};
+  border: 1px solid ${props => props.$theme.border};
   border-radius: 4px;
   font-size: 14px;
-  color: ${color.Black};
+  color: ${props => props.$theme.text};
+  background-color: ${props => props.$theme.inputBackground};
   font-family: inherit;
   resize: vertical;
   box-sizing: border-box;
@@ -690,12 +701,14 @@ const AddChecklistItemRow = styled.div`
   gap: 8px;
 `
 
-const ChecklistInput = styled.input`
+const ChecklistInput = styled.input<{ $theme: any }>`
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid ${color.Silver};
+  border: 1px solid ${props => props.$theme.border};
   border-radius: 4px;
   font-size: 14px;
+  color: ${props => props.$theme.text};
+  background-color: ${props => props.$theme.inputBackground};
 
   &:focus {
     outline: 2px solid ${color.Blue};
@@ -720,11 +733,12 @@ const AddButton = styled.button`
   }
 `
 
-const Footer = styled.div`
+const Footer = styled.div<{ $theme: any }>`
   display: flex;
   gap: 8px;
   padding: 16px 20px;
-  border-top: 1px solid ${color.Silver};
+  border-top: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surface};
 `
 
 const SaveButton = styled.button`
@@ -743,18 +757,18 @@ const SaveButton = styled.button`
   }
 `
 
-const CancelButton = styled.button`
+const CancelButton = styled.button<{ $theme: any }>`
   flex: 1;
   padding: 10px 16px;
-  border: 1px solid ${color.Silver};
+  border: 1px solid ${props => props.$theme.border};
   border-radius: 4px;
-  background-color: ${color.White};
-  color: ${color.Black};
+  background-color: ${props => props.$theme.surface};
+  color: ${props => props.$theme.text};
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 
   &:hover {
-    background-color: ${color.LightSilver};
+    background-color: ${props => props.$theme.surfaceHover};
   }
 `

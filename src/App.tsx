@@ -15,6 +15,9 @@ import { Column } from './Column'
 import { Card as CardComponent } from './Card'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
+import { useThemeStore } from './store/themeStore'
+import { BoardIcon } from './icon'
+import { getTheme } from './theme'
 import type { Card as CardType, ColumnType } from './types'
 
 const COLUMNS: { id: ColumnType; title: string }[] = [
@@ -27,7 +30,10 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 export function App() {
   const { cards, searchQuery, subscribeToCards, reorderCards } = useKanbanStore()
   const { subscribeToBoards, currentBoardId } = useBoardStore()
+  const { isDarkMode, initializeTheme } = useThemeStore()
   const [activeId, setActiveId] = useState<string | null>(null)
+
+  const theme = getTheme(isDarkMode)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -38,6 +44,10 @@ export function App() {
       }
     })
   )
+
+  useEffect(() => {
+    initializeTheme()
+  }, [initializeTheme])
 
   useEffect(() => {
     const unsubscribeBoards = subscribeToBoards()
@@ -159,16 +169,16 @@ export function App() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <Container>
+      <Container $theme={theme}>
         <Header />
 
-        <MainArea>
+        <MainArea $theme={theme}>
           <HorizontalScroll>
             {!currentBoardId ? (
               <EmptyState>
-                <EmptyIcon>📋</EmptyIcon>
-                <EmptyTitle>ボードを選択してください</EmptyTitle>
-                <EmptyText>ヘッダーの「+ ボード」ボタンから新しいボードを作成できます</EmptyText>
+                <EmptyIcon><BoardIcon /></EmptyIcon>
+                <EmptyTitle $theme={theme}>ボードを選択してください</EmptyTitle>
+                <EmptyText $theme={theme}>ヘッダーの「+ ボード」ボタンから新しいボードを作成できます</EmptyText>
               </EmptyState>
             ) : (
               COLUMNS.map(column => {
@@ -196,20 +206,22 @@ export function App() {
   )
 }
 
-const Container = styled.div`
+const Container = styled.div<{ $theme: any }>`
   display: flex;
   flex-flow: column;
   height: 100%;
+  background-color: ${props => props.$theme.background};
 `
 
 const Header = styled(_Header)`
   flex-shrink: 0;
 `
 
-const MainArea = styled.div`
+const MainArea = styled.div<{ $theme: any }>`
   height: 100%;
   padding: 16px 0;
   overflow-y: auto;
+  background-color: ${props => props.$theme.background};
 `
 
 const HorizontalScroll = styled.div`
@@ -244,19 +256,25 @@ const EmptyState = styled.div`
 const EmptyIcon = styled.div`
   font-size: 64px;
   margin-bottom: 16px;
-  opacity: 0.5;
+  opacity: 0.3;
+  color: #6B778C;
+
+  svg {
+    width: 64px;
+    height: 64px;
+  }
 `
 
-const EmptyTitle = styled.h2`
+const EmptyTitle = styled.h2<{ $theme: any }>`
   font-size: 24px;
-  color: #344563;
+  color: ${props => props.$theme.text};
   margin: 0 0 12px 0;
   font-weight: 600;
 `
 
-const EmptyText = styled.p`
+const EmptyText = styled.p<{ $theme: any }>`
   font-size: 16px;
-  color: #6B778C;
+  color: ${props => props.$theme.textSecondary};
   margin: 0;
   max-width: 400px;
 `
