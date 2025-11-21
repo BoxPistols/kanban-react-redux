@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import * as color from './color'
 import { useBoardStore } from './store/boardStore'
 import { BoardModal } from './BoardModal'
+import { EditIcon } from './icon'
 
 export function BoardSelector() {
   const { boards, currentBoardId, setCurrentBoardId } = useBoardStore()
@@ -40,7 +41,7 @@ export function BoardSelector() {
 
         {currentBoard && (
           <EditButton onClick={(e) => handleEditBoard(e, currentBoard.id)} title="ボードを編集">
-            ✏️
+            <EditIcon />
           </EditButton>
         )}
 

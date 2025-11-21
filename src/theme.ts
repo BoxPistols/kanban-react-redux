@@ -1,0 +1,53 @@
+import * as color from './color'
+
+export interface Theme {
+  background: string
+  surface: string
+  surfaceHover: string
+  text: string
+  textSecondary: string
+  border: string
+  cardBackground: string
+  columnBackground: string
+  headerBackground: string
+  inputBackground: string
+  inputBorder: string
+  shadow: string
+  shadowHover: string
+}
+
+export const lightTheme: Theme = {
+  background: '#F4F5F7',
+  surface: color.White,
+  surfaceHover: '#F8F9FA',
+  text: color.Black,
+  textSecondary: '#6B778C',
+  border: color.Silver,
+  cardBackground: color.White,
+  columnBackground: color.LightSilver,
+  headerBackground: color.Navy,
+  inputBackground: color.White,
+  inputBorder: color.Silver,
+  shadow: 'hsla(0, 0%, 7%, 0.1)',
+  shadowHover: 'hsla(0, 0%, 7%, 0.2)'
+}
+
+export const darkTheme: Theme = {
+  background: '#1A1D23',
+  surface: '#22272B',
+  surfaceHover: '#2C333A',
+  text: '#B6C2CF',
+  textSecondary: '#8C9BAB',
+  border: '#3D444D',
+  cardBackground: '#22272B',
+  columnBackground: '#161A1D',
+  headerBackground: '#161A1D',
+  inputBackground: '#22272B',
+  inputBorder: '#3D444D',
+  shadow: 'hsla(0, 0%, 0%, 0.3)',
+  shadowHover: 'hsla(0, 0%, 0%, 0.5)'
+}
+
+export function getTheme(isDarkMode: boolean): Theme {
+  return isDarkMode ? darkTheme : lightTheme
+}

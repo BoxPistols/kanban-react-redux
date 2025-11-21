@@ -3,8 +3,10 @@ import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
-import { CheckIcon as _CheckIcon, TrashIcon } from './icon'
+import { CheckIcon as _CheckIcon, TrashIcon, CalendarIcon, ListIcon, DocumentIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
+import { useThemeStore } from './store/themeStore'
+import { getTheme } from './theme'
 import { CardDetailModal } from './CardDetailModal'
 import type { Card as CardType } from './types'
 
@@ -16,7 +18,10 @@ export function Card({
   isDragging?: boolean
 }) {
   const { deleteCard } = useKanbanStore()
+  const { isDarkMode } = useThemeStore()
   const [showModal, setShowModal] = useState(false)
+
+  const theme = getTheme(isDarkMode)
 
   const {
     attributes,
@@ -57,9 +62,15 @@ export function Card({
   const hasDueDate = card.dueDate
   const completedItems = card.checklist?.filter(item => item.completed).length || 0
   const totalItems = card.checklist?.length || 0
+  const primaryLabelColor = hasLabels ? card.labels![0].color : undefined
 
   const isDueSoon = !!(card.dueDate && card.dueDate < Date.now() + 86400000) // 24 hours
   const isOverdue = !!(card.dueDate && card.dueDate < Date.now())
+
+  // Get description preview (first 80 characters)
+  const descriptionPreview = card.description ?
+    (card.description.length > 80 ? card.description.slice(0, 80) + '...' : card.description)
+    : null
 
   return (
     <>
@@ -67,7 +78,8 @@ export function Card({
         ref={setNodeRef}
         style={style}
         $isDragging={isDragging || isSortableDragging}
-        $cardColor={card.color}
+        $labelColor={primaryLabelColor}
+        $theme={theme}
         onClick={handleCardClick}
         {...listeners}
         {...attributes}
@@ -86,14 +98,9 @@ export function Card({
           <CheckIcon />
 
           <TextContent>
-            {displayText.split(/(https?:\/\/\S+)/g).map((fragment, i) =>
-              i % 2 === 0 ? (
-                <Text key={i}>{fragment}</Text>
-              ) : (
-                <Link key={i} href={fragment}>
-                  {fragment}
-                </Link>
-              )
+            <Title $theme={theme}>{displayText}</Title>
+            {descriptionPreview && (
+              <Description $theme={theme}>{descriptionPreview}</Description>
             )}
           </TextContent>
         </ContentRow>
@@ -101,25 +108,29 @@ export function Card({
         <MetadataRow>
           {hasDueDate && (
             <DueDateBadge $isOverdue={isOverdue} $isDueSoon={isDueSoon && !isOverdue}>
-              📅 {new Date(card.dueDate!).toLocaleDateString('ja-JP', {
+              <CalendarIcon />
+              <span>{new Date(card.dueDate!).toLocaleDateString('ja-JP', {
                 month: 'short',
                 day: 'numeric'
-              })}
+              })}</span>
             </DueDateBadge>
           )}
 
           {hasChecklist && (
             <ChecklistBadge $allCompleted={completedItems === totalItems}>
-              ✓ {completedItems}/{totalItems}
+              <ListIcon />
+              <span>{completedItems}/{totalItems}</span>
             </ChecklistBadge>
           )}
 
           {card.description && (
-            <DescriptionBadge title="説明あり">📝</DescriptionBadge>
+            <DescriptionBadge $theme={theme} title="説明あり">
+              <DocumentIcon />
+            </DescriptionBadge>
           )}
         </MetadataRow>
 
-        <DeleteButton onClick={handleDelete} />
+        <DeleteButton onClick={handleDelete} $theme={theme} />
       </Container>
 
       {showModal && (
@@ -132,13 +143,14 @@ export function Card({
   )
 }
 
-const Container = styled.div<{ $isDragging?: boolean; $cardColor?: string }>`
+const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $theme: any }>`
   position: relative;
-  border: solid 1px ${color.Silver};
+  border: solid 1px ${props => props.$theme.border};
   border-radius: 6px;
-  box-shadow: 0 1px 3px hsla(0, 0%, 7%, 0.1);
-  padding: 8px;
-  background-color: ${props => props.$cardColor || color.White};
+  border-top: 4px solid ${props => props.$labelColor || props.$theme.border};
+  box-shadow: 0 1px 3px ${props => props.$theme.shadow};
+  padding: 10px;
+  background-color: ${props => props.$theme.cardBackground};
   cursor: pointer;
   opacity: ${props => (props.$isDragging ? 0.5 : 1)};
   touch-action: none;
@@ -147,7 +159,7 @@ const Container = styled.div<{ $isDragging?: boolean; $cardColor?: string }>`
   gap: 8px;
 
   &:hover {
-    box-shadow: 0 2px 8px hsla(0, 0%, 7%, 0.2);
+    box-shadow: 0 2px 8px ${props => props.$theme.shadowHover};
   }
 `
 
@@ -184,24 +196,23 @@ const CheckIcon = styled(_CheckIcon)`
 const TextContent = styled.div`
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `
 
-const Text = styled.span`
-  color: ${color.Black};
+const Title = styled.div<{ $theme: any }>`
+  color: ${props => props.$theme.text};
   font-size: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
+  font-weight: 600;
+  line-height: 1.4;
   word-break: break-word;
 `
 
-const Link = styled.a.attrs({
-    target: '_blank',
-    rel: 'noopener noreferrer',
-})`
-  color: ${color.Blue};
-  font-size: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
+const Description = styled.div<{ $theme: any }>`
+  color: ${props => props.$theme.textSecondary};
+  font-size: 12px;
+  line-height: 1.4;
   word-break: break-word;
 `
 
@@ -213,7 +224,10 @@ const MetadataRow = styled.div`
 `
 
 const DueDateBadge = styled.div<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
-  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 3px;
   background-color: ${props =>
     props.$isOverdue ? color.Red :
@@ -225,34 +239,55 @@ const DueDateBadge = styled.div<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
   };
   font-size: 11px;
   font-weight: 600;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 `
 
 const ChecklistBadge = styled.div<{ $allCompleted: boolean }>`
-  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
   border-radius: 3px;
   background-color: ${props => props.$allCompleted ? color.Green : color.LightSilver};
   color: ${props => props.$allCompleted ? color.White : color.Black};
   font-size: 11px;
   font-weight: 600;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 `
 
-const DescriptionBadge = styled.div`
-  padding: 2px 6px;
+const DescriptionBadge = styled.div<{ $theme: any }>`
+  display: flex;
+  align-items: center;
+  padding: 3px 8px;
   border-radius: 3px;
-  background-color: ${color.LightSilver};
+  background-color: ${props => props.$theme.surface};
+  color: ${props => props.$theme.textSecondary};
   font-size: 11px;
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 `
 
 const DeleteButton = styled.button.attrs({
     type: 'button',
     children: <TrashIcon />,
-})`
+})<{ $theme: any }>`
   position: absolute;
   top: 8px;
   right: 8px;
   font-size: 14px;
-  color: ${color.Gray};
-  background: ${color.White};
+  color: ${props => props.$theme.textSecondary};
+  background: ${props => props.$theme.cardBackground};
   border-radius: 3px;
   padding: 2px;
   opacity: 0.7;
