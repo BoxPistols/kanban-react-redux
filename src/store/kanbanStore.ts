@@ -46,13 +46,13 @@ interface KanbanState {
 
   // Actions
   setCards: (cards: Card[]) => void
-  addCard: (text: string, columnId: ColumnType) => Promise<void>
+  addCard: (text: string, columnId: ColumnType, boardId: string) => Promise<void>
   updateCard: (id: string, updates: Partial<Card>) => Promise<void>
   deleteCard: (id: string) => Promise<void>
   moveCard: (cardId: string, newColumnId: ColumnType, newOrder: number) => Promise<void>
   reorderCards: (updates: { id: string; order: number; columnId?: ColumnType }[]) => Promise<void>
   setSearchQuery: (query: string) => void
-  subscribeToCards: () => () => void
+  subscribeToCards: (boardId?: string) => () => void
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -68,10 +68,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     }
   },
 
-  addCard: async (text, columnId) => {
+  addCard: async (text, columnId, boardId) => {
     try {
       set({ isLoading: true, error: null })
-      const cardsInColumn = get().cards.filter(c => c.columnId === columnId)
+      const cardsInColumn = get().cards.filter(c => c.columnId === columnId && c.boardId === boardId)
       const maxOrder = cardsInColumn.length > 0
         ? Math.max(...cardsInColumn.map(c => c.order))
         : -1
@@ -79,6 +79,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       const newCardData = {
         text,
         columnId,
+        boardId,
         order: maxOrder + 1,
         createdAt: Date.now(),
         updatedAt: Date.now()
@@ -235,7 +236,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
-  subscribeToCards: () => {
+  subscribeToCards: (boardId) => {
     set({ isLoading: true, error: null })
 
     if (isFirebaseEnabled && db) {
@@ -245,17 +246,27 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          const cards: Card[] = snapshot.docs.map(doc => {
+          const allCards: Card[] = snapshot.docs.map(doc => {
             const data = doc.data()
             return {
               id: doc.id,
               text: data.text ?? '',
               columnId: data.columnId ?? 'TODO',
+              boardId: data.boardId ?? '',
               order: data.order ?? 0,
               createdAt: data.createdAt ?? Date.now(),
-              updatedAt: data.updatedAt ?? Date.now()
+              updatedAt: data.updatedAt ?? Date.now(),
+              title: data.title,
+              description: data.description,
+              labels: data.labels,
+              color: data.color,
+              checklist: data.checklist,
+              dueDate: data.dueDate,
+              progress: data.progress
             } as Card
           })
+          // Filter by boardId if provided
+          const cards = boardId ? allCards.filter(c => c.boardId === boardId) : allCards
           set({ cards, isLoading: false, error: null })
         },
         (error) => {
@@ -267,7 +278,8 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       return unsubscribe
     } else {
       // LocalStorage mode
-      const cards = loadCardsFromLocalStorage()
+      const allCards = loadCardsFromLocalStorage()
+      const cards = boardId ? allCards.filter(c => c.boardId === boardId) : allCards
       set({ cards, isLoading: false, error: null })
 
       // Return a no-op unsubscribe function

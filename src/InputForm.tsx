@@ -2,6 +2,8 @@ import { useRef, useEffect } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { Button, ConfirmButton } from './Button'
+import { useThemeStore } from './store/themeStore'
+import { getTheme } from './theme'
 
 export function InputForm({
     value,
@@ -16,6 +18,8 @@ export function InputForm({
     onCancel?(): void
     className?: string
 }) {
+    const { isDarkMode } = useThemeStore()
+    const theme = getTheme(isDarkMode)
     const disabled = !value?.trim()
     const handleConfirm = () => {
         if (disabled) return
@@ -36,6 +40,7 @@ export function InputForm({
                     if (!((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter')) return
                     handleConfirm()
                 }}
+                $theme={theme}
             />
 
             <ButtonRow>
@@ -72,14 +77,15 @@ function useAutoFitToContentHeight(content: string | undefined) {
 
 const Container = styled.div``
 
-const Input = styled.textarea`
+const Input = styled.textarea<{ $theme: any }>`
   display: block;
   width: 100%;
   margin-bottom: 8px;
-  border: solid 1px ${color.Silver};
+  border: solid 1px ${props => props.$theme.border};
   border-radius: 3px;
   padding: 6px 8px;
-  background-color: ${color.White};
+  background-color: ${props => props.$theme.inputBackground};
+  color: ${props => props.$theme.text};
   font-size: 14px;
   line-height: 1.7;
 

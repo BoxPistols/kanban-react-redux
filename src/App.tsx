@@ -14,6 +14,10 @@ import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
 import { useKanbanStore } from './store/kanbanStore'
+import { useBoardStore } from './store/boardStore'
+import { useThemeStore } from './store/themeStore'
+import { BoardIcon } from './icon'
+import { getTheme } from './theme'
 import type { Card as CardType, ColumnType } from './types'
 
 const COLUMNS: { id: ColumnType; title: string }[] = [
@@ -25,20 +29,36 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 
 export function App() {
   const { cards, searchQuery, subscribeToCards, reorderCards } = useKanbanStore()
+  const { subscribeToBoards, currentBoardId } = useBoardStore()
+  const { isDarkMode, initializeTheme } = useThemeStore()
   const [activeId, setActiveId] = useState<string | null>(null)
+
+  const theme = getTheme(isDarkMode)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8
+        distance: 8,
+        delay: 100,
+        tolerance: 5
       }
     })
   )
 
   useEffect(() => {
-    const unsubscribe = subscribeToCards()
-    return () => unsubscribe()
-  }, [subscribeToCards])
+    initializeTheme()
+  }, [initializeTheme])
+
+  useEffect(() => {
+    const unsubscribeBoards = subscribeToBoards()
+    return () => unsubscribeBoards()
+  }, [subscribeToBoards])
+
+  useEffect(() => {
+    if (!currentBoardId) return
+    const unsubscribeCards = subscribeToCards(currentBoardId)
+    return () => unsubscribeCards()
+  }, [subscribeToCards, currentBoardId])
 
   const filteredCards = useMemo(() => {
     if (!searchQuery) return cards
@@ -149,23 +169,32 @@ export function App() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <Container>
+      <Container $theme={theme}>
         <Header />
 
-        <MainArea>
+        <MainArea $theme={theme}>
           <HorizontalScroll>
-            {COLUMNS.map(column => {
-              const columnCards = cardsByColumn[column.id] || []
+            {!currentBoardId ? (
+              <EmptyState>
+                <EmptyIcon><BoardIcon /></EmptyIcon>
+                <EmptyTitle $theme={theme}>ボードを選択してください</EmptyTitle>
+                <EmptyText $theme={theme}>ヘッダーの「+ ボード」ボタンから新しいボードを作成できます</EmptyText>
+              </EmptyState>
+            ) : (
+              COLUMNS.map(column => {
+                const columnCards = cardsByColumn[column.id] || []
 
-              return (
-                <Column
-                  key={column.id}
-                  id={column.id}
-                  title={column.title}
-                  cards={columnCards}
-                />
-              )
-            })}
+                return (
+                  <Column
+                    key={column.id}
+                    id={column.id}
+                    title={column.title}
+                    cards={columnCards}
+                    boardId={currentBoardId}
+                  />
+                )
+              })
+            )}
           </HorizontalScroll>
         </MainArea>
 
@@ -177,20 +206,22 @@ export function App() {
   )
 }
 
-const Container = styled.div`
+const Container = styled.div<{ $theme: any }>`
   display: flex;
   flex-flow: column;
   height: 100%;
+  background-color: ${props => props.$theme.background};
 `
 
 const Header = styled(_Header)`
   flex-shrink: 0;
 `
 
-const MainArea = styled.div`
+const MainArea = styled.div<{ $theme: any }>`
   height: 100%;
   padding: 16px 0;
   overflow-y: auto;
+  background-color: ${props => props.$theme.background};
 `
 
 const HorizontalScroll = styled.div`
@@ -209,4 +240,41 @@ const HorizontalScroll = styled.div`
     flex: 0 0 16px;
     content: '';
   }
+`
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
+`
+
+const EmptyIcon = styled.div`
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+  color: #6B778C;
+
+  svg {
+    width: 64px;
+    height: 64px;
+  }
+`
+
+const EmptyTitle = styled.h2<{ $theme: any }>`
+  font-size: 24px;
+  color: ${props => props.$theme.text};
+  margin: 0 0 12px 0;
+  font-weight: 600;
+`
+
+const EmptyText = styled.p<{ $theme: any }>`
+  font-size: 16px;
+  color: ${props => props.$theme.textSecondary};
+  margin: 0;
+  max-width: 400px;
 `
