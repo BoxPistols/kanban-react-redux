@@ -1,4 +1,9 @@
 import styled from 'styled-components'
+// Import icons from react-icons library for moon and sun
+import { FiMoon, FiSun } from 'react-icons/fi'
+
+// Re-export moon and sun icons from react-icons
+export { FiMoon as MoonIcon, FiSun as SunIcon }
 
 // http://svgicons.sparkk.fr
 export const SearchIcon = generateIcon(
@@ -35,16 +40,6 @@ export const DocumentIcon = generateIcon(
 
 export const EditIcon = generateIcon(
     'M16.679,5.60187506 L18.381,7.30587506 C18.772,7.69587506 18.772,8.32787506 18.381,8.71787506 L16.969,10.1298751 L13.871,7.03187506 L15.283,5.61987506 C15.674,5.22987506 16.305,5.22987506 16.679,5.60187506 Z M2,17.5838751 L2,20.7528751 L5.168,20.7528751 L14.5,11.4198751 L11.401,8.32087506 L2,17.5838751 Z',
-)
-
-// Crescent moon icon - clear and recognizable
-export const MoonIcon = generateIcon(
-    'M17,10.5A6.5,6.5,0,1,1,10.5,4a5.5,5.5,0,0,0,0,11A6.467,6.467,0,0,1,17,10.5Z',
-)
-
-// Sun icon with rays - clear and recognizable
-export const SunIcon = generateIcon(
-    'M10,13.5A3.5,3.5,0,1,0,6.5,10,3.5,3.5,0,0,0,10,13.5Zm0-9a.75.75,0,0,0,.75-.75V2a.75.75,0,0,0-1.5,0V3.75A.75.75,0,0,0,10,4.5Zm0,11a.75.75,0,0,0-.75.75V18a.75.75,0,0,0,1.5,0V16.25A.75.75,0,0,0,10,15.5ZM18,10a.75.75,0,0,0-.75-.75H15.5a.75.75,0,0,0,0,1.5h1.75A.75.75,0,0,0,18,10ZM4.5,10a.75.75,0,0,0-.75-.75H2a.75.75,0,0,0,0,1.5H3.75A.75.75,0,0,0,4.5,10Zm10.53-5.03a.75.75,0,0,0,1.061-1.061L14.828,2.646a.75.75,0,1,0-1.061,1.061ZM4.909,15.091a.75.75,0,1,0-1.061,1.061l1.263,1.263a.75.75,0,1,0,1.061-1.061Zm10.182,0-1.263,1.263a.75.75,0,1,0,1.061,1.061l1.263-1.263a.75.75,0,0,0-1.061-1.061ZM4.909,4.909,3.646,3.646A.75.75,0,1,0,2.585,4.707L3.848,5.97A.75.75,0,1,0,4.909,4.909Z',
 )
 
 function generateIcon(d: string) {
