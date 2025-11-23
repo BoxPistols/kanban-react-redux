@@ -10,6 +10,7 @@ import {
   orderBy,
   writeBatch
 } from 'firebase/firestore'
+import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import type { Card, ColumnType } from '../types'
 
@@ -91,7 +92,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       } else {
         // LocalStorage mode
         const newCard: Card = {
-          id: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: uuidv4(),
           ...newCardData
         }
         const currentCards = get().cards

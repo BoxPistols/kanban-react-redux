@@ -9,7 +9,9 @@ import {
   query,
   orderBy
 } from 'firebase/firestore'
+import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
+import { BOARD_COLORS } from '../constants'
 import type { Board, Label } from '../types'
 
 const STORAGE_KEY = 'kanban-boards'
@@ -113,7 +115,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         }
       } else {
         const newBoard: Board = {
-          id: `board-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: uuidv4(),
           ...newBoardData
         }
         const currentBoards = get().boards
@@ -192,7 +194,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       if (!board) return
 
       const newLabel: Label = {
-        id: `label-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: uuidv4(),
         ...label
       }
 
@@ -282,10 +284,10 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       // Create default board if none exist
       if (boards.length === 0) {
         const defaultBoard: Board = {
-          id: `board-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: uuidv4(),
           name: 'マイボード',
           description: 'デフォルトのボード',
-          color: '#0079BF',
+          color: BOARD_COLORS[0],
           labels: [],
           createdAt: Date.now(),
           updatedAt: Date.now()
