@@ -10,6 +10,7 @@ import {
   useSensors
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
+import { GlobalStyle } from './GlobalStyle'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
@@ -169,6 +170,7 @@ export function App() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      <GlobalStyle $theme={theme} />
       <Container $theme={theme}>
         <Header />
 
