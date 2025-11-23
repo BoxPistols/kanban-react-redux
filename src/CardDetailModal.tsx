@@ -15,11 +15,14 @@ import {
   arrayMove
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { v4 as uuidv4 } from 'uuid'
 import * as color from './color'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme } from './theme'
+import { CARD_COLORS } from './constants'
+import { getDueDateStatus } from './utils/dateUtils'
 import type { Card, ChecklistItem, Label } from './types'
 
 interface CardDetailModalProps {
@@ -177,7 +180,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const addChecklistItem = () => {
     if (!newChecklistItem.trim()) return
     const newItem: ChecklistItem = {
-      id: `checklist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: uuidv4(),
       text: newChecklistItem,
       completed: false,
       order: checklist.length
@@ -232,8 +235,8 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     setChecklist(withUpdatedOrder)
   }
 
-  const isDueSoon = !!(dueDate && new Date(dueDate).getTime() < Date.now() + 86400000) // 24 hours
-  const isOverdue = !!(dueDate && new Date(dueDate).getTime() < Date.now())
+  const dueDateTimestamp = dueDate ? new Date(dueDate).getTime() : undefined
+  const { isDueSoon, isOverdue } = getDueDateStatus(dueDateTimestamp)
 
   return (
     <Overlay onClick={onClose}>
@@ -294,7 +297,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                 onClick={() => setCardColor('')}
                 title="デフォルト"
               />
-              {['#FFEAA7', '#81ECEC', '#A29BFE', '#FD79A8', '#FDCB6E', '#6C5CE7'].map(c => (
+              {CARD_COLORS.map(c => (
                 <ColorOption
                   key={c}
                   $color={c}

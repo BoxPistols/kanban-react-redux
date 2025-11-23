@@ -7,6 +7,7 @@ import { CheckIcon as _CheckIcon, TrashIcon, CalendarIcon, ListIcon, DocumentIco
 import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme } from './theme'
+import { getDueDateStatus } from './utils/dateUtils'
 import { CardDetailModal } from './CardDetailModal'
 import type { Card as CardType } from './types'
 
@@ -64,8 +65,7 @@ export function Card({
   const totalItems = card.checklist?.length || 0
   const primaryLabelColor = hasLabels ? card.labels![0].color : undefined
 
-  const isDueSoon = !!(card.dueDate && card.dueDate < Date.now() + 86400000) // 24 hours
-  const isOverdue = !!(card.dueDate && card.dueDate < Date.now())
+  const { isDueSoon, isOverdue } = getDueDateStatus(card.dueDate)
 
   // Get description preview (first 80 characters)
   const descriptionPreview = card.description ?
