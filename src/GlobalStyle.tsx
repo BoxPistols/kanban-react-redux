@@ -1,6 +1,7 @@
 import { createGlobalStyle } from 'styled-components'
+import type { Theme } from './theme'
 
-export const GlobalStyle = createGlobalStyle`
+export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   html, body, #app {
     height: 100%;
   }
@@ -11,5 +12,9 @@ export const GlobalStyle = createGlobalStyle`
       Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
 
     overflow-wrap: break-word;
+    background-color: ${props => props.$theme.background};
+    color: ${props => props.$theme.text};
+    margin: 0;
+    padding: 0;
   }
 `
