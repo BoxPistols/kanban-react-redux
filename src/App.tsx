@@ -29,7 +29,7 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 ]
 
 export function App() {
-  const { cards, searchQuery, subscribeToCards, reorderCards } = useKanbanStore()
+  const { cards, searchQuery, selectedLabelIds, subscribeToCards, reorderCards } = useKanbanStore()
   const { subscribeToBoards, currentBoardId } = useBoardStore()
   const { isDarkMode, initializeTheme } = useThemeStore()
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -62,11 +62,27 @@ export function App() {
   }, [subscribeToCards, currentBoardId])
 
   const filteredCards = useMemo(() => {
-    if (!searchQuery) return cards
-    return cards.filter(card =>
-      card.text.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }, [cards, searchQuery])
+    let filtered = cards
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(card =>
+        card.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Filter by selected labels
+    if (selectedLabelIds.length > 0) {
+      filtered = filtered.filter(card => {
+        if (!card.labels || card.labels.length === 0) return false
+        return card.labels.some(label => selectedLabelIds.includes(label.id))
+      })
+    }
+
+    return filtered
+  }, [cards, searchQuery, selectedLabelIds])
 
   const cardsByColumn = useMemo(() => {
     const grouped = filteredCards.reduce<Record<ColumnType, CardType[]>>((acc, card) => {
