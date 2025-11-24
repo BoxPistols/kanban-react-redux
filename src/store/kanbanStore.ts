@@ -42,6 +42,7 @@ function saveCardsToLocalStorage(cards: Card[]): void {
 interface KanbanState {
   cards: Card[]
   searchQuery: string
+  selectedLabelIds: string[]
   isLoading: boolean
   error: string | null
 
@@ -53,12 +54,15 @@ interface KanbanState {
   moveCard: (cardId: string, newColumnId: ColumnType, newOrder: number) => Promise<void>
   reorderCards: (updates: { id: string; order: number; columnId?: ColumnType }[]) => Promise<void>
   setSearchQuery: (query: string) => void
+  setSelectedLabelIds: (labelIds: string[]) => void
+  toggleLabelFilter: (labelId: string) => void
   subscribeToCards: (boardId?: string) => () => void
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
   cards: [],
   searchQuery: '',
+  selectedLabelIds: [],
   isLoading: false,
   error: null,
 
@@ -236,6 +240,16 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   },
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  setSelectedLabelIds: (labelIds) => set({ selectedLabelIds: labelIds }),
+
+  toggleLabelFilter: (labelId) => {
+    const { selectedLabelIds } = get()
+    const newSelectedLabelIds = selectedLabelIds.includes(labelId)
+      ? selectedLabelIds.filter(id => id !== labelId)
+      : [...selectedLabelIds, labelId]
+    set({ selectedLabelIds: newSelectedLabelIds })
+  },
 
   subscribeToCards: (boardId) => {
     set({ isLoading: true, error: null })
