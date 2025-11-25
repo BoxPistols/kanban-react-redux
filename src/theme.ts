@@ -36,8 +36,8 @@ export const darkTheme: Theme = {
   background: '#1A1D23',
   surface: '#22272B',
   surfaceHover: '#2C333A',
-  text: '#B6C2CF',
-  textSecondary: '#8C9BAB',
+  text: '#E3E5E8',  // Improved contrast from #B6C2CF - 87% opacity on white
+  textSecondary: '#9BA1A6',  // Improved contrast from #8C9BAB - 60% opacity
   border: '#3D444D',
   cardBackground: '#22272B',
   columnBackground: '#161A1D',
