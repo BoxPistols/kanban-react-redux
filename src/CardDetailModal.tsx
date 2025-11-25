@@ -134,6 +134,8 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const currentBoard = boards.find(b => b.id === currentBoardId)
   const boardLabels = currentBoard?.labels || []
 
+  console.log('CardDetailModal opened - Card:', card.text, 'Card.labels:', card.labels, 'Board labels:', boardLabels)
+
   const [title, setTitle] = useState(card.title || card.text)
   const [description, setDescription] = useState(card.description || '')
   const [selectedLabels, setSelectedLabels] = useState<Label[]>(card.labels || [])
@@ -174,11 +176,16 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   }
 
   const toggleLabel = (label: Label) => {
+    console.log('Toggle label:', label.name, 'Current selected:', selectedLabels)
     const isSelected = selectedLabels.some(l => l.id === label.id)
     if (isSelected) {
-      setSelectedLabels(selectedLabels.filter(l => l.id !== label.id))
+      const newLabels = selectedLabels.filter(l => l.id !== label.id)
+      console.log('Removing label, new labels:', newLabels)
+      setSelectedLabels(newLabels)
     } else {
-      setSelectedLabels([...selectedLabels, label])
+      const newLabels = [...selectedLabels, label]
+      console.log('Adding label, new labels:', newLabels)
+      setSelectedLabels(newLabels)
     }
   }
 
