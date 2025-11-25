@@ -159,6 +159,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     : 0
 
   const handleSave = async () => {
+    console.log('Saving card with labels:', selectedLabels)
     await updateCard(card.id, {
       title,
       description,
@@ -168,6 +169,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       progress,
       color: cardColor
     })
+    console.log('Card saved')
     onClose()
   }
 

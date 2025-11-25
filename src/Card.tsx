@@ -65,6 +65,11 @@ export function Card({
   const totalItems = card.checklist?.length || 0
   const primaryLabelColor = hasLabels ? card.labels![0].color : undefined
 
+  // Debug: Log card labels
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Card:', card.text, 'Labels:', card.labels, 'hasLabels:', hasLabels)
+  }
+
   const { isDueSoon, isOverdue } = getDueDateStatus(card.dueDate)
 
   // Get description preview (first 80 characters)
