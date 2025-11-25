@@ -40,6 +40,7 @@ interface SortableChecklistItemProps {
   onEditTextChange: (text: string) => void
   onSaveEdit: () => void
   onCancelEdit: () => void
+  theme: any
 }
 
 function SortableChecklistItem({
@@ -51,7 +52,8 @@ function SortableChecklistItem({
   onDelete,
   onEditTextChange,
   onSaveEdit,
-  onCancelEdit
+  onCancelEdit,
+  theme
 }: SortableChecklistItemProps) {
   const {
     attributes,
@@ -88,11 +90,12 @@ function SortableChecklistItem({
               }
             }}
             autoFocus
+            $theme={theme}
           />
-          <SmallButton onClick={onSaveEdit} title="保存">
+          <SmallButton onClick={onSaveEdit} title="保存" $theme={theme}>
             ✓
           </SmallButton>
-          <SmallButton onClick={onCancelEdit} title="キャンセル">
+          <SmallButton onClick={onCancelEdit} title="キャンセル" $theme={theme}>
             ✕
           </SmallButton>
         </>
@@ -110,7 +113,7 @@ function SortableChecklistItem({
           >
             {item.text}
           </ChecklistItemText>
-          <SmallButton onClick={onEdit} title="編集">
+          <SmallButton onClick={onEdit} title="編集" $theme={theme}>
             &#9998;
           </SmallButton>
           <DeleteItemButton onClick={onDelete}>
@@ -294,6 +297,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
               <ColorOption
                 $color=""
                 $selected={!cardColor}
+                $theme={theme}
                 onClick={() => setCardColor('')}
                 title="デフォルト"
               />
@@ -302,6 +306,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                   key={c}
                   $color={c}
                   $selected={cardColor === c}
+                  $theme={theme}
                   onClick={() => setCardColor(c)}
                 />
               ))}
@@ -356,6 +361,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                           onEditTextChange={setEditingChecklistText}
                           onSaveEdit={saveEditChecklistItem}
                           onCancelEdit={cancelEditChecklistItem}
+                          theme={theme}
                         />
                       ))}
                     </ChecklistItems>
@@ -557,12 +563,12 @@ const ColorPicker = styled.div`
   flex-wrap: wrap;
 `
 
-const ColorOption = styled.button<{ $color: string; $selected: boolean }>`
+const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: any }>`
   width: 40px;
   height: 40px;
   border-radius: 6px;
-  border: 3px solid ${props => props.$selected ? color.Black : color.Silver};
-  background-color: ${props => props.$color || color.White};
+  border: 3px solid ${props => props.$selected ? props.$theme.text : props.$theme.border};
+  background-color: ${props => props.$color || props.$theme.surface};
   cursor: pointer;
   transition: transform 0.1s;
 
@@ -660,28 +666,31 @@ const DragHandle = styled.div`
   }
 `
 
-const EditChecklistInput = styled.input`
+const EditChecklistInput = styled.input<{ $theme: any }>`
   flex: 1;
   padding: 6px 8px;
   border: 1px solid ${color.Blue};
   border-radius: 4px;
   font-size: 14px;
+  color: ${props => props.$theme.text};
+  background-color: ${props => props.$theme.inputBackground};
   outline: 2px solid ${color.Blue};
   outline-offset: 2px;
 `
 
-const SmallButton = styled.button`
+const SmallButton = styled.button<{ $theme: any }>`
   border: none;
-  background: ${color.LightSilver};
-  color: ${color.Black};
+  background: ${props => props.$theme.surface};
+  color: ${props => props.$theme.text};
   font-size: 16px;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
   flex-shrink: 0;
+  border: 1px solid ${props => props.$theme.border};
 
   &:hover {
-    background-color: ${color.Silver};
+    background-color: ${props => props.$theme.surfaceHover};
   }
 `
 
