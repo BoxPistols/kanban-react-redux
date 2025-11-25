@@ -30,6 +30,9 @@ export function BoardSelector() {
   return (
     <>
       <Container>
+        {currentBoard?.color && (
+          <BoardColorIndicator $color={currentBoard.color} title={`ボードカラー: ${currentBoard.color}`} />
+        )}
         <Select value={currentBoardId || ''} onChange={(e) => handleBoardChange(e.target.value)}>
           {boards.length === 0 && <option value="">ボードを作成してください</option>}
           {boards.map(board => (
@@ -73,6 +76,21 @@ const Container = styled.div`
     margin-left: 8px;
     gap: 4px;
     padding: 4px 6px;
+  }
+`
+
+const BoardColorIndicator = styled.div<{ $color: string }>`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: ${props => props.$color};
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+  @media (max-width: 768px) {
+    width: 20px;
+    height: 20px;
   }
 `
 
