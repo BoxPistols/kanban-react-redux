@@ -7,13 +7,9 @@ import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { isFirebaseEnabled } from './lib/firebase'
 
-// メールアドレスを省略形で表示（例: i***@gmail.com）
-function abbreviateEmail(email: string): string {
-    const [localPart, domain] = email.split('@')
-    if (!localPart || !domain) return email
-
-    const firstChar = localPart[0]
-    return `${firstChar}***@${domain}`
+// メールアドレスの頭文字のみ表示（例: i）
+function getFirstChar(email: string): string {
+    return email[0]?.toLowerCase() || ''
 }
 
 export function Header({ className }: { className?: string }) {
@@ -44,9 +40,9 @@ export function Header({ className }: { className?: string }) {
 
             {isFirebaseEnabled && user && (
                 <UserInfo>
-                    <UserEmail title={user.email || undefined}>
-                        {user.email ? abbreviateEmail(user.email) : ''}
-                    </UserEmail>
+                    <UserInitial title={user.email || undefined}>
+                        {user.email ? getFirstChar(user.email) : ''}
+                    </UserInitial>
                     <LogoutButton onClick={handleLogout}>ログアウト</LogoutButton>
                 </UserInfo>
             )}
@@ -119,13 +115,19 @@ const UserInfo = styled.div`
   margin-left: 16px;
 `
 
-const UserEmail = styled.span`
-  color: ${color.Silver};
-  font-size: 14px;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
+const UserInitial = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: ${color.White};
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: default;
 `
 
 const LogoutButton = styled.button`
