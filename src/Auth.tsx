@@ -4,7 +4,11 @@ import { useAuthStore } from './store/authStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme } from './theme'
 
-export function Auth() {
+interface AuthProps {
+  onSkipAuth?: () => void
+}
+
+export function Auth({ onSkipAuth }: AuthProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -103,6 +107,12 @@ export function Auth() {
             {isSignUp ? 'ログイン' : 'アカウント作成'}
           </ToggleButton>
         </ToggleText>
+
+        {onSkipAuth && (
+          <OfflineButton onClick={onSkipAuth} $theme={theme}>
+            ログインせずにオフラインで使用
+          </OfflineButton>
+        )}
       </FormCard>
     </Container>
   )
@@ -280,5 +290,23 @@ const ToggleButton = styled.button<{ $theme: any }>`
 
   &:hover {
     color: #026AA7;
+  }
+`
+
+const OfflineButton = styled.button<{ $theme: any }>`
+  margin-top: 16px;
+  padding: 10px;
+  border: 1px solid ${props => props.$theme.border};
+  border-radius: 4px;
+  background: transparent;
+  color: ${props => props.$theme.textSecondary};
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  width: 100%;
+
+  &:hover {
+    background: ${props => props.$theme.surfaceHover};
+    color: ${props => props.$theme.text};
   }
 `

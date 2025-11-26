@@ -37,6 +37,7 @@ export function App() {
   const { isDarkMode, initializeTheme } = useThemeStore()
   const { user, isInitialized, initAuth } = useAuthStore()
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [offlineMode, setOfflineMode] = useState(false)
 
   const theme = getTheme(isDarkMode)
 
@@ -107,7 +108,7 @@ export function App() {
   }, [subscribeToCards, currentBoardId])
 
   // Show loading while checking auth
-  if (isFirebaseEnabled && !isInitialized) {
+  if (isFirebaseEnabled && !isInitialized && !offlineMode) {
     return (
       <>
         <GlobalStyle $theme={theme} />
@@ -118,12 +119,12 @@ export function App() {
     )
   }
 
-  // Show auth screen if Firebase is enabled and user is not authenticated
-  if (isFirebaseEnabled && !user) {
+  // Show auth screen if Firebase is enabled and user is not authenticated and not in offline mode
+  if (isFirebaseEnabled && !user && !offlineMode) {
     return (
       <>
         <GlobalStyle $theme={theme} />
-        <Auth />
+        <Auth onSkipAuth={() => setOfflineMode(true)} />
       </>
     )
   }
