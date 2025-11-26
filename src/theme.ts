@@ -14,6 +14,9 @@ export interface Theme {
   inputBorder: string
   shadow: string
   shadowHover: string
+  scrollbarTrack: string
+  scrollbarThumb: string
+  scrollbarThumbHover: string
 }
 
 export const lightTheme: Theme = {
@@ -29,7 +32,10 @@ export const lightTheme: Theme = {
   inputBackground: color.White,
   inputBorder: color.Silver,
   shadow: 'hsla(0, 0%, 7%, 0.1)',
-  shadowHover: 'hsla(0, 0%, 7%, 0.2)'
+  shadowHover: 'hsla(0, 0%, 7%, 0.2)',
+  scrollbarTrack: '#F4F5F7',
+  scrollbarThumb: '#C1C7D0',
+  scrollbarThumbHover: '#A5ADBA'
 }
 
 export const darkTheme: Theme = {
@@ -45,7 +51,10 @@ export const darkTheme: Theme = {
   inputBackground: '#22272B',
   inputBorder: '#3D444D',
   shadow: 'hsla(0, 0%, 0%, 0.3)',
-  shadowHover: 'hsla(0, 0%, 0%, 0.5)'
+  shadowHover: 'hsla(0, 0%, 0%, 0.5)',
+  scrollbarTrack: '#161A1D',
+  scrollbarThumb: '#3D444D',
+  scrollbarThumbHover: '#515861'
 }
 
 export function getTheme(isDarkMode: boolean): Theme {
