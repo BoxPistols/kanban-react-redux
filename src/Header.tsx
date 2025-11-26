@@ -7,6 +7,15 @@ import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { isFirebaseEnabled } from './lib/firebase'
 
+// メールアドレスを省略形で表示（例: i***@gmail.com）
+function abbreviateEmail(email: string): string {
+    const [localPart, domain] = email.split('@')
+    if (!localPart || !domain) return email
+
+    const firstChar = localPart[0]
+    return `${firstChar}***@${domain}`
+}
+
 export function Header({ className }: { className?: string }) {
     const { isDarkMode, toggleDarkMode } = useThemeStore()
     const { user, logOut } = useAuthStore()
@@ -29,7 +38,9 @@ export function Header({ className }: { className?: string }) {
 
             {isFirebaseEnabled && user && (
                 <UserInfo>
-                    <UserEmail>{user.email}</UserEmail>
+                    <UserEmail title={user.email || undefined}>
+                        {user.email ? abbreviateEmail(user.email) : ''}
+                    </UserEmail>
                     <LogoutButton onClick={handleLogout}>ログアウト</LogoutButton>
                 </UserInfo>
             )}
