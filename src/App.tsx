@@ -50,6 +50,43 @@ export function App() {
     })
   )
 
+  // All hooks must be called before any conditional returns
+  const filteredCards = useMemo(() => {
+    let filtered = cards
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(card =>
+        card.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Filter by selected labels
+    if (selectedLabelIds.length > 0) {
+      filtered = filtered.filter(card => {
+        if (!card.labels || card.labels.length === 0) return false
+        return card.labels.some(label => selectedLabelIds.includes(label.id))
+      })
+    }
+
+    return filtered
+  }, [cards, searchQuery, selectedLabelIds])
+
+  const cardsByColumn = useMemo(() => {
+    const grouped = filteredCards.reduce<Record<ColumnType, CardType[]>>((acc, card) => {
+      (acc[card.columnId] = acc[card.columnId] || []).push(card)
+      return acc
+    }, {} as Record<ColumnType, CardType[]>)
+
+    Object.values(grouped).forEach(columnCards =>
+      columnCards.sort((a, b) => a.order - b.order)
+    )
+
+    return grouped
+  }, [filteredCards])
+
   useEffect(() => {
     initializeTheme()
   }, [initializeTheme])
@@ -90,42 +127,6 @@ export function App() {
       </>
     )
   }
-
-  const filteredCards = useMemo(() => {
-    let filtered = cards
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(card =>
-        card.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        card.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        card.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-
-    // Filter by selected labels
-    if (selectedLabelIds.length > 0) {
-      filtered = filtered.filter(card => {
-        if (!card.labels || card.labels.length === 0) return false
-        return card.labels.some(label => selectedLabelIds.includes(label.id))
-      })
-    }
-
-    return filtered
-  }, [cards, searchQuery, selectedLabelIds])
-
-  const cardsByColumn = useMemo(() => {
-    const grouped = filteredCards.reduce<Record<ColumnType, CardType[]>>((acc, card) => {
-      (acc[card.columnId] = acc[card.columnId] || []).push(card)
-      return acc
-    }, {} as Record<ColumnType, CardType[]>)
-
-    Object.values(grouped).forEach(columnCards =>
-      columnCards.sort((a, b) => a.order - b.order)
-    )
-
-    return grouped
-  }, [filteredCards])
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
