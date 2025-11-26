@@ -58,6 +58,17 @@ function saveCurrentBoardId(boardId: string | null): void {
   }
 }
 
+// Firestoreは undefined 値をサポートしていないため、除去する
+function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
+  const result: any = {}
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key]
+    }
+  }
+  return result
+}
+
 interface BoardState {
   boards: Board[]
   currentBoardId: string | null
@@ -140,10 +151,11 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
       if (isFirebaseEnabled && db) {
         const boardRef = doc(db, 'boards', id)
-        await updateDoc(boardRef, {
+        const cleanedUpdates = removeUndefinedFields({
           ...updates,
           updatedAt: Date.now()
         })
+        await updateDoc(boardRef, cleanedUpdates)
       } else {
         const currentBoards = get().boards
         const updatedBoards = currentBoards.map(board =>

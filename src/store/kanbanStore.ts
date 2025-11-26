@@ -39,6 +39,17 @@ function saveCardsToLocalStorage(cards: Card[]): void {
   }
 }
 
+// Firestoreは undefined 値をサポートしていないため、除去する
+function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
+  const result: any = {}
+  for (const key in obj) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key]
+    }
+  }
+  return result
+}
+
 interface KanbanState {
   cards: Card[]
   searchQuery: string
@@ -116,12 +127,13 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       set({ isLoading: true, error: null })
 
       if (isFirebaseEnabled && db) {
-        // Firebase mode
+        // Firebase mode - Firestoreではundefinedをサポートしていないため除去
         const cardRef = doc(db, 'cards', id)
-        await updateDoc(cardRef, {
+        const cleanedUpdates = removeUndefinedFields({
           ...updates,
           updatedAt: Date.now()
         })
+        await updateDoc(cardRef, cleanedUpdates)
       } else {
         // LocalStorage mode
         const currentCards = get().cards
