@@ -134,7 +134,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const currentBoard = boards.find(b => b.id === currentBoardId)
   const boardLabels = currentBoard?.labels || []
 
-  console.log('CardDetailModal opened - Card:', card.text, 'Card.labels:', card.labels, 'Board labels:', boardLabels)
+  console.log('🔵 CardDetailModal opened - Card:', card.text, 'Card.labels:', card.labels, 'Board labels:', boardLabels)
 
   const [title, setTitle] = useState(card.title || card.text)
   const [description, setDescription] = useState(card.description || '')
@@ -161,7 +161,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     : 0
 
   const handleSave = async () => {
-    console.log('Saving card with labels:', selectedLabels)
+    console.log('💾 Saving card with labels:', selectedLabels)
     await updateCard(card.id, {
       title,
       description,
@@ -171,20 +171,20 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       progress,
       color: cardColor
     })
-    console.log('Card saved')
+    console.log('✅ Card saved successfully')
     onClose()
   }
 
   const toggleLabel = (label: Label) => {
-    console.log('Toggle label:', label.name, 'Current selected:', selectedLabels)
+    console.log('🏷️  Toggle label:', label.name, 'Current selected:', selectedLabels)
     const isSelected = selectedLabels.some(l => l.id === label.id)
     if (isSelected) {
       const newLabels = selectedLabels.filter(l => l.id !== label.id)
-      console.log('Removing label, new labels:', newLabels)
+      console.log('➖ Removing label, new labels:', newLabels)
       setSelectedLabels(newLabels)
     } else {
       const newLabels = [...selectedLabels, label]
-      console.log('Adding label, new labels:', newLabels)
+      console.log('➕ Adding label, new labels:', newLabels)
       setSelectedLabels(newLabels)
     }
   }
