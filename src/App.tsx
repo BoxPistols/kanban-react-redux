@@ -14,11 +14,14 @@ import { GlobalStyle } from './GlobalStyle'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
+import { Auth } from './Auth'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
+import { useAuthStore } from './store/authStore'
 import { BoardIcon } from './icon'
 import { getTheme } from './theme'
+import { isFirebaseEnabled } from './lib/firebase'
 import type { Card as CardType, ColumnType } from './types'
 
 const COLUMNS: { id: ColumnType; title: string }[] = [
@@ -32,6 +35,7 @@ export function App() {
   const { cards, searchQuery, selectedLabelIds, subscribeToCards, reorderCards } = useKanbanStore()
   const { subscribeToBoards, currentBoardId } = useBoardStore()
   const { isDarkMode, initializeTheme } = useThemeStore()
+  const { user, isInitialized, initAuth } = useAuthStore()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const theme = getTheme(isDarkMode)
@@ -51,6 +55,10 @@ export function App() {
   }, [initializeTheme])
 
   useEffect(() => {
+    initAuth()
+  }, [initAuth])
+
+  useEffect(() => {
     const unsubscribeBoards = subscribeToBoards()
     return () => unsubscribeBoards()
   }, [subscribeToBoards])
@@ -60,6 +68,28 @@ export function App() {
     const unsubscribeCards = subscribeToCards(currentBoardId)
     return () => unsubscribeCards()
   }, [subscribeToCards, currentBoardId])
+
+  // Show loading while checking auth
+  if (isFirebaseEnabled && !isInitialized) {
+    return (
+      <>
+        <GlobalStyle $theme={theme} />
+        <LoadingContainer $theme={theme}>
+          <LoadingText $theme={theme}>読み込み中...</LoadingText>
+        </LoadingContainer>
+      </>
+    )
+  }
+
+  // Show auth screen if Firebase is enabled and user is not authenticated
+  if (isFirebaseEnabled && !user) {
+    return (
+      <>
+        <GlobalStyle $theme={theme} />
+        <Auth />
+      </>
+    )
+  }
 
   const filteredCards = useMemo(() => {
     let filtered = cards
@@ -295,4 +325,17 @@ const EmptyText = styled.p<{ $theme: any }>`
   color: ${props => props.$theme.textSecondary};
   margin: 0;
   max-width: 400px;
+`
+
+const LoadingContainer = styled.div<{ $theme: any }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: ${props => props.$theme.background};
+`
+
+const LoadingText = styled.div<{ $theme: any }>`
+  color: ${props => props.$theme.text};
+  font-size: 18px;
 `

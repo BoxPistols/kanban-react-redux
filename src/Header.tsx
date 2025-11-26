@@ -4,9 +4,18 @@ import { CardFilter } from './CardFilter'
 import { BoardSelector } from './BoardSelector'
 import { MoonIcon, SunIcon } from './icon'
 import { useThemeStore } from './store/themeStore'
+import { useAuthStore } from './store/authStore'
+import { isFirebaseEnabled } from './lib/firebase'
 
 export function Header({ className }: { className?: string }) {
     const { isDarkMode, toggleDarkMode } = useThemeStore()
+    const { user, logOut } = useAuthStore()
+
+    const handleLogout = async () => {
+        if (window.confirm('ログアウトしますか？')) {
+            await logOut()
+        }
+    }
 
     return (
         <Container className={className}>
@@ -17,6 +26,13 @@ export function Header({ className }: { className?: string }) {
             <ThemeToggle onClick={toggleDarkMode} title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}>
                 {isDarkMode ? <SunIcon /> : <MoonIcon />}
             </ThemeToggle>
+
+            {isFirebaseEnabled && user && (
+                <UserInfo>
+                    <UserEmail>{user.email}</UserEmail>
+                    <LogoutButton onClick={handleLogout}>ログアウト</LogoutButton>
+                </UserInfo>
+            )}
 
             <Spacer />
 
@@ -76,5 +92,36 @@ const ThemeToggle = styled.button`
       width: 16px;
       height: 16px;
     }
+  }
+`
+
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 16px;
+`
+
+const UserEmail = styled.span`
+  color: ${color.Silver};
+  font-size: 14px;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`
+
+const LogoutButton = styled.button`
+  padding: 6px 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  color: ${color.White};
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
   }
 `
