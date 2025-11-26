@@ -17,4 +17,30 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
     margin: 0;
     padding: 0;
   }
+
+  /* スクロールバーのスタイル（Firefox） */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: ${props => props.$theme.scrollbarThumb} ${props => props.$theme.scrollbarTrack};
+  }
+
+  /* スクロールバーのスタイル（Webkit: Chrome, Safari, Edge） */
+  *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: ${props => props.$theme.scrollbarTrack};
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: ${props => props.$theme.scrollbarThumb};
+    border-radius: 6px;
+    border: 3px solid ${props => props.$theme.scrollbarTrack};
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: ${props => props.$theme.scrollbarThumbHover};
+  }
 `
