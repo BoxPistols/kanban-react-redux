@@ -1,5 +1,4 @@
 {
-  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/settings.json",
   "permissions": {
     "allow": [
       "Bash(npm run:*)",
