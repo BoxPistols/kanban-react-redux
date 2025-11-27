@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/settings.json",
+  "env": {
+    "FIREBASE_PROJECT_ID": "",
+    "FIREBASE_DATABASE_URL": ""
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:firebase.blog)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
