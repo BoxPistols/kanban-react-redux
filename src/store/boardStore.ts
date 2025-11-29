@@ -110,12 +110,12 @@ interface BoardState {
   currentBoardId: string | null
   isLoading: boolean
   error: string | null
-  useOfflineMode: boolean  // Fallback to localStorage when Firebase fails
+  forceOfflineMode: boolean
 
   // Actions
   setBoards: (boards: Board[]) => void
   setCurrentBoardId: (boardId: string | null) => void
-  setOfflineMode: (offline: boolean) => void
+  setForceOfflineMode: (offline: boolean) => void
   addBoard: (name: string, description?: string, color?: string) => Promise<void>
   updateBoard: (id: string, updates: Partial<Board>) => Promise<void>
   deleteBoard: (id: string) => Promise<void>
@@ -131,12 +131,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   currentBoardId: null,
   isLoading: false,
   error: null,
-  useOfflineMode: false,
+  forceOfflineMode: false,
 
   setBoards: (boards) => {
     set({ boards })
-    const { useOfflineMode } = get()
-    if (!isFirebaseEnabled || useOfflineMode) {
+    const useFirebase = isFirebaseEnabled && !get().forceOfflineMode
+    if (!useFirebase) {
       saveBoardsToLocalStorage(boards)
     }
   },
@@ -146,11 +146,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     saveCurrentBoardId(boardId)
   },
 
-  setOfflineMode: (offline) => {
-    set({ useOfflineMode: offline })
-    if (offline) {
-      console.log('📦 Switched to offline mode (localStorage)')
-    }
+  setForceOfflineMode: (offline) => {
+    set({ forceOfflineMode: offline })
   },
 
   // Initialize offline mode with default board
@@ -175,7 +172,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       saveCurrentBoardId(currentBoardId)
     }
 
-    set({ boards, currentBoardId, isLoading: false, error: null, useOfflineMode: true })
+    set({ boards, currentBoardId, isLoading: false, error: null, forceOfflineMode: true })
 
     // Set first board as current if none selected
     if (!currentBoardId && boards.length > 0) {
@@ -195,26 +192,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         updatedAt: Date.now()
       }
 
-      const { useOfflineMode } = get()
-      if (isFirebaseEnabled && db && !useOfflineMode) {
-        try {
-          const docRef = await addDoc(collection(db, 'boards'), newBoardData)
-          // Set as current board if it's the first one
-          const currentBoards = get().boards
-          if (currentBoards.length === 0) {
-            get().setCurrentBoardId(docRef.id)
-          }
-        } catch (firebaseError) {
-          // Firebase failed, switch to offline mode
-          console.warn('Firebase write failed, switching to offline mode:', firebaseError)
-          get().setOfflineMode(true)
-          // Retry with localStorage
-          const newBoard: Board = { id: uuidv4(), ...newBoardData }
-          const currentBoards = get().boards
-          const updatedBoards = [...currentBoards, newBoard]
-          set({ boards: updatedBoards })
-          saveBoardsToLocalStorage(updatedBoards)
-          get().setCurrentBoardId(newBoard.id)
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        const docRef = await addDoc(collection(db!, 'boards'), newBoardData)
+        // Set as current board if it's the first one
+        const currentBoards = get().boards
+        if (currentBoards.length === 0) {
+          get().setCurrentBoardId(docRef.id)
         }
       } else {
         const newBoard: Board = {
@@ -239,8 +223,15 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const { useOfflineMode } = get()
-      const updateLocal = () => {
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        const boardRef = doc(db!, 'boards', id)
+        const cleanedUpdates = removeUndefinedFields({
+          ...updates,
+          updatedAt: Date.now()
+        })
+        await updateDoc(boardRef, cleanedUpdates)
+      } else {
         const currentBoards = get().boards
         const updatedBoards = currentBoards.map(board =>
           board.id === id
@@ -249,23 +240,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         )
         set({ boards: updatedBoards })
         saveBoardsToLocalStorage(updatedBoards)
-      }
-
-      if (isFirebaseEnabled && db && !useOfflineMode) {
-        try {
-          const boardRef = doc(db, 'boards', id)
-          const cleanedUpdates = removeUndefinedFields({
-            ...updates,
-            updatedAt: Date.now()
-          })
-          await updateDoc(boardRef, cleanedUpdates)
-        } catch (firebaseError) {
-          console.warn('Firebase update failed, using localStorage:', firebaseError)
-          get().setOfflineMode(true)
-          updateLocal()
-        }
-      } else {
-        updateLocal()
       }
       set({ isLoading: false })
     } catch (error) {
@@ -278,25 +252,15 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const { useOfflineMode } = get()
-      const deleteLocal = () => {
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        const boardRef = doc(db!, 'boards', id)
+        await deleteDoc(boardRef)
+      } else {
         const currentBoards = get().boards
         const updatedBoards = currentBoards.filter(board => board.id !== id)
         set({ boards: updatedBoards })
         saveBoardsToLocalStorage(updatedBoards)
-      }
-
-      if (isFirebaseEnabled && db && !useOfflineMode) {
-        try {
-          const boardRef = doc(db, 'boards', id)
-          await deleteDoc(boardRef)
-        } catch (firebaseError) {
-          console.warn('Firebase delete failed, using localStorage:', firebaseError)
-          get().setOfflineMode(true)
-          deleteLocal()
-        }
-      } else {
-        deleteLocal()
       }
 
       // If deleting current board, switch to another or null
@@ -361,10 +325,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   subscribeToBoards: () => {
     set({ isLoading: true, error: null })
 
-    const { useOfflineMode } = get()
-
-    if (isFirebaseEnabled && db && !useOfflineMode) {
-      const q = query(collection(db, 'boards'), orderBy('createdAt'))
+    const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+    if (useFirebase) {
+      const q = query(collection(db!, 'boards'), orderBy('createdAt'))
 
       const unsubscribe = onSnapshot(
         q,
