@@ -31,34 +31,32 @@ export function Header({ className }: { className?: string }) {
         }
     }
 
-    // メニュー外クリックで閉じる
+    // メニューを閉じるための副作用（クリック外・ESCキー）
     useEffect(() => {
+        if (!isMenuOpen) {
+            return
+        }
+
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as HTMLElement
-            if (isMenuOpen && !target.closest('[data-menu-container]')) {
+            if (!target.closest('[data-menu-container]')) {
                 setIsMenuOpen(false)
             }
         }
 
-        if (isMenuOpen) {
-            document.addEventListener('click', handleClickOutside)
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsMenuOpen(false)
+            }
         }
+
+        document.addEventListener('click', handleClickOutside)
+        document.addEventListener('keydown', handleEsc)
 
         return () => {
             document.removeEventListener('click', handleClickOutside)
+            document.removeEventListener('keydown', handleEsc)
         }
-    }, [isMenuOpen])
-
-    // ESCキーでメニューを閉じる
-    useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isMenuOpen) {
-                setIsMenuOpen(false)
-            }
-        }
-
-        document.addEventListener('keydown', handleEsc)
-        return () => document.removeEventListener('keydown', handleEsc)
     }, [isMenuOpen])
 
     return (
@@ -316,7 +314,7 @@ const MobileMenu = styled.div`
   right: 0;
   width: 85%;
   max-width: 320px;
-  height: 100vh;
+  height: 100%;
   background: ${color.Navy};
   padding: 16px;
   overflow-y: auto;
