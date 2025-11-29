@@ -71,8 +71,8 @@ function SortableChecklistItem({
   }
 
   return (
-    <ChecklistItemRow ref={setNodeRef} style={style}>
-      <DragHandle {...attributes} {...listeners}>
+    <ChecklistItemRow ref={setNodeRef} style={style} $theme={theme}>
+      <DragHandle $theme={theme} {...attributes} {...listeners}>
         ⋮⋮
       </DragHandle>
 
@@ -108,6 +108,7 @@ function SortableChecklistItem({
           />
           <ChecklistItemText
             $completed={item.completed}
+            $theme={theme}
             onDoubleClick={onEdit}
             title="ダブルクリックで編集"
           >
@@ -116,7 +117,7 @@ function SortableChecklistItem({
           <SmallButton onClick={onEdit} title="編集" $theme={theme}>
             &#9998;
           </SmallButton>
-          <DeleteItemButton onClick={onDelete}>
+          <DeleteItemButton onClick={onDelete} $theme={theme}>
             ×
           </DeleteItemButton>
         </>
@@ -345,7 +346,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
             {checklist.length > 0 && (
               <>
-                <ProgressBar>
+                <ProgressBar $theme={theme}>
                   <ProgressFill $progress={progress} />
                 </ProgressBar>
                 <DndContext
@@ -605,10 +606,10 @@ const DescriptionTextArea = styled.textarea<{ $theme: any }>`
   }
 `
 
-const ProgressBar = styled.div`
+const ProgressBar = styled.div<{ $theme?: any }>`
   width: 100%;
   height: 8px;
-  background-color: ${color.LightSilver};
+  background-color: ${props => props.$theme?.border || color.LightSilver};
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -628,16 +629,16 @@ const ChecklistItems = styled.div`
   margin-bottom: 12px;
 `
 
-const ChecklistItemRow = styled.div`
+const ChecklistItemRow = styled.div<{ $theme?: any }>`
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px;
   border-radius: 4px;
-  background-color: ${color.LightSilver};
+  background-color: ${props => props.$theme?.surfaceHover || color.LightSilver};
 
   &:hover {
-    background-color: #E0E0E0;
+    background-color: ${props => props.$theme?.border || '#E0E0E0'};
   }
 `
 
@@ -648,19 +649,19 @@ const Checkbox = styled.input`
   flex-shrink: 0;
 `
 
-const ChecklistItemText = styled.span<{ $completed: boolean }>`
+const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: any }>`
   flex: 1;
   font-size: 14px;
-  color: ${color.Black};
+  color: ${props => props.$theme?.text || color.Black};
   text-decoration: ${props => props.$completed ? 'line-through' : 'none'};
   opacity: ${props => props.$completed ? 0.6 : 1};
   cursor: pointer;
   user-select: none;
 `
 
-const DragHandle = styled.div`
+const DragHandle = styled.div<{ $theme?: any }>`
   cursor: grab;
-  color: ${color.Gray};
+  color: ${props => props.$theme?.textSecondary || color.Gray};
   font-size: 14px;
   padding: 0 4px;
   flex-shrink: 0;
@@ -671,7 +672,7 @@ const DragHandle = styled.div`
   }
 
   &:hover {
-    color: ${color.Black};
+    color: ${props => props.$theme?.text || color.Black};
   }
 `
 
@@ -703,10 +704,10 @@ const SmallButton = styled.button<{ $theme: any }>`
   }
 `
 
-const DeleteItemButton = styled.button`
+const DeleteItemButton = styled.button<{ $theme?: any }>`
   border: none;
   background: none;
-  color: ${color.Gray};
+  color: ${props => props.$theme?.textSecondary || color.Gray};
   font-size: 20px;
   cursor: pointer;
   padding: 0 4px;
