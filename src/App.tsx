@@ -32,12 +32,18 @@ const COLUMNS: { id: ColumnType; title: string }[] = [
 ]
 
 export function App() {
-  const { cards, searchQuery, selectedLabelIds, subscribeToCards, reorderCards } = useKanbanStore()
-  const { subscribeToBoards, currentBoardId } = useBoardStore()
+  const { cards, searchQuery, selectedLabelIds, subscribeToCards, reorderCards, setForceOfflineMode: setKanbanOfflineMode } = useKanbanStore()
+  const { subscribeToBoards, currentBoardId, setForceOfflineMode: setBoardOfflineMode } = useBoardStore()
   const { isDarkMode, initializeTheme } = useThemeStore()
   const { user, isInitialized, initAuth } = useAuthStore()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [offlineMode, setOfflineMode] = useState(false)
+
+  // オフラインモードをストアに同期
+  useEffect(() => {
+    setBoardOfflineMode(offlineMode)
+    setKanbanOfflineMode(offlineMode)
+  }, [offlineMode, setBoardOfflineMode, setKanbanOfflineMode])
 
   const theme = getTheme(isDarkMode)
 
@@ -99,13 +105,13 @@ export function App() {
   useEffect(() => {
     const unsubscribeBoards = subscribeToBoards()
     return () => unsubscribeBoards()
-  }, [subscribeToBoards])
+  }, [subscribeToBoards, offlineMode])
 
   useEffect(() => {
     if (!currentBoardId) return
     const unsubscribeCards = subscribeToCards(currentBoardId)
     return () => unsubscribeCards()
-  }, [subscribeToCards, currentBoardId])
+  }, [subscribeToCards, currentBoardId, offlineMode])
 
   // Show loading while checking auth
   if (isFirebaseEnabled && !isInitialized && !offlineMode) {

@@ -67,7 +67,7 @@ function saveCardsToLocalStorage(cards: Card[]): void {
 
 // Helper to check if we should use offline mode
 function shouldUseOfflineMode(): boolean {
-  return useBoardStore.getState().useOfflineMode
+  return useBoardStore.getState().forceOfflineMode
 }
 
 // Firestoreは undefined 値をサポートしていないため、除去する
@@ -87,9 +87,11 @@ interface KanbanState {
   selectedLabelIds: string[]
   isLoading: boolean
   error: string | null
+  forceOfflineMode: boolean
 
   // Actions
   setCards: (cards: Card[]) => void
+  setForceOfflineMode: (offline: boolean) => void
   addCard: (text: string, columnId: ColumnType, boardId: string) => Promise<void>
   updateCard: (id: string, updates: Partial<Card>) => Promise<void>
   deleteCard: (id: string) => Promise<void>
@@ -107,12 +109,18 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
   selectedLabelIds: [],
   isLoading: false,
   error: null,
+  forceOfflineMode: false,
 
   setCards: (cards) => {
     set({ cards })
-    if (!isFirebaseEnabled || shouldUseOfflineMode()) {
+    const useFirebase = isFirebaseEnabled && !get().forceOfflineMode
+    if (!useFirebase) {
       saveCardsToLocalStorage(cards)
     }
+  },
+
+  setForceOfflineMode: (offline) => {
+    set({ forceOfflineMode: offline })
   },
 
   addCard: async (text, columnId, boardId) => {
@@ -132,24 +140,20 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         updatedAt: Date.now()
       }
 
-      const addLocal = () => {
-        const newCard: Card = { id: uuidv4(), ...newCardData }
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        // Firebase mode
+        await addDoc(collection(db!, 'cards'), newCardData)
+      } else {
+        // LocalStorage mode
+        const newCard: Card = {
+          id: uuidv4(),
+          ...newCardData
+        }
         const currentCards = get().cards
         const updatedCards = [...currentCards, newCard]
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
-      }
-
-      if (isFirebaseEnabled && db && !shouldUseOfflineMode()) {
-        try {
-          await addDoc(collection(db, 'cards'), newCardData)
-        } catch (firebaseError) {
-          console.warn('Firebase add failed, using localStorage:', firebaseError)
-          useBoardStore.getState().setOfflineMode(true)
-          addLocal()
-        }
-      } else {
-        addLocal()
       }
       set({ isLoading: false })
     } catch (error) {
@@ -162,7 +166,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const updateLocal = () => {
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        // Firebase mode - Firestoreではundefinedをサポートしていないため除去
+        const cardRef = doc(db!, 'cards', id)
+        const cleanedUpdates = removeUndefinedFields({
+          ...updates,
+          updatedAt: Date.now()
+        })
+        await updateDoc(cardRef, cleanedUpdates)
+      } else {
+        // LocalStorage mode
         const currentCards = get().cards
         const updatedCards = currentCards.map(card =>
           card.id === id
@@ -171,23 +185,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         )
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
-      }
-
-      if (isFirebaseEnabled && db && !shouldUseOfflineMode()) {
-        try {
-          const cardRef = doc(db, 'cards', id)
-          const cleanedUpdates = removeUndefinedFields({
-            ...updates,
-            updatedAt: Date.now()
-          })
-          await updateDoc(cardRef, cleanedUpdates)
-        } catch (firebaseError) {
-          console.warn('Firebase update failed, using localStorage:', firebaseError)
-          useBoardStore.getState().setOfflineMode(true)
-          updateLocal()
-        }
-      } else {
-        updateLocal()
       }
       set({ isLoading: false })
     } catch (error) {
@@ -200,24 +197,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const deleteLocal = () => {
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        // Firebase mode
+        const cardRef = doc(db!, 'cards', id)
+        await deleteDoc(cardRef)
+      } else {
+        // LocalStorage mode
         const currentCards = get().cards
         const updatedCards = currentCards.filter(card => card.id !== id)
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
-      }
-
-      if (isFirebaseEnabled && db && !shouldUseOfflineMode()) {
-        try {
-          const cardRef = doc(db, 'cards', id)
-          await deleteDoc(cardRef)
-        } catch (firebaseError) {
-          console.warn('Firebase delete failed, using localStorage:', firebaseError)
-          useBoardStore.getState().setOfflineMode(true)
-          deleteLocal()
-        }
-      } else {
-        deleteLocal()
       }
       set({ isLoading: false })
     } catch (error) {
@@ -230,7 +220,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const moveLocal = () => {
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        // Firebase mode
+        const cardRef = doc(db!, 'cards', cardId)
+        await updateDoc(cardRef, {
+          columnId: newColumnId,
+          order: newOrder,
+          updatedAt: Date.now()
+        })
+      } else {
+        // LocalStorage mode
         const currentCards = get().cards
         const updatedCards = currentCards.map(card =>
           card.id === cardId
@@ -239,23 +239,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         )
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
-      }
-
-      if (isFirebaseEnabled && db && !shouldUseOfflineMode()) {
-        try {
-          const cardRef = doc(db, 'cards', cardId)
-          await updateDoc(cardRef, {
-            columnId: newColumnId,
-            order: newOrder,
-            updatedAt: Date.now()
-          })
-        } catch (firebaseError) {
-          console.warn('Firebase move failed, using localStorage:', firebaseError)
-          useBoardStore.getState().setOfflineMode(true)
-          moveLocal()
-        }
-      } else {
-        moveLocal()
       }
       set({ isLoading: false })
     } catch (error) {
@@ -268,7 +251,27 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
-      const reorderLocal = () => {
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        // Firebase mode
+        const firestore = db!
+        const batch = writeBatch(firestore)
+
+        updates.forEach(({ id, order, columnId }) => {
+          const cardRef = doc(firestore, 'cards', id)
+          const updateData: Record<string, unknown> = {
+            order,
+            updatedAt: Date.now()
+          }
+          if (columnId !== undefined) {
+            updateData.columnId = columnId
+          }
+          batch.update(cardRef, updateData)
+        })
+
+        await batch.commit()
+      } else {
+        // LocalStorage mode
         const currentCards = get().cards
         const updatedCards = currentCards.map(card => {
           const update = updates.find(u => u.id === card.id)
@@ -284,33 +287,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         })
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
-      }
-
-      if (isFirebaseEnabled && db && !shouldUseOfflineMode()) {
-        try {
-          const firestore = db
-          const batch = writeBatch(firestore)
-
-          updates.forEach(({ id, order, columnId }) => {
-            const cardRef = doc(firestore, 'cards', id)
-            const updateData: Record<string, unknown> = {
-              order,
-              updatedAt: Date.now()
-            }
-            if (columnId !== undefined) {
-              updateData.columnId = columnId
-            }
-            batch.update(cardRef, updateData)
-          })
-
-          await batch.commit()
-        } catch (firebaseError) {
-          console.warn('Firebase reorder failed, using localStorage:', firebaseError)
-          useBoardStore.getState().setOfflineMode(true)
-          reorderLocal()
-        }
-      } else {
-        reorderLocal()
       }
       set({ isLoading: false })
     } catch (error) {
@@ -340,9 +316,10 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       set({ cards, isLoading: false, error: null })
     }
 
-    if (isFirebaseEnabled && db && !shouldUseOfflineMode()) {
+    const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+    if (useFirebase) {
       // Firebase mode
-      const q = query(collection(db, 'cards'), orderBy('order'))
+      const q = query(collection(db!, 'cards'), orderBy('order'))
 
       const unsubscribe = onSnapshot(
         q,
