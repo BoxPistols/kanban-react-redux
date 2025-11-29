@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!-- Background with rounded corners -->
+  <rect width="180" height="180" fill="#2C5282" rx="36"/>
+
+  <!-- Three columns representing kanban board -->
+  <rect x="20" y="30" width="40" height="120" rx="6" fill="#E2E8F0"/>
+  <rect x="70" y="30" width="40" height="120" rx="6" fill="#E2E8F0"/>
+  <rect x="120" y="30" width="40" height="120" rx="6" fill="#E2E8F0"/>
+
+  <!-- Cards in columns -->
+  <!-- Column 1 -->
+  <rect x="24" y="38" width="32" height="18" rx="3" fill="#4A5568"/>
+  <rect x="24" y="62" width="32" height="18" rx="3" fill="#4A5568"/>
+  <rect x="24" y="86" width="32" height="18" rx="3" fill="#48BB78"/>
+
+  <!-- Column 2 -->
+  <rect x="74" y="38" width="32" height="18" rx="3" fill="#4A5568"/>
+  <rect x="74" y="62" width="32" height="18" rx="3" fill="#ECC94B"/>
+
+  <!-- Column 3 -->
+  <rect x="124" y="38" width="32" height="18" rx="3" fill="#4A5568"/>
+  <rect x="124" y="62" width="32" height="18" rx="3" fill="#4A5568"/>
+  <rect x="124" y="86" width="32" height="18" rx="3" fill="#4A5568"/>
+  <rect x="124" y="110" width="32" height="18" rx="3" fill="#4299E1"/>
+</svg>

@@ -1,0 +1,24 @@
+{
+  "name": "Modern Kanban Board",
+  "short_name": "Kanban",
+  "description": "シンプルで使いやすいカンバンボードアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A1D23",
+  "theme_color": "#2C5282",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
