@@ -133,10 +133,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         const updatedBoards = [...currentBoards, newBoard]
         set({ boards: updatedBoards })
         saveBoardsToLocalStorage(updatedBoards)
-        // Set as current board if it's the first one
-        if (currentBoards.length === 0) {
-          get().setCurrentBoardId(newBoard.id)
-        }
+        // Always set as current board after creation
+        get().setCurrentBoardId(newBoard.id)
       }
       set({ isLoading: false })
     } catch (error) {
