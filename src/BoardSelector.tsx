@@ -73,9 +73,12 @@ const Container = styled.div`
   border-radius: 6px;
 
   @media (max-width: 768px) {
-    margin-left: 8px;
-    gap: 4px;
-    padding: 4px 6px;
+    margin-left: 0;
+    gap: 8px;
+    padding: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+    background-color: transparent;
   }
 `
 
@@ -123,9 +126,10 @@ const Select = styled.select`
   }
 
   @media (max-width: 768px) {
-    max-width: 120px;
-    font-size: 13px;
-    padding: 6px 8px;
+    flex: 1;
+    max-width: none;
+    font-size: 14px;
+    padding: 10px 12px;
   }
 `
 
@@ -175,7 +179,9 @@ const AddButton = styled.button`
   }
 
   @media (max-width: 768px) {
-    font-size: 12px;
-    padding: 6px 10px;
+    width: 100%;
+    font-size: 14px;
+    padding: 12px 16px;
+    margin-top: 8px;
   }
 `

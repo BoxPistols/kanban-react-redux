@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { CardFilter } from './CardFilter'
@@ -31,88 +31,134 @@ export function Header({ className }: { className?: string }) {
         }
     }
 
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen)
-    }
+    // メニュー外クリックで閉じる
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            if (isMenuOpen && !target.closest('[data-menu-container]')) {
+                setIsMenuOpen(false)
+            }
+        }
 
-    const closeMenu = () => {
-        setIsMenuOpen(false)
-    }
+        if (isMenuOpen) {
+            document.addEventListener('click', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside)
+        }
+    }, [isMenuOpen])
+
+    // ESCキーでメニューを閉じる
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isMenuOpen) {
+                setIsMenuOpen(false)
+            }
+        }
+
+        document.addEventListener('keydown', handleEsc)
+        return () => document.removeEventListener('keydown', handleEsc)
+    }, [isMenuOpen])
 
     return (
-        <>
-            <Container className={className}>
-                <Logo>Kanban</Logo>
+        <Container className={className}>
+            {/* ロゴ - 常に表示 */}
+            <Logo>Kanban board</Logo>
 
-                {/* Desktop: show all items inline */}
-                <DesktopNav>
-                    <BoardSelector />
+            {/* ボードセレクター - PC表示 */}
+            <DesktopOnly>
+                <BoardSelector />
+            </DesktopOnly>
 
-                    <ThemeToggle onClick={toggleDarkMode} title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}>
-                        {isDarkMode ? <SunIcon /> : <MoonIcon />}
-                    </ThemeToggle>
+            {/* テーマ切り替え - PC表示 */}
+            <DesktopOnly>
+                <ThemeToggle onClick={toggleDarkMode} title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}>
+                    {isDarkMode ? <SunIcon /> : <MoonIcon />}
+                </ThemeToggle>
+            </DesktopOnly>
 
-                    {isFirebaseEnabled && user && (
-                        <UserInfo>
-                            <UserInitial title={user.email || undefined}>
-                                {user.email ? getFirstChar(user.email) : ''}
-                            </UserInitial>
-                            <LogoutButton onClick={handleLogout}>ログアウト</LogoutButton>
-                        </UserInfo>
-                    )}
+            {/* ユーザー情報 - PC表示 */}
+            {isFirebaseEnabled && user && (
+                <DesktopOnly>
+                    <UserInfo>
+                        <UserInitial title={user.email || undefined}>
+                            {user.email ? getFirstChar(user.email) : ''}
+                        </UserInitial>
+                        <LogoutButton onClick={handleLogout}>ログアウト</LogoutButton>
+                    </UserInfo>
+                </DesktopOnly>
+            )}
 
-                    <Spacer />
+            <Spacer />
 
-                    <CardFilter />
-                </DesktopNav>
+            {/* フィルター - PC表示 */}
+            <DesktopOnly>
+                <CardFilter />
+            </DesktopOnly>
 
-                {/* Mobile: hamburger menu */}
-                <MobileNav>
-                    <HamburgerButton onClick={toggleMenu} aria-label="メニューを開く">
-                        {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
-                    </HamburgerButton>
-                </MobileNav>
-            </Container>
+            {/* ハンバーガーメニューボタン - モバイル表示 */}
+            <MobileMenuButton
+                onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(!isMenuOpen)
+                }}
+                title="メニュー"
+                data-menu-container
+            >
+                {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
+            </MobileMenuButton>
 
-            {/* Mobile menu overlay */}
+            {/* モバイルメニュードロワー */}
             {isMenuOpen && (
-                <>
-                    <Overlay onClick={closeMenu} />
-                    <MobileMenu>
-                        <MobileMenuItem>
-                            <MobileLabel>ボード</MobileLabel>
+                <MobileMenuOverlay onClick={() => setIsMenuOpen(false)}>
+                    <MobileMenu
+                        onClick={(e) => e.stopPropagation()}
+                        data-menu-container
+                    >
+                        <MenuSection>
+                            <MenuSectionTitle>ボード</MenuSectionTitle>
                             <BoardSelector />
-                        </MobileMenuItem>
+                        </MenuSection>
 
-                        <MobileMenuItem>
-                            <MobileLabel>検索・フィルター</MobileLabel>
+                        <MenuDivider />
+
+                        <MenuSection>
+                            <MenuSectionTitle>フィルター</MenuSectionTitle>
                             <CardFilter />
-                        </MobileMenuItem>
+                        </MenuSection>
 
-                        <MobileMenuItem>
-                            <MobileLabel>テーマ</MobileLabel>
-                            <ThemeToggleMobile onClick={() => { toggleDarkMode(); closeMenu(); }}>
+                        <MenuDivider />
+
+                        <MenuSection>
+                            <MenuSectionTitle>設定</MenuSectionTitle>
+                            <MenuThemeToggle onClick={toggleDarkMode}>
                                 {isDarkMode ? <SunIcon /> : <MoonIcon />}
                                 <span>{isDarkMode ? 'ライトモード' : 'ダークモード'}</span>
-                            </ThemeToggleMobile>
-                        </MobileMenuItem>
+                            </MenuThemeToggle>
+                        </MenuSection>
 
                         {isFirebaseEnabled && user && (
-                            <MobileMenuItem>
-                                <MobileLabel>アカウント</MobileLabel>
-                                <UserInfoMobile>
-                                    <UserInitialMobile title={user.email || undefined}>
-                                        {user.email ? getFirstChar(user.email) : ''}
-                                    </UserInitialMobile>
-                                    <UserEmail>{user.email}</UserEmail>
-                                </UserInfoMobile>
-                                <LogoutButtonMobile onClick={handleLogout}>ログアウト</LogoutButtonMobile>
-                            </MobileMenuItem>
+                            <>
+                                <MenuDivider />
+                                <MenuSection>
+                                    <MenuSectionTitle>アカウント</MenuSectionTitle>
+                                    <UserInfoMobile>
+                                        <UserInitial title={user.email || undefined}>
+                                            {user.email ? getFirstChar(user.email) : ''}
+                                        </UserInitial>
+                                        <UserEmail>{user.email}</UserEmail>
+                                    </UserInfoMobile>
+                                    <MenuLogoutButton onClick={handleLogout}>
+                                        ログアウト
+                                    </MenuLogoutButton>
+                                </MenuSection>
+                            </>
                         )}
                     </MobileMenu>
-                </>
+                </MobileMenuOverlay>
             )}
-        </>
+        </Container>
     )
 }
 
@@ -121,7 +167,11 @@ const Container = styled.div`
   align-items: center;
   padding: 8px 16px;
   background-color: ${color.Navy};
-  gap: 8px;
+  position: relative;
+
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+  }
 `
 
 const Logo = styled.div`
@@ -129,101 +179,19 @@ const Logo = styled.div`
   font-size: 16px;
   font-weight: bold;
   flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 `
 
-const DesktopNav = styled.div`
+const DesktopOnly = styled.div`
   display: flex;
   align-items: center;
-  flex: 1;
-  gap: 8px;
 
   @media (max-width: 768px) {
     display: none;
   }
-`
-
-const MobileNav = styled.div`
-  display: none;
-  margin-left: auto;
-
-  @media (max-width: 768px) {
-    display: flex;
-    align-items: center;
-  }
-`
-
-const HamburgerButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  border: none;
-  background: rgba(255, 255, 255, 0.15);
-  cursor: pointer;
-  border-radius: 6px;
-  color: ${color.White};
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.25);
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-  }
-`
-
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 998;
-`
-
-const MobileMenu = styled.div`
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 85%;
-  max-width: 320px;
-  height: 100vh;
-  background: ${color.Navy};
-  z-index: 999;
-  padding: 16px;
-  overflow-y: auto;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.2s ease-out;
-
-  @keyframes slideIn {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
-`
-
-const MobileMenuItem = styled.div`
-  padding: 16px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-  &:last-child {
-    border-bottom: none;
-  }
-`
-
-const MobileLabel = styled.div`
-  color: ${color.Silver};
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  letter-spacing: 0.5px;
 `
 
 const Spacer = styled.div`
@@ -255,42 +223,11 @@ const ThemeToggle = styled.button`
   }
 `
 
-const ThemeToggleMobile = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 16px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  cursor: pointer;
-  border-radius: 8px;
-  color: ${color.White};
-  font-size: 14px;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-  }
-`
-
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
   margin-left: 16px;
-`
-
-const UserInfoMobile = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
 `
 
 const UserInitial = styled.div`
@@ -306,12 +243,7 @@ const UserInitial = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   cursor: default;
-`
-
-const UserInitialMobile = styled(UserInitial)`
-  width: 40px;
-  height: 40px;
-  font-size: 18px;
+  flex-shrink: 0;
 `
 
 const UserEmail = styled.div`
@@ -335,19 +267,132 @@ const LogoutButton = styled.button`
   }
 `
 
-const LogoutButtonMobile = styled.button`
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: transparent;
+// モバイルメニュー関連
+const MobileMenuButton = styled.button`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  font-size: 14px;
-  border-radius: 8px;
+  border-radius: 6px;
   color: ${color.White};
   transition: all 0.2s;
-  margin-top: 12px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+`
+
+const MobileMenuOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`
+
+const MobileMenu = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 85%;
+  max-width: 320px;
+  height: 100vh;
+  background: ${color.Navy};
+  padding: 16px;
+  overflow-y: auto;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+`
+
+const MenuSection = styled.div`
+  padding: 12px 0;
+`
+
+const MenuSectionTitle = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+`
+
+const MenuDivider = styled.div`
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 4px 0;
+`
+
+const MenuThemeToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  border-radius: 8px;
+  color: ${color.White};
+  font-size: 14px;
+  transition: all 0.2s;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+`
+
+const UserInfoMobile = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+`
+
+const MenuLogoutButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border: none;
+  background: rgba(239, 83, 80, 0.2);
+  cursor: pointer;
+  border-radius: 8px;
+  color: #ef5350;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(239, 83, 80, 0.3);
   }
 `

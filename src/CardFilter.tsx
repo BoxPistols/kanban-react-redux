@@ -52,8 +52,9 @@ const FilterContainer = styled.div`
   flex-wrap: wrap;
 
   @media (max-width: 768px) {
-    flex: 1;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
   }
 `
 
@@ -66,11 +67,8 @@ const SearchContainer = styled.label<{ $theme: any }>`
   background-color: rgba(255, 255, 255, 0.1);
 
   @media (max-width: 768px) {
-    min-width: 150px;
-  }
-
-  @media (max-width: 480px) {
-    min-width: 120px;
+    min-width: unset;
+    width: 100%;
   }
 `
 
@@ -99,7 +97,8 @@ const LabelsContainer = styled.div`
   align-items: center;
 
   @media (max-width: 768px) {
-    display: none;
+    width: 100%;
+    margin-top: 8px;
   }
 `
 
