@@ -268,9 +268,10 @@ const Header = styled(_Header)`
 `
 
 const MainArea = styled.div<{ $theme: any }>`
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   padding: 16px 0;
-  overflow-y: auto;
+  overflow: hidden;
   background-color: ${props => props.$theme.background};
 `
 
@@ -279,16 +280,38 @@ const HorizontalScroll = styled.div`
   width: 100%;
   height: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 8px;
+
+  /* モバイルでのスクロール改善 */
+  @media (max-width: 768px) {
+    scroll-snap-type: x proximity;
+    padding-left: 8px;
+
+    > * {
+      scroll-snap-align: start;
+    }
+  }
 
   > * {
     margin-left: 16px;
     flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      margin-left: 8px;
+    }
   }
 
   ::after {
     display: block;
     flex: 0 0 16px;
     content: '';
+
+    @media (max-width: 768px) {
+      flex: 0 0 8px;
+    }
   }
 `
 
