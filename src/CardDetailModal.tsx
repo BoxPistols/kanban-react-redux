@@ -260,8 +260,9 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="カードのタイトル"
             $theme={theme}
+            $hasColorBackground={!!cardColor}
           />
-          <CloseButton onClick={onClose} $theme={theme}>×</CloseButton>
+          <CloseButton onClick={onClose} $theme={theme} $hasColorBackground={!!cardColor}>×</CloseButton>
         </Header>
 
         <Content $theme={theme}>
@@ -441,31 +442,36 @@ const Header = styled.div<{ $color?: string; $theme: any }>`
   gap: 12px;
 `
 
-const TitleInput = styled.input<{ $theme: any }>`
+const TitleInput = styled.input<{ $theme: any; $hasColorBackground?: boolean }>`
   flex: 1;
   border: none;
   background: transparent;
   font-size: 20px;
   font-weight: 600;
-  color: ${props => props.$theme.text};
+  color: ${props => props.$hasColorBackground ? '#1A1A1A' : props.$theme.text};
   padding: 4px 8px;
   border-radius: 4px;
 
+  &::placeholder {
+    color: ${props => props.$hasColorBackground ? '#666666' : props.$theme.textSecondary};
+  }
+
   &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
+    background-color: ${props => props.$hasColorBackground ? 'rgba(0, 0, 0, 0.1)' : props.$theme.surfaceHover};
   }
 
   &:focus {
     outline: 2px solid ${color.Blue};
-    background-color: ${props => props.$theme.inputBackground};
+    background-color: ${props => props.$hasColorBackground ? 'rgba(255, 255, 255, 0.9)' : props.$theme.inputBackground};
+    color: ${props => props.$hasColorBackground ? '#1A1A1A' : props.$theme.text};
   }
 `
 
-const CloseButton = styled.button<{ $theme: any }>`
+const CloseButton = styled.button<{ $theme: any; $hasColorBackground?: boolean }>`
   border: none;
   background: none;
   font-size: 28px;
-  color: ${props => props.$theme.textSecondary};
+  color: ${props => props.$hasColorBackground ? '#333333' : props.$theme.textSecondary};
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -477,8 +483,8 @@ const CloseButton = styled.button<{ $theme: any }>`
   flex-shrink: 0;
 
   &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-    color: ${props => props.$theme.text};
+    background-color: ${props => props.$hasColorBackground ? 'rgba(0, 0, 0, 0.1)' : props.$theme.surfaceHover};
+    color: ${props => props.$hasColorBackground ? '#1A1A1A' : props.$theme.text};
   }
 `
 
@@ -547,16 +553,31 @@ const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; 
   };
   border-radius: 4px;
   font-size: 14px;
-  color: ${props => props.$theme.text};
+  color: ${props =>
+    props.$isOverdue || props.$isDueSoon ? '#1A1A1A' : props.$theme.text
+  };
   background-color: ${props =>
     props.$isOverdue ? '#FFE5E5' :
     props.$isDueSoon ? '#FFF4E5' :
     props.$theme.inputBackground
   };
+  /* Force light color scheme for calendar icon when warning background */
+  color-scheme: ${props =>
+    props.$isOverdue || props.$isDueSoon ? 'light' : 'auto'
+  };
 
   &:focus {
     outline: 2px solid ${color.Blue};
     outline-offset: 2px;
+  }
+
+  /* Style calendar icon for dark theme when no warning */
+  &::-webkit-calendar-picker-indicator {
+    filter: ${props =>
+      (props.$isOverdue || props.$isDueSoon) ? 'none' :
+      props.$theme.text === '#E3E5E8' ? 'invert(1)' : 'none'
+    };
+    cursor: pointer;
   }
 `
 
