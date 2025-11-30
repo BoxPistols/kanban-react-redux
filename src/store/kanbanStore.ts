@@ -12,7 +12,6 @@ import {
 } from 'firebase/firestore'
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
-import { useBoardStore } from './boardStore'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -63,11 +62,6 @@ function saveCardsToLocalStorage(cards: Card[]): void {
     console.error('Error saving to localStorage:', error)
     inMemoryCards = cards
   }
-}
-
-// Helper to check if we should use offline mode
-function shouldUseOfflineMode(): boolean {
-  return useBoardStore.getState().forceOfflineMode
 }
 
 // Firestoreは undefined 値をサポートしていないため、除去する
