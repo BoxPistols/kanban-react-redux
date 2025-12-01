@@ -229,7 +229,7 @@ export function App() {
         <Header />
 
         <MainArea $theme={theme}>
-          <HorizontalScroll>
+          <HorizontalScroll data-horizontal-scroll>
             {!currentBoardId ? (
               <EmptyState>
                 <EmptyIcon><BoardIcon /></EmptyIcon>
@@ -294,6 +294,8 @@ const HorizontalScroll = styled.div`
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   padding-bottom: 8px;
+  position: relative;
+  z-index: 0;
 
   /* モバイルでのスクロール改善 */
   @media (max-width: 768px) {

@@ -39,6 +39,11 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		const appContainer = rootElement?.querySelector('[data-app-container]') as HTMLElement
 		const isIOSDevice = isIOS()
 		
+		// すべてのカンバンボード要素を取得
+		const allCards = document.querySelectorAll('[data-card-container]')
+		const allColumns = document.querySelectorAll('[data-column-container]')
+		const horizontalScroll = document.querySelector('[data-horizontal-scroll]')
+		
 		const originalBodyOverflow = document.body.style.overflow
 		const originalBodyPosition = document.body.style.position
 		const originalBodyTop = document.body.style.top
@@ -53,6 +58,20 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		const originalAppPointerEvents = appContainer?.style.pointerEvents || ''
 		const originalAppZIndex = appContainer?.style.zIndex || ''
 		
+		// カンバンボード要素のz-indexを保存
+		const originalCardZIndexes: string[] = []
+		const originalColumnZIndexes: string[] = []
+		allCards.forEach((card) => {
+			const htmlCard = card as HTMLElement
+			originalCardZIndexes.push(htmlCard.style.zIndex || '')
+			htmlCard.style.zIndex = '-1'
+		})
+		allColumns.forEach((column) => {
+			const htmlColumn = column as HTMLElement
+			originalColumnZIndexes.push(htmlColumn.style.zIndex || '')
+			htmlColumn.style.zIndex = '-1'
+		})
+		
 		// 背景要素のpointer-eventsとz-indexを無効化
 		document.body.style.pointerEvents = 'none'
 		document.body.style.zIndex = '-1'
@@ -63,6 +82,9 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		if (appContainer) {
 			appContainer.style.pointerEvents = 'none'
 			appContainer.style.zIndex = '-1'
+		}
+		if (horizontalScroll) {
+			(horizontalScroll as HTMLElement).style.zIndex = '-1'
 		}
 		
 		if (isIOSDevice) {
@@ -82,6 +104,19 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
+			
+			// カンバンボード要素のz-indexを復元
+			allCards.forEach((card, index) => {
+				const htmlCard = card as HTMLElement
+				htmlCard.style.zIndex = originalCardZIndexes[index] || ''
+			})
+			allColumns.forEach((column, index) => {
+				const htmlColumn = column as HTMLElement
+				htmlColumn.style.zIndex = originalColumnZIndexes[index] || ''
+			})
+			if (horizontalScroll) {
+				(horizontalScroll as HTMLElement).style.zIndex = ''
+			}
 			
 			// pointer-eventsとz-indexを復元
 			document.body.style.pointerEvents = originalBodyPointerEvents || ''

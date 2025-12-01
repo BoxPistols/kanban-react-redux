@@ -48,7 +48,7 @@ export function Column({
   const cardIds = cards.map(card => card.id)
 
   return (
-    <Container ref={setNodeRef} $theme={theme}>
+    <Container ref={setNodeRef} $theme={theme} data-column-container>
       <Header>
         <CountBadge $theme={theme}>{cards.length}</CountBadge>
         <ColumnName $theme={theme}>{title}</ColumnName>

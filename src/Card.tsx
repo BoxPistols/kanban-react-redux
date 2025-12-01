@@ -84,6 +84,7 @@ export function Card({
         $labelColor={primaryLabelColor}
         $theme={theme}
         onClick={handleCardClick}
+        data-card-container
         {...listeners}
         {...attributes}
       >
