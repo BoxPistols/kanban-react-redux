@@ -45,18 +45,24 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		const originalBodyWidth = document.body.style.width
 		const originalBodyHeight = document.body.style.height
 		const originalBodyPointerEvents = document.body.style.pointerEvents
+		const originalBodyZIndex = document.body.style.zIndex
 		const originalRootWidth = rootElement?.style.width || ''
 		const originalRootHeight = rootElement?.style.height || ''
 		const originalRootPointerEvents = rootElement?.style.pointerEvents || ''
+		const originalRootZIndex = rootElement?.style.zIndex || ''
 		const originalAppPointerEvents = appContainer?.style.pointerEvents || ''
+		const originalAppZIndex = appContainer?.style.zIndex || ''
 		
-		// 背景要素のpointer-eventsを無効化
+		// 背景要素のpointer-eventsとz-indexを無効化
 		document.body.style.pointerEvents = 'none'
+		document.body.style.zIndex = '-1'
 		if (rootElement) {
 			rootElement.style.pointerEvents = 'none'
+			rootElement.style.zIndex = '-1'
 		}
 		if (appContainer) {
 			appContainer.style.pointerEvents = 'none'
+			appContainer.style.zIndex = '-1'
 		}
 		
 		if (isIOSDevice) {
@@ -77,13 +83,16 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
 			
-			// pointer-eventsを復元
+			// pointer-eventsとz-indexを復元
 			document.body.style.pointerEvents = originalBodyPointerEvents || ''
+			document.body.style.zIndex = originalBodyZIndex || ''
 			if (rootElement) {
 				rootElement.style.pointerEvents = originalRootPointerEvents
+				rootElement.style.zIndex = originalRootZIndex
 			}
 			if (appContainer) {
 				appContainer.style.pointerEvents = originalAppPointerEvents
+				appContainer.style.zIndex = originalAppZIndex
 			}
 			
 			if (isIOSDevice) {

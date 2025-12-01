@@ -83,6 +83,8 @@ const Container = styled.div<{ $theme: any }>`
   border: solid 1px ${props => props.$theme.border};
   border-radius: 6px;
   background-color: ${props => props.$theme.columnBackground};
+  position: relative;
+  z-index: 0;
 
   > :not(:last-child) {
     flex-shrink: 0;

@@ -281,6 +281,8 @@ const MainArea = styled.div<{ $theme: any }>`
   padding: 16px 0;
   overflow: hidden;
   background-color: ${props => props.$theme.background};
+  position: relative;
+  z-index: 0;
 `
 
 const HorizontalScroll = styled.div`

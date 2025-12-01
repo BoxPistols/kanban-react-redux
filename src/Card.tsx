@@ -148,7 +148,7 @@ export function Card({
 
 const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $theme: any }>`
   position: relative;
-  z-index: 1;
+  z-index: 0;
   border: solid 1px ${props => props.$theme.border};
   border-radius: 6px;
   border-top: 4px solid ${props => props.$labelColor || props.$theme.border};
