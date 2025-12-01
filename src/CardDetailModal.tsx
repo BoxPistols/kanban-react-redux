@@ -431,6 +431,7 @@ const Overlay = styled.div`
   padding-top: env(safe-area-inset-top, 16px);
   padding-bottom: env(safe-area-inset-bottom, 16px);
   overflow-y: auto;
+  touch-action: manipulation;
 
   @media (max-width: 768px) {
     align-items: flex-start;
