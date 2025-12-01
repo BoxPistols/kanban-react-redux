@@ -3,9 +3,11 @@ import styled from 'styled-components'
 import * as color from './color'
 import { CardFilter } from './CardFilter'
 import { BoardSelector } from './BoardSelector'
-import { MoonIcon, SunIcon, MenuIcon, CloseIcon } from './icon'
+import { TrashModal } from './TrashModal'
+import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon } from './icon'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
+import { useTrashStore } from './store/trashStore'
 import { isFirebaseEnabled } from './lib/firebase'
 
 // メールアドレスの頭文字のみ表示（例: i）
@@ -16,7 +18,14 @@ function getFirstChar(email: string): string {
 export function Header({ className }: { className?: string }) {
     const { isDarkMode, toggleDarkMode } = useThemeStore()
     const { user, logOut } = useAuthStore()
+    const { trashedCards, loadTrash } = useTrashStore()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [isTrashModalOpen, setIsTrashModalOpen] = useState(false)
+
+    // ゴミ箱を読み込む
+    useEffect(() => {
+        loadTrash()
+    }, [loadTrash])
 
     // 一時的: ユーザーIDをコンソールに出力（セキュリティルール設定用）
     if (user?.uid) {
@@ -74,6 +83,16 @@ export function Header({ className }: { className?: string }) {
                 <ThemeToggle onClick={toggleDarkMode} title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}>
                     {isDarkMode ? <SunIcon /> : <MoonIcon />}
                 </ThemeToggle>
+            </DesktopOnly>
+
+            {/* ゴミ箱ボタン - PC表示 */}
+            <DesktopOnly>
+                <TrashButton onClick={() => setIsTrashModalOpen(true)} title="ゴミ箱">
+                    <TrashIcon />
+                    {trashedCards.length > 0 && (
+                        <TrashBadge>{trashedCards.length}</TrashBadge>
+                    )}
+                </TrashButton>
             </DesktopOnly>
 
             {/* ユーザー情報 - PC表示 */}
@@ -134,6 +153,16 @@ export function Header({ className }: { className?: string }) {
                                 {isDarkMode ? <SunIcon /> : <MoonIcon />}
                                 <span>{isDarkMode ? 'ライトモード' : 'ダークモード'}</span>
                             </MenuThemeToggle>
+                            <MenuTrashButton onClick={() => {
+                                setIsTrashModalOpen(true)
+                                setIsMenuOpen(false)
+                            }}>
+                                <TrashIcon />
+                                <span>ゴミ箱</span>
+                                {trashedCards.length > 0 && (
+                                    <MenuTrashBadge>{trashedCards.length}</MenuTrashBadge>
+                                )}
+                            </MenuTrashButton>
                         </MenuSection>
 
                         {isFirebaseEnabled && user && (
@@ -155,6 +184,11 @@ export function Header({ className }: { className?: string }) {
                         )}
                     </MobileMenu>
                 </MobileMenuOverlay>
+            )}
+
+            {/* ゴミ箱モーダル */}
+            {isTrashModalOpen && (
+                <TrashModal onClose={() => setIsTrashModalOpen(false)} />
             )}
         </Container>
     )
@@ -393,4 +427,87 @@ const MenuLogoutButton = styled.button`
   &:hover {
     background: rgba(239, 83, 80, 0.3);
   }
+`
+
+const TrashButton = styled.button`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  padding: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  font-size: 18px;
+  border-radius: 6px;
+  color: ${color.White};
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`
+
+const TrashBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: ${color.Red};
+  color: ${color.White};
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const MenuTrashButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  border-radius: 8px;
+  color: ${color.White};
+  font-size: 14px;
+  transition: all 0.2s;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+`
+
+const MenuTrashBadge = styled.span`
+  background-color: ${color.Red};
+  color: ${color.White};
+  font-size: 11px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
 `
