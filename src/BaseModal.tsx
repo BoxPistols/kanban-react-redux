@@ -23,19 +23,28 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		}
 		document.addEventListener('keydown', handleKeyDown)
 
-		// Modalが開いているときにbodyのスクロールを無効化
+		// Modalが開いているときにbodyのスクロールを無効化（iPhone Safari対応）
+		const scrollY = window.scrollY
 		const originalOverflow = document.body.style.overflow
 		const originalPosition = document.body.style.position
+		const originalTop = document.body.style.top
 		const originalWidth = document.body.style.width
+		const originalHeight = document.body.style.height
+		
 		document.body.style.overflow = 'hidden'
 		document.body.style.position = 'fixed'
+		document.body.style.top = `-${scrollY}px`
 		document.body.style.width = '100%'
+		document.body.style.height = '100%'
 
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
 			document.body.style.overflow = originalOverflow
 			document.body.style.position = originalPosition
+			document.body.style.top = originalTop
 			document.body.style.width = originalWidth
+			document.body.style.height = originalHeight
+			window.scrollTo(0, scrollY)
 		}
 	}, [onClose])
 
@@ -54,6 +63,9 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -62,10 +74,13 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
+  overscroll-behavior: contain;
 
   @media (max-width: 768px) {
     align-items: flex-start;
     padding-top: env(safe-area-inset-top, 0);
+    height: calc(100dvh - env(safe-area-inset-top, 0));
+    height: calc(100vh - env(safe-area-inset-top, 0));
   }
 `
 
@@ -79,7 +94,7 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  margin: auto;
+  margin: 0;
   position: relative;
   z-index: 10001;
 
@@ -88,7 +103,7 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
     min-height: calc(100vh - env(safe-area-inset-top, 0));
     border-radius: 0;
     max-width: 100%;
-    margin-top: env(safe-area-inset-top, 0);
+    margin-top: 0;
   }
 `
 
