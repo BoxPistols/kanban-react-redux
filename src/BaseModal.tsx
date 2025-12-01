@@ -36,6 +36,7 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		// Modalが開いているときにbodyのスクロールを無効化（iOS Safari対応）
 		const scrollY = window.pageYOffset || window.scrollY || 0
 		const rootElement = document.getElementById('root')
+		const appContainer = rootElement?.querySelector('[data-app-container]') as HTMLElement
 		const isIOSDevice = isIOS()
 		
 		const originalBodyOverflow = document.body.style.overflow
@@ -43,8 +44,20 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		const originalBodyTop = document.body.style.top
 		const originalBodyWidth = document.body.style.width
 		const originalBodyHeight = document.body.style.height
+		const originalBodyPointerEvents = document.body.style.pointerEvents
 		const originalRootWidth = rootElement?.style.width || ''
 		const originalRootHeight = rootElement?.style.height || ''
+		const originalRootPointerEvents = rootElement?.style.pointerEvents || ''
+		const originalAppPointerEvents = appContainer?.style.pointerEvents || ''
+		
+		// 背景要素のpointer-eventsを無効化
+		document.body.style.pointerEvents = 'none'
+		if (rootElement) {
+			rootElement.style.pointerEvents = 'none'
+		}
+		if (appContainer) {
+			appContainer.style.pointerEvents = 'none'
+		}
 		
 		if (isIOSDevice) {
 			// iOSの場合: position: fixed を使用
@@ -63,6 +76,15 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
+			
+			// pointer-eventsを復元
+			document.body.style.pointerEvents = originalBodyPointerEvents || ''
+			if (rootElement) {
+				rootElement.style.pointerEvents = originalRootPointerEvents
+			}
+			if (appContainer) {
+				appContainer.style.pointerEvents = originalAppPointerEvents
+			}
 			
 			if (isIOSDevice) {
 				document.body.style.position = originalBodyPosition || ''
@@ -102,13 +124,14 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: 10000;
+  z-index: 99999;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
   overscroll-behavior: contain;
   padding-top: env(safe-area-inset-top, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
+  pointer-events: auto;
 
   @media (min-width: 769px) {
     align-items: center;
@@ -128,7 +151,8 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin: 0;
   position: relative;
-  z-index: 10001;
+  z-index: 100000;
+  pointer-events: auto;
 
   @media (max-width: 768px) {
     border-radius: 0;

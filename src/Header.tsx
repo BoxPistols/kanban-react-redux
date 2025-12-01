@@ -200,7 +200,7 @@ const Container = styled.div`
   padding: 8px 16px;
   background-color: ${color.Navy};
   position: relative;
-  z-index: 100;
+  z-index: 10;
 
   @media (max-width: 768px) {
     padding: 8px 12px;

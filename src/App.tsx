@@ -225,7 +225,7 @@ export function App() {
       onDragEnd={handleDragEnd}
     >
       <GlobalStyle $theme={theme} />
-      <Container $theme={theme}>
+      <Container $theme={theme} data-app-container>
         <Header />
 
         <MainArea $theme={theme}>
@@ -267,6 +267,8 @@ const Container = styled.div<{ $theme: any }>`
   flex-flow: column;
   height: 100%;
   background-color: ${props => props.$theme.background};
+  position: relative;
+  z-index: 1;
 `
 
 const Header = styled(_Header)`
