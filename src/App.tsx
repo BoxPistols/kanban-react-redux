@@ -310,7 +310,7 @@ const HorizontalScroll = styled.div`
     }
   }
 
-  ::after {
+  &::after {
     display: block;
     flex: 0 0 16px;
     content: '';
