@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
+import { v4 as uuidv4 } from 'uuid'
 import * as color from './color'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
@@ -14,8 +15,18 @@ interface BoardModalProps {
 
 type TabType = 'basic' | 'labels'
 
+// Type guard for imported labels
+interface ImportedLabel {
+  name?: unknown
+  color?: unknown
+}
+
+function isValidLabel(obj: ImportedLabel): obj is { name: string; color: string } {
+  return obj && typeof obj.name === 'string' && typeof obj.color === 'string'
+}
+
 export function BoardModal({ boardId, onClose }: BoardModalProps) {
-  const { boards, addBoard, updateBoard, deleteBoard, addLabelToBoard, removeLabelFromBoard, updateLabel } = useBoardStore()
+  const { boards, updateBoard, addBoard, deleteBoard, addLabelToBoard, removeLabelFromBoard, updateLabel } = useBoardStore()
   const { isDarkMode } = useThemeStore()
   const theme = getTheme(isDarkMode)
   const board = boardId ? boards.find(b => b.id === boardId) : null
@@ -29,8 +40,8 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
   const [newLabelName, setNewLabelName] = useState('')
   const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0])
   const [editingLabel, setEditingLabel] = useState<Label | null>(null)
-  const [showCustomColorPicker, setShowCustomColorPicker] = useState(false)
-  const [showEditingCustomColorPicker, setShowEditingCustomColorPicker] = useState(false)
+  const [shouldOpenColorPicker, setShouldOpenColorPicker] = useState(false)
+  const [shouldOpenEditingColorPicker, setShouldOpenEditingColorPicker] = useState(false)
   const customColorInputRef = useRef<HTMLInputElement>(null)
   const editingCustomColorInputRef = useRef<HTMLInputElement>(null)
   const importFileInputRef = useRef<HTMLInputElement>(null)
@@ -42,6 +53,22 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
       setSelectedColor(board.color || BOARD_COLORS[0])
     }
   }, [board])
+
+  // useEffect for opening color picker
+  useEffect(() => {
+    if (shouldOpenColorPicker) {
+      customColorInputRef.current?.click()
+      setShouldOpenColorPicker(false)
+    }
+  }, [shouldOpenColorPicker])
+
+  // useEffect for opening editing color picker
+  useEffect(() => {
+    if (shouldOpenEditingColorPicker) {
+      editingCustomColorInputRef.current?.click()
+      setShouldOpenEditingColorPicker(false)
+    }
+  }, [shouldOpenEditingColorPicker])
 
   const handleAddLabel = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault()
@@ -115,9 +142,8 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
         return
       }
 
-      const validLabels = data.labels.filter(
-        (l: any) => typeof l.name === 'string' && typeof l.color === 'string'
-      )
+      // Use type guard to filter valid labels
+      const validLabels = (data.labels as ImportedLabel[]).filter(isValidLabel)
 
       if (validLabels.length === 0) {
         alert('有効なラベルが見つかりませんでした')
@@ -125,7 +151,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
       }
 
       const existingNames = new Set(board?.labels?.map(l => l.name.toLowerCase()) || [])
-      let importedCount = 0
+      const labelsToAdd: { name: string; color: string }[] = []
       let skippedCount = 0
 
       for (const label of validLabels) {
@@ -133,11 +159,18 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
           skippedCount++
           continue
         }
-        await addLabelToBoard(boardId, { name: label.name, color: label.color })
+        labelsToAdd.push({ name: label.name, color: label.color })
         existingNames.add(label.name.toLowerCase())
-        importedCount++
       }
 
+      // Batch update: add all labels at once
+      if (labelsToAdd.length > 0) {
+        const newLabels = labelsToAdd.map(l => ({ ...l, id: uuidv4() }))
+        const updatedLabels = [...(board?.labels || []), ...newLabels]
+        await updateBoard(boardId, { labels: updatedLabels })
+      }
+
+      const importedCount = labelsToAdd.length
       alert(`${importedCount}個のラベルをインポートしました${skippedCount > 0 ? `\n（${skippedCount}個は既に存在するためスキップしました）` : ''}`)
     } catch (error) {
       console.error('Import error:', error)
@@ -267,21 +300,15 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                         $color={c}
                         $selected={newLabelColor === c}
                         $isDarkMode={isDarkMode}
-                        onClick={() => {
-                          setNewLabelColor(c)
-                          setShowCustomColorPicker(false)
-                        }}
+                        onClick={() => setNewLabelColor(c)}
                       />
                     ))}
                     <CustomColorButton
                       type="button"
-                      $selected={showCustomColorPicker || !LABEL_COLORS.includes(newLabelColor)}
+                      $selected={!LABEL_COLORS.includes(newLabelColor)}
                       $isDarkMode={isDarkMode}
                       $currentColor={!LABEL_COLORS.includes(newLabelColor) ? newLabelColor : undefined}
-                      onClick={() => {
-                        setShowCustomColorPicker(!showCustomColorPicker)
-                        setTimeout(() => customColorInputRef.current?.click(), 100)
-                      }}
+                      onClick={() => setShouldOpenColorPicker(true)}
                       title="カスタムカラー"
                     >
                       +
@@ -290,10 +317,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                       ref={customColorInputRef}
                       type="color"
                       value={newLabelColor}
-                      onChange={(e) => {
-                        setNewLabelColor(e.target.value)
-                        setShowCustomColorPicker(true)
-                      }}
+                      onChange={(e) => setNewLabelColor(e.target.value)}
                     />
                   </LabelColorPicker>
                   <AddLabelButton type="button" onClick={handleAddLabel}>
@@ -342,21 +366,15 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                                 $color={c}
                                 $selected={editingLabel.color === c}
                                 $isDarkMode={isDarkMode}
-                                onClick={() => {
-                                  setEditingLabel({ ...editingLabel, color: c })
-                                  setShowEditingCustomColorPicker(false)
-                                }}
+                                onClick={() => setEditingLabel({ ...editingLabel, color: c })}
                               />
                             ))}
                             <CustomColorButton
                               type="button"
-                              $selected={showEditingCustomColorPicker || !LABEL_COLORS.includes(editingLabel.color)}
+                              $selected={!LABEL_COLORS.includes(editingLabel.color)}
                               $isDarkMode={isDarkMode}
                               $currentColor={!LABEL_COLORS.includes(editingLabel.color) ? editingLabel.color : undefined}
-                              onClick={() => {
-                                setShowEditingCustomColorPicker(!showEditingCustomColorPicker)
-                                setTimeout(() => editingCustomColorInputRef.current?.click(), 100)
-                              }}
+                              onClick={() => setShouldOpenEditingColorPicker(true)}
                               title="カスタムカラー"
                             >
                               +
@@ -365,19 +383,13 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                               ref={editingCustomColorInputRef}
                               type="color"
                               value={editingLabel.color}
-                              onChange={(e) => {
-                                setEditingLabel({ ...editingLabel, color: e.target.value })
-                                setShowEditingCustomColorPicker(true)
-                              }}
+                              onChange={(e) => setEditingLabel({ ...editingLabel, color: e.target.value })}
                             />
                           </LabelColorPicker>
                           <SaveLabelButton type="button" onClick={handleUpdateLabel}>
                             保存
                           </SaveLabelButton>
-                          <CancelLabelButton type="button" onClick={() => {
-                            setEditingLabel(null)
-                            setShowEditingCustomColorPicker(false)
-                          }} $theme={theme}>
+                          <CancelLabelButton type="button" onClick={() => setEditingLabel(null)} $theme={theme}>
                             キャンセル
                           </CancelLabelButton>
                         </>
@@ -708,7 +720,7 @@ const CustomColorButton = styled.button<{ $selected: boolean; $isDarkMode?: bool
     if (!props.$selected) return props.$isDarkMode ? '#555' : color.Silver
     return props.$isDarkMode ? color.White : color.Black
   }};
-  background: ${props => props.$currentColor || 'linear-gradient(135deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)'};
+  background-color: ${props => props.$currentColor || (props.$isDarkMode ? '#444' : '#f0f0f0')};
   cursor: pointer;
   transition: transform 0.1s, border-color 0.2s;
   display: flex;
