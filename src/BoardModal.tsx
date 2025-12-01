@@ -70,6 +70,17 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
     }
   }, [shouldOpenEditingColorPicker])
 
+  // Escapeキーでモーダルを閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   const handleAddLabel = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault()
     if (!boardId || !newLabelName.trim()) return
