@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
+import { useTrashStore } from './trashStore'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -89,6 +90,7 @@ interface KanbanState {
   addCard: (text: string, columnId: ColumnType, boardId: string) => Promise<void>
   updateCard: (id: string, updates: Partial<Card>) => Promise<void>
   deleteCard: (id: string) => Promise<void>
+  restoreCard: (card: Card, boardId: string, columnId: ColumnType) => Promise<void>
   moveCard: (cardId: string, newColumnId: ColumnType, newOrder: number) => Promise<void>
   reorderCards: (updates: { id: string; order: number; columnId?: ColumnType }[]) => Promise<void>
   setSearchQuery: (query: string) => void
@@ -191,6 +193,12 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     try {
       set({ isLoading: true, error: null })
 
+      // カードをゴミ箱に移動
+      const cardToDelete = get().cards.find(card => card.id === id)
+      if (cardToDelete) {
+        useTrashStore.getState().addToTrash(cardToDelete)
+      }
+
       const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
       if (useFirebase) {
         // Firebase mode
@@ -207,6 +215,43 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     } catch (error) {
       console.error('Error deleting card:', error)
       set({ error: 'カードの削除に失敗しました', isLoading: false })
+    }
+  },
+
+  restoreCard: async (card, boardId, columnId) => {
+    try {
+      set({ isLoading: true, error: null })
+
+      // 復元先カラムのカード数を取得してorderを設定
+      const cardsInColumn = get().cards.filter(c => c.columnId === columnId && c.boardId === boardId)
+      const maxOrder = cardsInColumn.length > 0
+        ? Math.max(...cardsInColumn.map(c => c.order))
+        : -1
+
+      const restoredCard: Card = {
+        ...card,
+        boardId,
+        columnId,
+        order: maxOrder + 1,
+        updatedAt: Date.now()
+      }
+
+      const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+      if (useFirebase) {
+        // Firebase mode - 新しいドキュメントとして追加
+        const { id, ...cardData } = restoredCard
+        await addDoc(collection(db!, 'cards'), cardData)
+      } else {
+        // LocalStorage mode
+        const currentCards = get().cards
+        const updatedCards = [...currentCards, { ...restoredCard, id: uuidv4() }]
+        set({ cards: updatedCards })
+        saveCardsToLocalStorage(updatedCards)
+      }
+      set({ isLoading: false })
+    } catch (error) {
+      console.error('Error restoring card:', error)
+      set({ error: 'カードの復元に失敗しました', isLoading: false })
     }
   },
 

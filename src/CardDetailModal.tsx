@@ -23,6 +23,7 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme } from './theme'
 import { CARD_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
+import { getContrastTextColor, isLightColor } from './utils/colorUtils'
 import type { Card, ChecklistItem, Label } from './types'
 
 interface CardDetailModalProps {
@@ -261,7 +262,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             placeholder="カードのタイトル"
             $theme={theme}
           />
-          <CloseButton onClick={onClose} $theme={theme}>×</CloseButton>
+          <CloseButton onClick={onClose} $theme={theme} $cardColor={cardColor}>×</CloseButton>
         </Header>
 
         <Content $theme={theme}>
@@ -274,6 +275,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                   key={label.id}
                   $color={label.color}
                   $selected={selectedLabels.some(l => l.id === label.id)}
+                  $isDarkMode={isDarkMode}
                   onClick={() => toggleLabel(label)}
                 >
                   {label.name}
@@ -461,11 +463,16 @@ const TitleInput = styled.input<{ $theme: any }>`
   }
 `
 
-const CloseButton = styled.button<{ $theme: any }>`
+const CloseButton = styled.button<{ $theme: any; $cardColor?: string }>`
   border: none;
-  background: none;
+  background: ${props => props.$cardColor ? 'rgba(0, 0, 0, 0.1)' : 'none'};
   font-size: 28px;
-  color: ${props => props.$theme.textSecondary};
+  color: ${props => {
+    if (props.$cardColor) {
+      return getContrastTextColor(props.$cardColor)
+    }
+    return props.$theme.textSecondary
+  }};
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -475,10 +482,21 @@ const CloseButton = styled.button<{ $theme: any }>`
   justify-content: center;
   border-radius: 4px;
   flex-shrink: 0;
+  transition: background-color 0.2s, color 0.2s;
 
   &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-    color: ${props => props.$theme.text};
+    background-color: ${props => {
+      if (props.$cardColor) {
+        return isLightColor(props.$cardColor) ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.2)'
+      }
+      return props.$theme.surfaceHover
+    }};
+    color: ${props => {
+      if (props.$cardColor) {
+        return getContrastTextColor(props.$cardColor)
+      }
+      return props.$theme.text
+    }};
   }
 `
 
@@ -515,19 +533,24 @@ const LabelsContainer = styled.div`
   gap: 8px;
 `
 
-const LabelTag = styled.button<{ $color: string; $selected: boolean }>`
+const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode?: boolean }>`
   padding: 6px 12px;
   border-radius: 4px;
-  border: 2px solid ${props => props.$selected ? color.Black : 'transparent'};
+  border: 2px solid ${props => {
+    if (!props.$selected) return 'transparent'
+    return props.$isDarkMode ? color.White : color.Black
+  }};
   background-color: ${props => props.$color};
   color: ${color.White};
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s, transform 0.1s;
 
   &:hover {
-    opacity: 0.8;
+    opacity: 0.9;
+    transform: scale(1.02);
   }
 `
 
