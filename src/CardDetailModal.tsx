@@ -428,7 +428,16 @@ const Overlay = styled.div`
   justify-content: center;
   z-index: 1000;
   padding: 16px;
+  padding-top: env(safe-area-inset-top, 16px);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
   overflow-y: auto;
+
+  @media (max-width: 768px) {
+    align-items: flex-start;
+    padding: 8px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
 `
 
 const Modal = styled.div<{ $theme: any }>`
@@ -437,10 +446,24 @@ const Modal = styled.div<{ $theme: any }>`
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin: auto;
+
+  @media (max-width: 768px) {
+    max-height: calc(100dvh - 16px);
+    max-height: calc(100vh - 16px);
+    margin: 0 auto;
+    border-radius: 8px 8px 0 0;
+  }
+
+  @supports (height: 100dvh) {
+    @media (max-width: 768px) {
+      max-height: calc(100dvh - 16px);
+    }
+  }
 `
 
 const Header = styled.div<{ $color?: string; $theme: any }>`
