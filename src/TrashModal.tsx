@@ -6,6 +6,7 @@ import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
+import { BaseModal } from './BaseModal'
 import type { ColumnType } from './types'
 
 interface TrashModalProps {
@@ -22,17 +23,6 @@ export function TrashModal({ onClose }: TrashModalProps) {
   useEffect(() => {
     loadTrash()
   }, [loadTrash])
-
-  // Escapeキーでモーダルを閉じる
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
 
   const handleRestore = async (card: TrashedCard) => {
     // 元のボードが存在するか確認
@@ -79,8 +69,8 @@ export function TrashModal({ onClose }: TrashModalProps) {
   }
 
   return (
-    <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()} $theme={theme}>
+    <BaseModal onClose={onClose} maxWidth="600px">
+      <ModalContent $theme={theme}>
         <Header $theme={theme}>
           <Title $theme={theme}>ゴミ箱</Title>
           <CloseButton onClick={onClose} $theme={theme}>×</CloseButton>
@@ -143,56 +133,28 @@ export function TrashModal({ onClose }: TrashModalProps) {
             閉じる
           </CloseModalButton>
         </Footer>
-      </Modal>
-    </Overlay>
+      </ModalContent>
+    </BaseModal>
   )
 }
 
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
-  overflow-y: auto;
-  touch-action: manipulation;
-
-  @media (max-width: 768px) {
-    align-items: flex-start;
-    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
-  }
-`
-
-const Modal = styled.div<{ $theme: Theme }>`
-  background-color: ${props => props.$theme.surface};
-  border-radius: 8px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  max-height: 90dvh;
+const ModalContent = styled.div<{ $theme: Theme }>`
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-
-  @media (max-width: 768px) {
-    max-height: calc(100vh - 16px);
-    max-height: calc(100dvh - 16px);
-    border-radius: 8px 8px 0 0;
-  }
+  height: 100%;
 `
 
 const Header = styled.div<{ $theme: Theme }>`
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surface};
+  flex-shrink: 0;
 `
 
 const Title = styled.h2<{ $theme: Theme }>`
@@ -226,6 +188,8 @@ const Content = styled.div<{ $theme: Theme }>`
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 `
 
 const EmptyState = styled.div<{ $theme: Theme }>`
@@ -341,6 +305,7 @@ const Footer = styled.div<{ $theme: Theme }>`
   padding: 16px 20px;
   border-top: 1px solid ${props => props.$theme.border};
   gap: 8px;
+  flex-shrink: 0;
 `
 
 const EmptyTrashButton = styled.button`

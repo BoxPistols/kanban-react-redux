@@ -275,7 +275,7 @@ const Header = styled(_Header)`
 
 const MainArea = styled.div<{ $theme: any }>`
   flex: 1;
-  min-height: 0;
+  min-height: 90vh;
   padding: 16px 0;
   overflow: hidden;
   background-color: ${props => props.$theme.background};

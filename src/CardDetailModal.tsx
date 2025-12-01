@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import styled from 'styled-components'
 import {
   DndContext,
@@ -24,6 +24,7 @@ import { getTheme } from './theme'
 import { CARD_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
 import { getContrastTextColor, isLightColor } from './utils/colorUtils'
+import { BaseModal } from './BaseModal'
 import type { Card, ChecklistItem, Label } from './types'
 
 interface CardDetailModalProps {
@@ -158,17 +159,6 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     })
   )
 
-  // Escapeキーでモーダルを閉じる
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
   const progress = checklist.length > 0
     ? Math.round((checklist.filter(item => item.completed).length / checklist.length) * 100)
     : 0
@@ -264,8 +254,8 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const { isDueSoon, isOverdue } = getDueDateStatus(dueDateTimestamp)
 
   return (
-    <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()} $theme={theme}>
+    <BaseModal onClose={onClose} maxWidth="600px">
+      <ModalContent $theme={theme}>
         <Header $color={cardColor} $theme={theme}>
           <TitleInput
             value={title}
@@ -411,61 +401,30 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
           <SaveButton onClick={handleSave}>保存</SaveButton>
           <CancelButton onClick={onClose} $theme={theme}>キャンセル</CancelButton>
         </Footer>
-      </Modal>
-    </Overlay>
+      </ModalContent>
+    </BaseModal>
   )
 }
 
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
-  overflow-y: auto;
-  touch-action: manipulation;
-
-  @media (max-width: 768px) {
-    align-items: flex-start;
-    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
-  }
-`
-
-const Modal = styled.div<{ $theme: any }>`
-  background-color: ${props => props.$theme.surface};
-  border-radius: 8px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  max-height: 90dvh;
+const ModalContent = styled.div<{ $theme: any }>`
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  margin: auto;
-
-  @media (max-width: 768px) {
-    max-height: calc(100vh - 16px);
-    max-height: calc(100dvh - 16px);
-    margin: 0 auto;
-    border-radius: 8px 8px 0 0;
-  }
+  height: 100%;
 `
 
 const Header = styled.div<{ $color?: string; $theme: any }>`
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   padding: 16px 20px;
   border-bottom: 1px solid ${props => props.$theme.border};
-  background-color: ${props => props.$color || 'transparent'};
+  background-color: ${props => props.$color || props.$theme.surface};
   border-radius: 8px 8px 0 0;
   gap: 12px;
+  flex-shrink: 0;
 `
 
 const TitleInput = styled.input<{ $theme: any }>`
@@ -529,7 +488,9 @@ const Content = styled.div<{ $theme: any }>`
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
   background-color: ${props => props.$theme.surface};
+  -webkit-overflow-scrolling: touch;
 `
 
 const Section = styled.div`
@@ -809,6 +770,7 @@ const Footer = styled.div<{ $theme: any }>`
   padding: 16px 20px;
   border-top: 1px solid ${props => props.$theme.border};
   background-color: ${props => props.$theme.surface};
+  flex-shrink: 0;
 `
 
 const SaveButton = styled.button`

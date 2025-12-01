@@ -6,6 +6,7 @@ import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
 import { BOARD_COLORS, LABEL_COLORS } from './constants'
+import { BaseModal } from './BaseModal'
 import type { Label } from './types'
 
 interface BoardModalProps {
@@ -70,16 +71,6 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
     }
   }, [shouldOpenEditingColorPicker])
 
-  // Escapeキーでモーダルを閉じる
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
 
   const handleAddLabel = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault()
@@ -215,8 +206,8 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
   }
 
   return (
-    <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()} $theme={theme}>
+    <BaseModal onClose={onClose} maxWidth="500px">
+      <ModalContent $theme={theme}>
         <Header $theme={theme}>
           <Title $theme={theme}>{boardId ? 'ボードを編集' : '新しいボード'}</Title>
           <CloseButton onClick={onClose} $theme={theme}>×</CloseButton>
@@ -432,55 +423,28 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
             </LabelsFooter>
           </LabelsContent>
         )}
-      </Modal>
-    </Overlay>
+      </ModalContent>
+    </BaseModal>
   )
 }
 
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+const ModalContent = styled.div<{ $theme: Theme }>`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
-  overflow-y: auto;
-  touch-action: manipulation;
-
-  @media (max-width: 768px) {
-    align-items: flex-start;
-    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
-  }
-`
-
-const Modal = styled.div<{ $theme: Theme }>`
-  background-color: ${props => props.$theme.surface};
-  border-radius: 8px;
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  max-height: 90dvh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-
-  @media (max-width: 768px) {
-    max-height: calc(100vh - 16px);
-    max-height: calc(100dvh - 16px);
-    border-radius: 8px 8px 0 0;
-  }
+  flex-direction: column;
+  height: 100%;
 `
 
 const Header = styled.div<{ $theme: Theme }>`
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surface};
+  flex-shrink: 0;
 `
 
 const Title = styled.h2<{ $theme: Theme }>`
@@ -513,6 +477,10 @@ const CloseButton = styled.button<{ $theme: Theme }>`
 const Form = styled.form<{ $theme: Theme }>`
   padding: 20px;
   background-color: ${props => props.$theme.surface};
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 `
 
 const FormGroup = styled.div`
@@ -650,8 +618,13 @@ const DeleteButton = styled.button`
 `
 
 const TabBar = styled.div<{ $theme: Theme }>`
+  position: sticky;
+  top: 0;
+  z-index: 9;
   display: flex;
   border-bottom: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surface};
+  flex-shrink: 0;
 `
 
 const Tab = styled.button<{ $active: boolean; $theme: Theme }>`
@@ -674,6 +647,10 @@ const Tab = styled.button<{ $active: boolean; $theme: Theme }>`
 const LabelsContent = styled.div<{ $theme: Theme }>`
   padding: 20px;
   background-color: ${props => props.$theme.surface};
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 `
 
 const LabelsSection = styled.div`
