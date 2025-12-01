@@ -50,20 +50,22 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 
 const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
+  z-index: 10000;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
 
   @media (max-width: 768px) {
-    align-items: ${props => props.$mobileAlignTop ? 'flex-start' : 'center'};
-    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+    align-items: flex-start;
+    padding-top: env(safe-area-inset-top, 0);
   }
 `
 
@@ -72,19 +74,21 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   border-radius: 8px;
   width: 100%;
   max-width: ${props => props.$maxWidth};
-  max-height: 90vh;
-  max-height: 90dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin: auto;
   position: relative;
-  z-index: 10000;
+  z-index: 10001;
 
   @media (max-width: 768px) {
-    max-height: calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom)));
-    margin: 0 auto;
-    border-radius: 8px 8px 0 0;
+    min-height: calc(100dvh - env(safe-area-inset-top, 0));
+    min-height: calc(100vh - env(safe-area-inset-top, 0));
+    border-radius: 0;
+    max-width: 100%;
+    margin-top: env(safe-area-inset-top, 0);
   }
 `
 

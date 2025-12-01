@@ -142,6 +142,8 @@ const ModalContent = styled.div<{ $theme: Theme }>`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 `
 
 const Header = styled.div<{ $theme: Theme }>`

@@ -410,6 +410,8 @@ const ModalContent = styled.div<{ $theme: any }>`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 `
 
 const Header = styled.div<{ $color?: string; $theme: any }>`
