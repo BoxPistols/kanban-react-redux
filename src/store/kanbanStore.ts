@@ -242,9 +242,9 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         const { id, ...cardData } = restoredCard
         await addDoc(collection(db!, 'cards'), cardData)
       } else {
-        // LocalStorage mode
+        // LocalStorage mode - preserve original ID
         const currentCards = get().cards
-        const updatedCards = [...currentCards, { ...restoredCard, id: uuidv4() }]
+        const updatedCards = [...currentCards, restoredCard]
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
       }
