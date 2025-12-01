@@ -10,6 +10,16 @@ interface BaseModalProps {
 	mobileAlignTop?: boolean
 }
 
+// iOS判定（iPhone, iPad, macOS Safari）
+function isIOS(): boolean {
+	const ua = window.navigator.userAgent.toLowerCase()
+	return (
+		ua.indexOf('iphone') > -1 ||
+		ua.indexOf('ipad') > -1 ||
+		(ua.indexOf('macintosh') > -1 && 'ontouchend' in document)
+	)
+}
+
 export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTop = false }: BaseModalProps) {
 	const { isDarkMode } = useThemeStore()
 	const theme = getTheme(isDarkMode)
@@ -23,28 +33,50 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		}
 		document.addEventListener('keydown', handleKeyDown)
 
-		// Modalが開いているときにbodyのスクロールを無効化（iPhone Safari対応）
-		const scrollY = window.scrollY
-		const originalOverflow = document.body.style.overflow
-		const originalPosition = document.body.style.position
-		const originalTop = document.body.style.top
-		const originalWidth = document.body.style.width
-		const originalHeight = document.body.style.height
+		// Modalが開いているときにbodyのスクロールを無効化（iOS Safari対応）
+		const scrollY = window.pageYOffset || window.scrollY || 0
+		const rootElement = document.getElementById('root')
+		const isIOSDevice = isIOS()
 		
-		document.body.style.overflow = 'hidden'
-		document.body.style.position = 'fixed'
-		document.body.style.top = `-${scrollY}px`
-		document.body.style.width = '100%'
-		document.body.style.height = '100%'
+		const originalBodyOverflow = document.body.style.overflow
+		const originalBodyPosition = document.body.style.position
+		const originalBodyTop = document.body.style.top
+		const originalBodyWidth = document.body.style.width
+		const originalBodyHeight = document.body.style.height
+		const originalRootWidth = rootElement?.style.width || ''
+		const originalRootHeight = rootElement?.style.height || ''
+		
+		if (isIOSDevice) {
+			// iOSの場合: position: fixed を使用
+			document.body.style.position = 'fixed'
+			document.body.style.top = `-${scrollY}px`
+			document.body.style.width = '100%'
+			document.body.style.height = '100%'
+			if (rootElement) {
+				rootElement.style.width = '100%'
+				rootElement.style.height = '100%'
+			}
+		} else {
+			// それ以外: overflow: hidden を使用
+			document.body.style.overflow = 'hidden'
+		}
 
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
-			document.body.style.overflow = originalOverflow
-			document.body.style.position = originalPosition
-			document.body.style.top = originalTop
-			document.body.style.width = originalWidth
-			document.body.style.height = originalHeight
-			window.scrollTo(0, scrollY)
+			
+			if (isIOSDevice) {
+				document.body.style.position = originalBodyPosition || ''
+				document.body.style.top = originalBodyTop || ''
+				document.body.style.width = originalBodyWidth || ''
+				document.body.style.height = originalBodyHeight || ''
+				if (rootElement) {
+					rootElement.style.width = originalRootWidth
+					rootElement.style.height = originalRootHeight
+				}
+				window.scrollTo(0, scrollY)
+			} else {
+				document.body.style.overflow = originalBodyOverflow || ''
+			}
 		}
 	}, [onClose])
 
@@ -68,19 +100,20 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   height: 100dvh;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 10000;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
   overscroll-behavior: contain;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 
-  @media (max-width: 768px) {
-    align-items: flex-start;
-    padding-top: env(safe-area-inset-top, 0);
-    height: calc(100dvh - env(safe-area-inset-top, 0));
-    height: calc(100vh - env(safe-area-inset-top, 0));
+  @media (min-width: 769px) {
+    align-items: center;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 `
 
@@ -89,8 +122,7 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   border-radius: 8px;
   width: 100%;
   max-width: ${props => props.$maxWidth};
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -99,11 +131,17 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   z-index: 10001;
 
   @media (max-width: 768px) {
-    min-height: calc(100dvh - env(safe-area-inset-top, 0));
-    min-height: calc(100vh - env(safe-area-inset-top, 0));
     border-radius: 0;
     max-width: 100%;
-    margin-top: 0;
+    min-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+    min-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+  }
+
+  @media (min-width: 769px) {
+    min-height: auto;
+    max-height: 90vh;
+    max-height: 90dvh;
+    margin: auto;
   }
 `
 

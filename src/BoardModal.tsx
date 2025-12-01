@@ -433,7 +433,8 @@ const ModalContent = styled.div<{ $theme: Theme }>`
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 `
 
 const Header = styled.div<{ $theme: Theme }>`
@@ -479,10 +480,8 @@ const CloseButton = styled.button<{ $theme: Theme }>`
 const Form = styled.form<{ $theme: Theme }>`
   padding: 20px;
   background-color: ${props => props.$theme.surface};
-  overflow-y: auto;
   flex: 1;
   min-height: 0;
-  -webkit-overflow-scrolling: touch;
 `
 
 const FormGroup = styled.div`
@@ -649,10 +648,8 @@ const Tab = styled.button<{ $active: boolean; $theme: Theme }>`
 const LabelsContent = styled.div<{ $theme: Theme }>`
   padding: 20px;
   background-color: ${props => props.$theme.surface};
-  overflow-y: auto;
   flex: 1;
   min-height: 0;
-  -webkit-overflow-scrolling: touch;
 `
 
 const LabelsSection = styled.div`

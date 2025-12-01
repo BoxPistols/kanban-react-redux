@@ -411,7 +411,8 @@ const ModalContent = styled.div<{ $theme: any }>`
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 `
 
 const Header = styled.div<{ $color?: string; $theme: any }>`
@@ -488,11 +489,9 @@ const CloseButton = styled.button<{ $theme: any; $cardColor?: string }>`
 
 const Content = styled.div<{ $theme: any }>`
   padding: 20px;
-  overflow-y: auto;
   flex: 1;
   min-height: 0;
   background-color: ${props => props.$theme.surface};
-  -webkit-overflow-scrolling: touch;
 `
 
 const Section = styled.div`
