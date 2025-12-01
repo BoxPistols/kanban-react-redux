@@ -427,17 +427,13 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 16px;
-  padding-top: env(safe-area-inset-top, 16px);
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
   overflow-y: auto;
   touch-action: manipulation;
 
   @media (max-width: 768px) {
     align-items: flex-start;
-    padding: 8px;
-    padding-top: max(8px, env(safe-area-inset-top));
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
   }
 `
 
@@ -454,16 +450,10 @@ const Modal = styled.div<{ $theme: any }>`
   margin: auto;
 
   @media (max-width: 768px) {
-    max-height: calc(100dvh - 16px);
     max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
     margin: 0 auto;
     border-radius: 8px 8px 0 0;
-  }
-
-  @supports (height: 100dvh) {
-    @media (max-width: 768px) {
-      max-height: calc(100dvh - 16px);
-    }
   }
 `
 
