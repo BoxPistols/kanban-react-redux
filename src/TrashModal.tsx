@@ -23,6 +23,17 @@ export function TrashModal({ onClose }: TrashModalProps) {
     loadTrash()
   }, [loadTrash])
 
+  // Escapeキーでモーダルを閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   const handleRestore = async (card: TrashedCard) => {
     // 元のボードが存在するか確認
     const originalBoard = boards.find(b => b.id === card.originalBoardId)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import {
   DndContext,
@@ -157,6 +157,17 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       }
     })
   )
+
+  // Escapeキーでモーダルを閉じる
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   const progress = checklist.length > 0
     ? Math.round((checklist.filter(item => item.completed).length / checklist.length) * 100)
