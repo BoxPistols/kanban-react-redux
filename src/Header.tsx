@@ -334,7 +334,7 @@ const MobileMenuOverlay = styled.div`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 0;
+  z-index: 999;
   animation: fadeIn 0.2s ease-out;
 
   @keyframes fadeIn {
@@ -355,6 +355,7 @@ const MobileMenu = styled.div`
   overflow-y: auto;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
   animation: slideIn 0.3s ease-out;
+  z-index: 1;
 
   @keyframes slideIn {
     from { transform: translateX(100%); }
