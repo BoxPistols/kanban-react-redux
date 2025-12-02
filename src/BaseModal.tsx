@@ -50,41 +50,35 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		const originalBodyWidth = document.body.style.width
 		const originalBodyHeight = document.body.style.height
 		const originalBodyPointerEvents = document.body.style.pointerEvents
-		const originalBodyZIndex = document.body.style.zIndex
 		const originalRootWidth = rootElement?.style.width || ''
 		const originalRootHeight = rootElement?.style.height || ''
 		const originalRootPointerEvents = rootElement?.style.pointerEvents || ''
-		const originalRootZIndex = rootElement?.style.zIndex || ''
 		const originalAppPointerEvents = appContainer?.style.pointerEvents || ''
-		const originalAppZIndex = appContainer?.style.zIndex || ''
 		
-		// カンバンボード要素のz-indexを保存
-		const originalCardZIndexes: string[] = []
-		const originalColumnZIndexes: string[] = []
+		// カンバンボード要素のpointer-eventsを保存
+		const originalCardPointerEvents: string[] = []
+		const originalColumnPointerEvents: string[] = []
 		allCards.forEach((card) => {
 			const htmlCard = card as HTMLElement
-			originalCardZIndexes.push(htmlCard.style.zIndex || '')
-			htmlCard.style.zIndex = '-1'
+			originalCardPointerEvents.push(htmlCard.style.pointerEvents || '')
+			htmlCard.style.pointerEvents = 'none'
 		})
 		allColumns.forEach((column) => {
 			const htmlColumn = column as HTMLElement
-			originalColumnZIndexes.push(htmlColumn.style.zIndex || '')
-			htmlColumn.style.zIndex = '-1'
+			originalColumnPointerEvents.push(htmlColumn.style.pointerEvents || '')
+			htmlColumn.style.pointerEvents = 'none'
 		})
 		
-		// 背景要素のpointer-eventsとz-indexを無効化
+		// 背景要素のpointer-eventsを無効化（z-indexは変更しない）
 		document.body.style.pointerEvents = 'none'
-		document.body.style.zIndex = '-1'
 		if (rootElement) {
 			rootElement.style.pointerEvents = 'none'
-			rootElement.style.zIndex = '-1'
 		}
 		if (appContainer) {
 			appContainer.style.pointerEvents = 'none'
-			appContainer.style.zIndex = '-1'
 		}
 		if (horizontalScroll) {
-			(horizontalScroll as HTMLElement).style.zIndex = '-1'
+			(horizontalScroll as HTMLElement).style.pointerEvents = 'none'
 		}
 		
 		if (isIOSDevice) {
@@ -105,29 +99,26 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
 			
-			// カンバンボード要素のz-indexを復元
+			// カンバンボード要素のpointer-eventsを復元
 			allCards.forEach((card, index) => {
 				const htmlCard = card as HTMLElement
-				htmlCard.style.zIndex = originalCardZIndexes[index] || ''
+				htmlCard.style.pointerEvents = originalCardPointerEvents[index] || ''
 			})
 			allColumns.forEach((column, index) => {
 				const htmlColumn = column as HTMLElement
-				htmlColumn.style.zIndex = originalColumnZIndexes[index] || ''
+				htmlColumn.style.pointerEvents = originalColumnPointerEvents[index] || ''
 			})
 			if (horizontalScroll) {
-				(horizontalScroll as HTMLElement).style.zIndex = ''
+				(horizontalScroll as HTMLElement).style.pointerEvents = ''
 			}
 			
-			// pointer-eventsとz-indexを復元
+			// pointer-eventsを復元
 			document.body.style.pointerEvents = originalBodyPointerEvents || ''
-			document.body.style.zIndex = originalBodyZIndex || ''
 			if (rootElement) {
 				rootElement.style.pointerEvents = originalRootPointerEvents
-				rootElement.style.zIndex = originalRootZIndex
 			}
 			if (appContainer) {
 				appContainer.style.pointerEvents = originalAppPointerEvents
-				appContainer.style.zIndex = originalAppZIndex
 			}
 			
 			if (isIOSDevice) {
@@ -168,7 +159,7 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: 99999;
+  z-index: 2147483647;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
@@ -176,6 +167,7 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   padding-top: env(safe-area-inset-top, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
   pointer-events: auto;
+  isolation: isolate;
 
   @media (min-width: 769px) {
     align-items: center;
@@ -195,8 +187,9 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin: 0;
   position: relative;
-  z-index: 100000;
+  z-index: 2147483647;
   pointer-events: auto;
+  isolation: isolate;
 
   @media (max-width: 768px) {
     border-radius: 0;
