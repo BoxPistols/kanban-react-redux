@@ -18,6 +18,44 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
     padding: 0;
   }
 
+  /* Modalが開いているときのbodyスクロール固定（通常ブラウザ） */
+  body.modal-open {
+    overflow: hidden;
+  }
+
+  /* Modalが開いているときのbodyスクロール固定（iOS Safari） */
+  body.modal-open-ios {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Modalが開いているときの背景要素のpointer-events無効化 */
+  body.modal-open #root,
+  body.modal-open-ios #root {
+    pointer-events: none;
+  }
+
+  body.modal-open [data-app-container],
+  body.modal-open-ios [data-app-container] {
+    pointer-events: none;
+  }
+
+  body.modal-open [data-card-container],
+  body.modal-open-ios [data-card-container] {
+    pointer-events: none;
+  }
+
+  body.modal-open [data-column-container],
+  body.modal-open-ios [data-column-container] {
+    pointer-events: none;
+  }
+
+  body.modal-open [data-horizontal-scroll],
+  body.modal-open-ios [data-horizontal-scroll] {
+    pointer-events: none;
+  }
+
   /* スクロールバーのスタイル（Firefox） */
   * {
     scrollbar-width: thin;

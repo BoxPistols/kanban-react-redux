@@ -25,7 +25,7 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 	const { isDarkMode } = useThemeStore()
 	const theme = getTheme(isDarkMode)
 
-	// Escapeキーでモーダルを閉じる & bodyのスクロールを無効化
+	// Escapeキーでモーダルを閉じる & bodyクラスでスクロールを無効化
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') {
@@ -34,106 +34,29 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		}
 		document.addEventListener('keydown', handleKeyDown)
 
-		// Modalが開いているときにbodyのスクロールを無効化（iOS Safari対応）
-		const scrollY = window.pageYOffset || window.scrollY || 0
-		const rootElement = document.getElementById('root')
-		const appContainer = rootElement?.querySelector('[data-app-container]') as HTMLElement
+		// Modalが開いているときにbodyクラスを追加（CSSで制御）
 		const isIOSDevice = isIOS()
-		
-		// すべてのカンバンボード要素を取得
-		const allCards = document.querySelectorAll('[data-card-container]')
-		const allColumns = document.querySelectorAll('[data-column-container]')
-		const horizontalScroll = document.querySelector('[data-horizontal-scroll]')
-		
-		const originalBodyOverflow = document.body.style.overflow
-		const originalBodyPosition = document.body.style.position
-		const originalBodyTop = document.body.style.top
-		const originalBodyWidth = document.body.style.width
-		const originalBodyHeight = document.body.style.height
-		const originalBodyPointerEvents = document.body.style.pointerEvents
-		const originalRootWidth = rootElement?.style.width || ''
-		const originalRootHeight = rootElement?.style.height || ''
-		const originalRootPointerEvents = rootElement?.style.pointerEvents || ''
-		const originalAppPointerEvents = appContainer?.style.pointerEvents || ''
-		
-		// カンバンボード要素のpointer-eventsを保存
-		const originalCardPointerEvents: string[] = []
-		const originalColumnPointerEvents: string[] = []
-		allCards.forEach((card) => {
-			const htmlCard = card as HTMLElement
-			originalCardPointerEvents.push(htmlCard.style.pointerEvents || '')
-			htmlCard.style.pointerEvents = 'none'
-		})
-		allColumns.forEach((column) => {
-			const htmlColumn = column as HTMLElement
-			originalColumnPointerEvents.push(htmlColumn.style.pointerEvents || '')
-			htmlColumn.style.pointerEvents = 'none'
-		})
-		
-		// 背景要素のpointer-eventsを無効化（z-indexは変更しない）
-		document.body.style.pointerEvents = 'none'
-		if (rootElement) {
-			rootElement.style.pointerEvents = 'none'
-		}
-		if (appContainer) {
-			appContainer.style.pointerEvents = 'none'
-		}
-		if (horizontalScroll) {
-			(horizontalScroll as HTMLElement).style.pointerEvents = 'none'
-		}
+		const scrollY = window.pageYOffset || window.scrollY || 0
 		
 		if (isIOSDevice) {
-			// iOSの場合: position: fixed を使用
-			document.body.style.position = 'fixed'
+			// iOSの場合: modal-open-iosクラスを追加
+			document.body.classList.add('modal-open-ios')
 			document.body.style.top = `-${scrollY}px`
-			document.body.style.width = '100%'
-			document.body.style.height = '100%'
-			if (rootElement) {
-				rootElement.style.width = '100%'
-				rootElement.style.height = '100%'
-			}
 		} else {
-			// それ以外: overflow: hidden を使用
-			document.body.style.overflow = 'hidden'
+			// それ以外: modal-openクラスを追加
+			document.body.classList.add('modal-open')
 		}
 
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
 			
-			// カンバンボード要素のpointer-eventsを復元
-			allCards.forEach((card, index) => {
-				const htmlCard = card as HTMLElement
-				htmlCard.style.pointerEvents = originalCardPointerEvents[index] || ''
-			})
-			allColumns.forEach((column, index) => {
-				const htmlColumn = column as HTMLElement
-				htmlColumn.style.pointerEvents = originalColumnPointerEvents[index] || ''
-			})
-			if (horizontalScroll) {
-				(horizontalScroll as HTMLElement).style.pointerEvents = ''
-			}
-			
-			// pointer-eventsを復元
-			document.body.style.pointerEvents = originalBodyPointerEvents || ''
-			if (rootElement) {
-				rootElement.style.pointerEvents = originalRootPointerEvents
-			}
-			if (appContainer) {
-				appContainer.style.pointerEvents = originalAppPointerEvents
-			}
-			
+			// bodyクラスを削除
 			if (isIOSDevice) {
-				document.body.style.position = originalBodyPosition || ''
-				document.body.style.top = originalBodyTop || ''
-				document.body.style.width = originalBodyWidth || ''
-				document.body.style.height = originalBodyHeight || ''
-				if (rootElement) {
-					rootElement.style.width = originalRootWidth
-					rootElement.style.height = originalRootHeight
-				}
+				document.body.classList.remove('modal-open-ios')
+				document.body.style.top = ''
 				window.scrollTo(0, scrollY)
 			} else {
-				document.body.style.overflow = originalBodyOverflow || ''
+				document.body.classList.remove('modal-open')
 			}
 		}
 	}, [onClose])
@@ -163,7 +86,7 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: 2147483647;
+  z-index: 1000;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
@@ -191,7 +114,7 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin: 0;
   position: relative;
-  z-index: 2147483647;
+  z-index: 1001;
   pointer-events: auto;
   isolation: isolate;
 
