@@ -87,8 +87,6 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
   overscroll-behavior: contain;
   padding-top: env(safe-area-inset-top, 0);
