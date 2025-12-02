@@ -81,4 +81,19 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   *::-webkit-scrollbar-thumb:hover {
     background-color: ${props => props.$theme.scrollbarThumbHover};
   }
+
+  /* iOS Safariで入力フィールドタップ時の自動ズームを防止 */
+  /* フォントサイズが16px未満の場合にズームされるため、モバイルでは16pxに統一 */
+  @media screen and (max-width: 768px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* ダブルタップによるズームを防止 */
+  * {
+    touch-action: manipulation;
+  }
 `
