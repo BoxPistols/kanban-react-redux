@@ -39,37 +39,60 @@ export function Header({ className }: { className?: string }) {
     }
 
     return (
-        <Container className={className}>
-            <ScrollContent>
+        <Container className={`header ${className || ''}`}>
+            <ScrollContent className="header__scroll-content">
                 {/* ロゴ */}
-                <Logo>Kanban</Logo>
+                <Logo className="header__logo">Kanban</Logo>
 
                 {/* ボードセレクター */}
-                <BoardSelector />
+                <BoardSelectorWrapper className="header__board-selector">
+                    <BoardSelector />
+                </BoardSelectorWrapper>
 
                 {/* フィルター */}
-                <CardFilter />
+                <FilterWrapper className="header__filter">
+                    <CardFilter />
+                </FilterWrapper>
 
-                {/* テーマ切り替え */}
-                <IconButton onClick={toggleDarkMode} title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}>
-                    {isDarkMode ? <SunIcon /> : <MoonIcon />}
-                </IconButton>
+                {/* アクションボタン群 */}
+                <ActionsGroup className="header__actions">
+                    {/* テーマ切り替え */}
+                    <IconButton
+                        className="header__theme-toggle"
+                        onClick={toggleDarkMode}
+                        title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+                    >
+                        {isDarkMode ? <SunIcon /> : <MoonIcon />}
+                    </IconButton>
 
-                {/* ゴミ箱ボタン */}
-                <IconButton onClick={() => setIsTrashModalOpen(true)} title="ゴミ箱">
-                    <TrashIcon />
-                    {trashedCards.length > 0 && (
-                        <Badge>{trashedCards.length}</Badge>
-                    )}
-                </IconButton>
+                    {/* ゴミ箱ボタン */}
+                    <IconButton
+                        className="header__trash-button"
+                        onClick={() => setIsTrashModalOpen(true)}
+                        title="ゴミ箱"
+                    >
+                        <TrashIcon />
+                        {trashedCards.length > 0 && (
+                            <Badge className="header__trash-badge">{trashedCards.length}</Badge>
+                        )}
+                    </IconButton>
+                </ActionsGroup>
 
                 {/* ユーザー情報 */}
                 {isFirebaseEnabled && user && (
-                    <UserSection>
-                        <UserInitial title={user.email || undefined}>
+                    <UserSection className="header__user-section">
+                        <UserInitial
+                            className="header__user-initial"
+                            title={user.email || undefined}
+                        >
                             {user.email ? getFirstChar(user.email) : ''}
                         </UserInitial>
-                        <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+                        <LogoutButton
+                            className="header__logout-button"
+                            onClick={handleLogout}
+                        >
+                            Logout
+                        </LogoutButton>
                     </UserSection>
                 )}
             </ScrollContent>
@@ -86,6 +109,8 @@ const Container = styled.div`
   background-color: ${color.Navy};
   position: relative;
   z-index: 0;
+  width: 100%;
+  overflow: hidden;
 `
 
 const ScrollContent = styled.div`
@@ -93,18 +118,14 @@ const ScrollContent = styled.div`
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  min-width: max-content;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 
-  /* スマートフォンでなめらかな横スクロール */
-  @media (max-width: 768px) {
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-
-    &::-webkit-scrollbar {
-      display: none; /* Chrome, Safari */
-    }
+  &::-webkit-scrollbar {
+    display: none;
   }
 `
 
@@ -114,6 +135,21 @@ const Logo = styled.div`
   font-weight: bold;
   flex-shrink: 0;
   padding-right: 4px;
+`
+
+const BoardSelectorWrapper = styled.div`
+  flex-shrink: 0;
+`
+
+const FilterWrapper = styled.div`
+  flex-shrink: 0;
+`
+
+const ActionsGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 `
 
 const IconButton = styled.button`

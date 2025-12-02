@@ -16,10 +16,11 @@ export function CardFilter() {
   const labels = currentBoard?.labels || []
 
   return (
-    <FilterContainer>
-      <SearchContainer $theme={theme}>
-        <SearchIcon />
+    <FilterContainer className="card-filter">
+      <SearchContainer className="card-filter__search" $theme={theme}>
+        <SearchIcon className="card-filter__search-icon" />
         <Input
+          className="card-filter__input"
           placeholder="Filter"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -27,10 +28,11 @@ export function CardFilter() {
       </SearchContainer>
 
       {labels.length > 0 && (
-        <LabelsContainer>
+        <LabelsContainer className="card-filter__labels">
           {labels.map(label => (
             <LabelChip
               key={label.id}
+              className="card-filter__label-chip"
               $color={label.color}
               $isSelected={selectedLabelIds.includes(label.id)}
               onClick={() => toggleLabelFilter(label.id)}

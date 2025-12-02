@@ -29,11 +29,19 @@ export function BoardSelector() {
 
   return (
     <>
-      <Container>
+      <Container className="board-selector">
         {currentBoard?.color && (
-          <BoardColorIndicator $color={currentBoard.color} title={`ボードカラー: ${currentBoard.color}`} />
+          <BoardColorIndicator
+            className="board-selector__color-indicator"
+            $color={currentBoard.color}
+            title={`ボードカラー: ${currentBoard.color}`}
+          />
         )}
-        <Select value={currentBoardId || ''} onChange={(e) => handleBoardChange(e.target.value)}>
+        <Select
+          className="board-selector__select"
+          value={currentBoardId || ''}
+          onChange={(e) => handleBoardChange(e.target.value)}
+        >
           {boards.length === 0 && <option value="">ボードを作成</option>}
           {boards.map(board => (
             <option key={board.id} value={board.id}>
@@ -43,12 +51,20 @@ export function BoardSelector() {
         </Select>
 
         {currentBoard && (
-          <EditButton onClick={(e) => handleEditBoard(e, currentBoard.id)} title="ボードを編集">
+          <EditButton
+            className="board-selector__edit-button"
+            onClick={(e) => handleEditBoard(e, currentBoard.id)}
+            title="ボードを編集"
+          >
             <EditIcon />
           </EditButton>
         )}
 
-        <AddButton onClick={() => setIsModalOpen(true)} title="新しいボードを作成">
+        <AddButton
+          className="board-selector__add-button"
+          onClick={() => setIsModalOpen(true)}
+          title="新しいボードを作成"
+        >
           +
         </AddButton>
       </Container>
