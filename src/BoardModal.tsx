@@ -433,8 +433,11 @@ const ModalContent = styled.div<{ $theme: Theme }>`
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 `
 
 const Header = styled.div<{ $theme: Theme }>`
