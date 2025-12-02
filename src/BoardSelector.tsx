@@ -34,7 +34,7 @@ export function BoardSelector() {
           <BoardColorIndicator $color={currentBoard.color} title={`ボードカラー: ${currentBoard.color}`} />
         )}
         <Select value={currentBoardId || ''} onChange={(e) => handleBoardChange(e.target.value)}>
-          {boards.length === 0 && <option value="">ボードを作成してください</option>}
+          {boards.length === 0 && <option value="">ボードを作成</option>}
           {boards.map(board => (
             <option key={board.id} value={board.id}>
               {board.name}
@@ -49,7 +49,7 @@ export function BoardSelector() {
         )}
 
         <AddButton onClick={() => setIsModalOpen(true)} title="新しいボードを作成">
-          + ボード
+          +
         </AddButton>
       </Container>
 
@@ -66,122 +66,90 @@ export function BoardSelector() {
 const Container = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: 16px;
-  padding: 4px 8px;
+  gap: 4px;
+  padding: 3px 6px;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-
-  @media (max-width: 768px) {
-    margin-left: 0;
-    gap: 8px;
-    padding: 8px;
-    flex-wrap: wrap;
-    width: 100%;
-    background-color: transparent;
-  }
+  flex-shrink: 0;
 `
 
 const BoardColorIndicator = styled.div<{ $color: string }>`
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background-color: ${props => props.$color};
   border: 2px solid rgba(255, 255, 255, 0.5);
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
-  @media (max-width: 768px) {
-    width: 20px;
-    height: 20px;
-  }
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 `
 
 const Select = styled.select`
-  padding: 8px 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   background-color: rgba(255, 255, 255, 0.15);
   color: ${color.White};
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  max-width: 200px;
+  max-width: 120px;
   transition: all 0.2s;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.5);
   }
 
   &:focus {
     outline: none;
     background-color: rgba(255, 255, 255, 0.25);
-    border-color: ${color.White};
   }
 
   option {
     background-color: ${color.Navy};
     color: ${color.White};
   }
-
-  @media (max-width: 768px) {
-    flex: 1;
-    max-width: none;
-    font-size: 14px;
-    padding: 10px 12px;
-  }
 `
 
 const EditButton = styled.button`
-  padding: 6px 8px;
+  padding: 4px 5px;
   border: none;
   background: rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 12px;
   border-radius: 4px;
   color: ${color.White};
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.25);
-    transform: scale(1.1);
   }
 
-  @media (max-width: 768px) {
-    font-size: 14px;
-    padding: 4px 6px;
+  svg {
+    width: 14px;
+    height: 14px;
   }
 `
 
 const AddButton = styled.button`
-  padding: 8px 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   background-color: rgba(33, 150, 243, 0.8);
   color: ${color.White};
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 
   &:hover {
     background-color: ${color.Blue};
-    border-color: ${color.White};
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
   &:active {
-    transform: translateY(0);
-  }
-
-  @media (max-width: 768px) {
-    width: 100%;
-    font-size: 14px;
-    padding: 12px 16px;
-    margin-top: 8px;
+    transform: scale(0.95);
   }
 `
