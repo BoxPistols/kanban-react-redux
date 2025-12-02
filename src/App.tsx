@@ -268,7 +268,7 @@ const Container = styled.div<{ $theme: any }>`
   height: 100%;
   background-color: ${props => props.$theme.background};
   position: relative;
-  z-index: 1;
+  z-index: 0;
 `
 
 const Header = styled(_Header)`

@@ -1,4 +1,5 @@
 import { useEffect, ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import styled from 'styled-components'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
@@ -137,13 +138,16 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		}
 	}, [onClose])
 
-	return (
+	// Portalを使ってbody直下にレンダリング（DOM階層を分離）
+	const modalContent = (
 		<Overlay onClick={onClose} $mobileAlignTop={mobileAlignTop}>
 			<Modal onClick={(e) => e.stopPropagation()} $theme={theme} $maxWidth={maxWidth}>
 				{children}
 			</Modal>
 		</Overlay>
 	)
+
+	return createPortal(modalContent, document.body)
 }
 
 const Overlay = styled.div<{ $mobileAlignTop: boolean }>`

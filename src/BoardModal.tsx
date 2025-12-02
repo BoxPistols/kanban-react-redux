@@ -440,7 +440,7 @@ const ModalContent = styled.div<{ $theme: Theme }>`
 const Header = styled.div<{ $theme: Theme }>`
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -621,7 +621,7 @@ const DeleteButton = styled.button`
 const TabBar = styled.div<{ $theme: Theme }>`
   position: sticky;
   top: 0;
-  z-index: 9;
+  z-index: 1;
   display: flex;
   border-bottom: 1px solid ${props => props.$theme.border};
   background-color: ${props => props.$theme.surface};

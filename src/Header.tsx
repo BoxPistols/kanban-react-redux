@@ -200,7 +200,7 @@ const Container = styled.div`
   padding: 8px 16px;
   background-color: ${color.Navy};
   position: relative;
-  z-index: 10;
+  z-index: 0;
 
   @media (max-width: 768px) {
     padding: 8px 12px;
@@ -334,7 +334,7 @@ const MobileMenuOverlay = styled.div`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 0;
   animation: fadeIn 0.2s ease-out;
 
   @keyframes fadeIn {

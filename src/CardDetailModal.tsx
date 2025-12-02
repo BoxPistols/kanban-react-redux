@@ -418,7 +418,7 @@ const ModalContent = styled.div<{ $theme: any }>`
 const Header = styled.div<{ $color?: string; $theme: any }>`
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
