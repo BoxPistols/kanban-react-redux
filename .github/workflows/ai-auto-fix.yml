@@ -1,0 +1,24 @@
+# AI Auto-Fix ワークフロー
+# Gemini Code Assist のレビューに自動対応します
+# AI分析: Gemini (推奨・無料枠あり) または Claude (フォールバック)
+
+name: AI Auto Fix
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+  workflow_dispatch:
+
+jobs:
+  ai-auto-fix:
+    uses: BoxPistols/ai-auto-fix-template/.github/workflows/reusable-ai-auto-fix.yml@main
+    with:
+      node_version: '20'
+      package_manager: 'pnpm'
+      tech_stack: 'React, TypeScript, Vite'
+      language: 'ja'
+    secrets:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
