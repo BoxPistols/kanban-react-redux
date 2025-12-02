@@ -115,12 +115,15 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   z-index: 1001;
   pointer-events: auto;
   isolation: isolate;
+  overflow: hidden;
 
   @media (max-width: 768px) {
     border-radius: 0;
     max-width: 100%;
-    min-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
-    min-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+    height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+    height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+    min-height: unset;
+    max-height: none;
   }
 
   @media (min-width: 769px) {
