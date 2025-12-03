@@ -1,4 +1,6 @@
 ## Format Check
- ERR_PNPM_NO_SCRIPT  Missing script: format:check
-
-Command "format:check" not found. Did you mean "pnpm run format"?
+npm error Missing script: "format:check"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2025-12-03T17_48_39_650Z-debug-0.log
