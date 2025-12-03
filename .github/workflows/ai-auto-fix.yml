@@ -16,7 +16,7 @@ jobs:
     uses: BoxPistols/ai-auto-fix-template/.github/workflows/reusable-ai-auto-fix.yml@main
     with:
       node_version: '20'
-      package_manager: 'pnpm'
+      package_manager: 'npm'
       tech_stack: 'React, TypeScript, Vite'
       language: 'ja'
     secrets:
