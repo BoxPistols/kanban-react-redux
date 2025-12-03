@@ -20,7 +20,7 @@ import * as color from './color'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, Theme } from './theme'
 import { CARD_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
 import { getContrastTextColor, isLightColor } from './utils/colorUtils'
@@ -220,10 +220,15 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   }
 
   const convertChecklistItemToCard = async (item: ChecklistItem) => {
-    // 新しいカードを作成（元のカードと同じカラム・ボードに）
-    await addCard(item.text, card.columnId, card.boardId)
-    // 元のチェックリストアイテムを削除
-    setChecklist(checklist.filter(i => i.id !== item.id))
+    try {
+      // 新しいカードを作成（元のカードと同じカラム・ボードに）
+      await addCard(item.text, card.columnId, card.boardId)
+      // 元のチェックリストアイテムを削除
+      setChecklist(checklist.filter(i => i.id !== item.id))
+    } catch (error) {
+      console.error('Failed to convert checklist item to card:', error)
+      alert('カードへの変換に失敗しました。')
+    }
   }
 
   const startEditChecklistItem = (item: ChecklistItem) => {
@@ -744,7 +749,7 @@ const DeleteItemButton = styled.button<{ $theme?: any }>`
   }
 `
 
-const ConvertToCardButton = styled.button<{ $theme?: any }>`
+const ConvertToCardButton = styled.button<{ $theme?: Theme }>`
   border: none;
   background: none;
   color: ${props => props.$theme?.textSecondary || color.Gray};

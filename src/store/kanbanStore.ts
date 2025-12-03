@@ -155,6 +155,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     } catch (error) {
       console.error('Error adding card:', error)
       set({ error: 'カードの追加に失敗しました', isLoading: false })
+      throw error
     }
   },
 
