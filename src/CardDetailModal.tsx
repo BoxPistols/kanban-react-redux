@@ -36,20 +36,22 @@ interface SortableChecklistItemProps {
   item: ChecklistItem
   isEditing: boolean
   editingText: string
+  isConverting: boolean
   onToggle: () => void
   onEdit: () => void
   onDelete: () => void
-  onConvertToCard: () => void
+  onConvertToCard: (e: React.MouseEvent) => void
   onEditTextChange: (text: string) => void
   onSaveEdit: () => void
   onCancelEdit: () => void
-  theme: any
+  theme: Theme
 }
 
 function SortableChecklistItem({
   item,
   isEditing,
   editingText,
+  isConverting,
   onToggle,
   onEdit,
   onDelete,
@@ -121,8 +123,13 @@ function SortableChecklistItem({
           <SmallButton onClick={onEdit} title="編集" $theme={theme}>
             &#9998;
           </SmallButton>
-          <ConvertToCardButton onClick={onConvertToCard} title="カードに変換" $theme={theme}>
-            ↗
+          <ConvertToCardButton
+            onClick={onConvertToCard}
+            title="カードに変換"
+            $theme={theme}
+            disabled={isConverting}
+          >
+            {isConverting ? '...' : '↗'}
           </ConvertToCardButton>
           <DeleteItemButton onClick={onDelete} $theme={theme}>
             ×
@@ -142,8 +149,6 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const currentBoard = boards.find(b => b.id === currentBoardId)
   const boardLabels = currentBoard?.labels || []
 
-  console.log('🔵 CardDetailModal opened - Card:', card.text, 'Card.labels:', card.labels, 'Board labels:', boardLabels)
-
   const [title, setTitle] = useState(card.title || card.text)
   const [description, setDescription] = useState(card.description || '')
   const [selectedLabels, setSelectedLabels] = useState<Label[]>(card.labels || [])
@@ -151,6 +156,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   const [newChecklistItem, setNewChecklistItem] = useState('')
   const [editingChecklistItem, setEditingChecklistItem] = useState<string | null>(null)
   const [editingChecklistText, setEditingChecklistText] = useState('')
+  const [convertingItemId, setConvertingItemId] = useState<string | null>(null)
   const [dueDate, setDueDate] = useState(
     card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : ''
   )
@@ -219,7 +225,14 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     setChecklist(checklist.filter(item => item.id !== itemId))
   }
 
-  const convertChecklistItemToCard = async (item: ChecklistItem) => {
+  const convertChecklistItemToCard = async (e: React.MouseEvent, item: ChecklistItem) => {
+    e.stopPropagation()
+    e.preventDefault()
+
+    // 処理中なら何もしない
+    if (convertingItemId) return
+
+    setConvertingItemId(item.id)
     try {
       // 新しいカードを作成（元のカードと同じカラム・ボードに）
       await addCard(item.text, card.columnId, card.boardId)
@@ -228,6 +241,8 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     } catch (error) {
       console.error('Failed to convert checklist item to card:', error)
       alert('カードへの変換に失敗しました。')
+    } finally {
+      setConvertingItemId(null)
     }
   }
 
@@ -385,10 +400,11 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                           item={item}
                           isEditing={editingChecklistItem === item.id}
                           editingText={editingChecklistText}
+                          isConverting={convertingItemId === item.id}
                           onToggle={() => toggleChecklistItem(item.id)}
                           onEdit={() => startEditChecklistItem(item)}
                           onDelete={() => deleteChecklistItem(item.id)}
-                          onConvertToCard={() => convertChecklistItemToCard(item)}
+                          onConvertToCard={(e) => convertChecklistItemToCard(e, item)}
                           onEditTextChange={setEditingChecklistText}
                           onSaveEdit={saveEditChecklistItem}
                           onCancelEdit={cancelEditChecklistItem}
@@ -750,19 +766,30 @@ const DeleteItemButton = styled.button<{ $theme?: any }>`
 `
 
 const ConvertToCardButton = styled.button<{ $theme?: Theme }>`
-  border: none;
-  background: none;
+  border: 1px solid transparent;
+  background: ${props => props.$theme?.surface || 'rgba(0, 0, 0, 0.03)'};
   color: ${props => props.$theme?.textSecondary || color.Gray};
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 4px 8px;
   flex-shrink: 0;
   border-radius: 4px;
-  transition: color 0.2s, background-color 0.2s;
+  transition: all 0.2s;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: ${color.Blue};
-    background-color: ${props => props.$theme?.surfaceHover || 'rgba(0, 0, 0, 0.05)'};
+    background-color: ${props => props.$theme?.surfaceHover || 'rgba(0, 121, 191, 0.1)'};
+    border-color: ${color.Blue};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `
 
