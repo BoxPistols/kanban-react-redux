@@ -39,6 +39,7 @@ interface SortableChecklistItemProps {
   onToggle: () => void
   onEdit: () => void
   onDelete: () => void
+  onConvertToCard: () => void
   onEditTextChange: (text: string) => void
   onSaveEdit: () => void
   onCancelEdit: () => void
@@ -52,6 +53,7 @@ function SortableChecklistItem({
   onToggle,
   onEdit,
   onDelete,
+  onConvertToCard,
   onEditTextChange,
   onSaveEdit,
   onCancelEdit,
@@ -119,6 +121,9 @@ function SortableChecklistItem({
           <SmallButton onClick={onEdit} title="編集" $theme={theme}>
             &#9998;
           </SmallButton>
+          <ConvertToCardButton onClick={onConvertToCard} title="カードに変換" $theme={theme}>
+            ↗
+          </ConvertToCardButton>
           <DeleteItemButton onClick={onDelete} $theme={theme}>
             ×
           </DeleteItemButton>
@@ -129,7 +134,7 @@ function SortableChecklistItem({
 }
 
 export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
-  const { updateCard } = useKanbanStore()
+  const { updateCard, addCard } = useKanbanStore()
   const { boards, currentBoardId } = useBoardStore()
   const { isDarkMode } = useThemeStore()
 
@@ -212,6 +217,13 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
   const deleteChecklistItem = (itemId: string) => {
     setChecklist(checklist.filter(item => item.id !== itemId))
+  }
+
+  const convertChecklistItemToCard = async (item: ChecklistItem) => {
+    // 新しいカードを作成（元のカードと同じカラム・ボードに）
+    await addCard(item.text, card.columnId, card.boardId)
+    // 元のチェックリストアイテムを削除
+    setChecklist(checklist.filter(i => i.id !== item.id))
   }
 
   const startEditChecklistItem = (item: ChecklistItem) => {
@@ -371,6 +383,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                           onToggle={() => toggleChecklistItem(item.id)}
                           onEdit={() => startEditChecklistItem(item)}
                           onDelete={() => deleteChecklistItem(item.id)}
+                          onConvertToCard={() => convertChecklistItemToCard(item)}
                           onEditTextChange={setEditingChecklistText}
                           onSaveEdit={saveEditChecklistItem}
                           onCancelEdit={cancelEditChecklistItem}
@@ -728,6 +741,23 @@ const DeleteItemButton = styled.button<{ $theme?: any }>`
 
   &:hover {
     color: ${color.Red};
+  }
+`
+
+const ConvertToCardButton = styled.button<{ $theme?: any }>`
+  border: none;
+  background: none;
+  color: ${props => props.$theme?.textSecondary || color.Gray};
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  transition: color 0.2s, background-color 0.2s;
+
+  &:hover {
+    color: ${color.Blue};
+    background-color: ${props => props.$theme?.surfaceHover || 'rgba(0, 0, 0, 0.05)'};
   }
 `
 
