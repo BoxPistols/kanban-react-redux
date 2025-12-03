@@ -1,0 +1,111 @@
+diff --git a/src/CardDetailModal.tsx b/src/CardDetailModal.tsx
+index 86609be..2a2b380 100644
+--- a/src/CardDetailModal.tsx
++++ b/src/CardDetailModal.tsx
+@@ -20,7 +20,7 @@ import * as color from './color'
+ import { useKanbanStore } from './store/kanbanStore'
+ import { useBoardStore } from './store/boardStore'
+ import { useThemeStore } from './store/themeStore'
+-import { getTheme } from './theme'
++import { getTheme, Theme } from './theme'
+ import { CARD_COLORS } from './constants'
+ import { getDueDateStatus } from './utils/dateUtils'
+ import { getContrastTextColor, isLightColor } from './utils/colorUtils'
+@@ -39,6 +39,7 @@ interface SortableChecklistItemProps {
+   onToggle: () => void
+   onEdit: () => void
+   onDelete: () => void
++  onConvertToCard: () => void
+   onEditTextChange: (text: string) => void
+   onSaveEdit: () => void
+   onCancelEdit: () => void
+@@ -52,6 +53,7 @@ function SortableChecklistItem({
+   onToggle,
+   onEdit,
+   onDelete,
++  onConvertToCard,
+   onEditTextChange,
+   onSaveEdit,
+   onCancelEdit,
+@@ -119,6 +121,9 @@ function SortableChecklistItem({
+           <SmallButton onClick={onEdit} title="編集" $theme={theme}>
+             &#9998;
+           </SmallButton>
++          <ConvertToCardButton onClick={onConvertToCard} title="カードに変換" $theme={theme}>
++            ↗
++          </ConvertToCardButton>
+           <DeleteItemButton onClick={onDelete} $theme={theme}>
+             ×
+           </DeleteItemButton>
+@@ -129,7 +134,7 @@ function SortableChecklistItem({
+ }
+ 
+ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
+-  const { updateCard } = useKanbanStore()
++  const { updateCard, addCard } = useKanbanStore()
+   const { boards, currentBoardId } = useBoardStore()
+   const { isDarkMode } = useThemeStore()
+ 
+@@ -214,6 +219,18 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
+     setChecklist(checklist.filter(item => item.id !== itemId))
+   }
+ 
++  const convertChecklistItemToCard = async (item: ChecklistItem) => {
++    try {
++      // 新しいカードを作成（元のカードと同じカラム・ボードに）
++      await addCard(item.text, card.columnId, card.boardId)
++      // 元のチェックリストアイテムを削除
++      setChecklist(checklist.filter(i => i.id !== item.id))
++    } catch (error) {
++      console.error('Failed to convert checklist item to card:', error)
++      alert('カードへの変換に失敗しました。')
++    }
++  }
++
+   const startEditChecklistItem = (item: ChecklistItem) => {
+     setEditingChecklistItem(item.id)
+     setEditingChecklistText(item.text)
+@@ -371,6 +388,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
+                           onToggle={() => toggleChecklistItem(item.id)}
+                           onEdit={() => startEditChecklistItem(item)}
+                           onDelete={() => deleteChecklistItem(item.id)}
++                          onConvertToCard={() => convertChecklistItemToCard(item)}
+                           onEditTextChange={setEditingChecklistText}
+                           onSaveEdit={saveEditChecklistItem}
+                           onCancelEdit={cancelEditChecklistItem}
+@@ -731,6 +749,23 @@ const DeleteItemButton = styled.button<{ $theme?: any }>`
+   }
+ `
+ 
++const ConvertToCardButton = styled.button<{ $theme?: Theme }>`
++  border: none;
++  background: none;
++  color: ${props => props.$theme?.textSecondary || color.Gray};
++  font-size: 16px;
++  cursor: pointer;
++  padding: 2px 6px;
++  flex-shrink: 0;
++  border-radius: 4px;
++  transition: color 0.2s, background-color 0.2s;
++
++  &:hover {
++    color: ${color.Blue};
++    background-color: ${props => props.$theme?.surfaceHover || 'rgba(0, 0, 0, 0.05)'};
++  }
++`
++
+ const AddChecklistItemRow = styled.div`
+   display: flex;
+   gap: 8px;
+diff --git a/src/store/kanbanStore.ts b/src/store/kanbanStore.ts
+index e135b3b..fa27ac5 100644
+--- a/src/store/kanbanStore.ts
++++ b/src/store/kanbanStore.ts
+@@ -155,6 +155,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
+     } catch (error) {
+       console.error('Error adding card:', error)
+       set({ error: 'カードの追加に失敗しました', isLoading: false })
++      throw error
+     }
+   },
+ 
