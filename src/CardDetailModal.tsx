@@ -446,10 +446,7 @@ const ModalContent = styled.div<{ $theme: any }>`
   height: 100%;
   min-height: 0;
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  overflow: hidden;
 `
 
 const Header = styled.div<{ $color?: string; $theme: any }>`
@@ -529,6 +526,10 @@ const Content = styled.div<{ $theme: any }>`
   flex: 1;
   min-height: 0;
   background-color: ${props => props.$theme.surface};
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 `
 
 const Section = styled.div`
