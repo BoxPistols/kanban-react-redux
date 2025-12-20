@@ -3,7 +3,7 @@ import { ONE_DAY_MS } from '../constants'
 /**
  * Check if a due date is coming soon (within 24 hours)
  */
-export function isDueSoon(dueDate: number | undefined): boolean {
+export function isDueSoon(dueDate: number | null | undefined): boolean {
   if (!dueDate) return false
   return dueDate < Date.now() + ONE_DAY_MS && dueDate >= Date.now()
 }
@@ -11,7 +11,7 @@ export function isDueSoon(dueDate: number | undefined): boolean {
 /**
  * Check if a due date is overdue
  */
-export function isOverdue(dueDate: number | undefined): boolean {
+export function isOverdue(dueDate: number | null | undefined): boolean {
   if (!dueDate) return false
   return dueDate < Date.now()
 }
@@ -19,7 +19,7 @@ export function isOverdue(dueDate: number | undefined): boolean {
 /**
  * Get due date status
  */
-export function getDueDateStatus(dueDate: number | undefined): {
+export function getDueDateStatus(dueDate: number | null | undefined): {
   isDueSoon: boolean
   isOverdue: boolean
 } {

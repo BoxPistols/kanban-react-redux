@@ -93,12 +93,29 @@ const Input = styled.input.attrs({ type: 'search' })`
 const LabelsContainer = styled.div`
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  overflow-x: auto;
+  max-width: 400px;
+  padding-bottom: 4px;
+
+  /* スクロールバーを細くする */
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
 
   @media (max-width: 768px) {
     width: 100%;
+    max-width: 100%;
     margin-top: 8px;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
   }
 `
 
@@ -113,6 +130,11 @@ const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
   cursor: pointer;
   transition: all 0.2s;
   opacity: ${props => props.$isSelected ? 1 : 0.7};
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &:hover {
     opacity: 1;

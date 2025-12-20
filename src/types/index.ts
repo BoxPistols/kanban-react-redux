@@ -27,7 +27,7 @@ export interface Card {
   labels?: Label[]
   color?: string
   checklist?: ChecklistItem[]
-  dueDate?: number
+  dueDate?: number | null  // nullは明示的な削除を表す
   progress?: number
 }
 

@@ -181,7 +181,8 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       description,
       labels: selectedLabels,
       checklist,
-      dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
+      // 日付が空の場合はnullを設定して削除を明示
+      dueDate: dueDate ? new Date(dueDate).getTime() : null,
       progress,
       color: cardColor
     })
@@ -330,6 +331,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
               $isOverdue={isOverdue}
               $isDueSoon={isDueSoon && !isOverdue}
               $theme={theme}
+              $isDarkMode={isDarkMode}
             />
             {isOverdue && <WarningText>期限切れです</WarningText>}
             {isDueSoon && !isOverdue && <WarningText $warning>まもなく期限です</WarningText>}
@@ -585,7 +587,7 @@ const EmptyState = styled.div<{ $theme: any }>`
   font-style: italic;
 `
 
-const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: any }>`
+const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: any; $isDarkMode?: boolean }>`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid ${props =>
@@ -596,11 +598,16 @@ const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; 
   border-radius: 4px;
   font-size: 14px;
   color: ${props => props.$theme.text};
-  background-color: ${props =>
-    props.$isOverdue ? '#FFE5E5' :
-    props.$isDueSoon ? '#FFF4E5' :
-    props.$theme.inputBackground
-  };
+  background-color: ${props => {
+    if (props.$isOverdue) {
+      return props.$isDarkMode ? '#4A2020' : '#FFE5E5'
+    }
+    if (props.$isDueSoon) {
+      return props.$isDarkMode ? '#4A3A20' : '#FFF4E5'
+    }
+    return props.$theme.inputBackground
+  }};
+  color-scheme: ${props => props.$isDarkMode ? 'dark' : 'light'};
 
   &:focus {
     outline: 2px solid ${color.Blue};
