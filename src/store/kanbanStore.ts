@@ -182,20 +182,15 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         }, true) // forFirestore = true
         await updateDoc(cardRef, cleanedUpdates)
       } else {
-        // LocalStorage mode - nullの場合はundefinedに変換してフィールドを削除
+        // LocalStorage mode - nullの場合はフィールドを削除
         const currentCards = get().cards
-        const cleanedUpdates: Record<string, unknown> = {}
-        for (const key in updates) {
-          const value = (updates as Record<string, unknown>)[key]
-          if (value !== null) {
-            cleanedUpdates[key] = value
-          }
-          // nullの場合はフィールドを含めない（undefinedとして扱う）
-        }
         const updatedCards = currentCards.map(card => {
-          if (card.id !== id) return card
-          // 既存のカードからnullで指定されたフィールドを削除
-          const newCard = { ...card, ...cleanedUpdates, updatedAt: Date.now() }
+          if (card.id !== id) {
+            return card
+          }
+
+          const newCard = { ...card, ...updates, updatedAt: Date.now() }
+
           for (const key in updates) {
             if ((updates as Record<string, unknown>)[key] === null) {
               delete (newCard as Record<string, unknown>)[key]

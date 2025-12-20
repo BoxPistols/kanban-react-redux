@@ -587,7 +587,7 @@ const EmptyState = styled.div<{ $theme: any }>`
   font-style: italic;
 `
 
-const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: any; $isDarkMode?: boolean }>`
+const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: Theme; $isDarkMode?: boolean }>`
   width: 100%;
   padding: 8px 12px;
   border: 1px solid ${props =>
@@ -599,11 +599,14 @@ const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; 
   font-size: 14px;
   color: ${props => props.$theme.text};
   background-color: ${props => {
+    const overdueColors = { light: '#FFE5E5', dark: '#4A2020' }
+    const dueSoonColors = { light: '#FFF4E5', dark: '#4A3A20' }
+
     if (props.$isOverdue) {
-      return props.$isDarkMode ? '#4A2020' : '#FFE5E5'
+      return props.$isDarkMode ? overdueColors.dark : overdueColors.light
     }
     if (props.$isDueSoon) {
-      return props.$isDarkMode ? '#4A3A20' : '#FFF4E5'
+      return props.$isDarkMode ? dueSoonColors.dark : dueSoonColors.light
     }
     return props.$theme.inputBackground
   }};
