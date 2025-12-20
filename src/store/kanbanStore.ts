@@ -4,6 +4,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   query,
@@ -66,10 +67,17 @@ function saveCardsToLocalStorage(cards: Card[]): void {
 }
 
 // Firestoreは undefined 値をサポートしていないため、除去する
-function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
+// nullの場合はdeleteField()を使用してフィールドを削除する
+function removeUndefinedFields<T extends Record<string, any>>(obj: T, forFirestore = false): Partial<T> {
   const result: any = {}
   for (const key in obj) {
-    if (obj[key] !== undefined) {
+    if (obj[key] === undefined) {
+      // undefinedは除去
+      continue
+    } else if (obj[key] === null && forFirestore) {
+      // Firestoreの場合、nullはdeleteField()に変換してフィールドを削除
+      result[key] = deleteField()
+    } else {
       result[key] = obj[key]
     }
   }
@@ -166,20 +174,35 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
       const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
       if (useFirebase) {
         // Firebase mode - Firestoreではundefinedをサポートしていないため除去
+        // nullの場合はdeleteField()でフィールドを削除
         const cardRef = doc(db!, 'cards', id)
         const cleanedUpdates = removeUndefinedFields({
           ...updates,
           updatedAt: Date.now()
-        })
+        }, true) // forFirestore = true
         await updateDoc(cardRef, cleanedUpdates)
       } else {
-        // LocalStorage mode
+        // LocalStorage mode - nullの場合はundefinedに変換してフィールドを削除
         const currentCards = get().cards
-        const updatedCards = currentCards.map(card =>
-          card.id === id
-            ? { ...card, ...updates, updatedAt: Date.now() }
-            : card
-        )
+        const cleanedUpdates: Record<string, unknown> = {}
+        for (const key in updates) {
+          const value = (updates as Record<string, unknown>)[key]
+          if (value !== null) {
+            cleanedUpdates[key] = value
+          }
+          // nullの場合はフィールドを含めない（undefinedとして扱う）
+        }
+        const updatedCards = currentCards.map(card => {
+          if (card.id !== id) return card
+          // 既存のカードからnullで指定されたフィールドを削除
+          const newCard = { ...card, ...cleanedUpdates, updatedAt: Date.now() }
+          for (const key in updates) {
+            if ((updates as Record<string, unknown>)[key] === null) {
+              delete (newCard as Record<string, unknown>)[key]
+            }
+          }
+          return newCard as Card
+        })
         set({ cards: updatedCards })
         saveCardsToLocalStorage(updatedCards)
       }
