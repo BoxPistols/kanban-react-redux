@@ -20,7 +20,7 @@ import * as color from './color'
 import {
   PrimaryButton,
   SecondaryButton,
-  SmallButton as SharedSmallButton,
+  IconButton,
   SmallPrimaryButton
 } from './Button'
 import { useKanbanStore } from './store/kanbanStore'
@@ -752,9 +752,8 @@ const EditChecklistInput = styled.input<{ $theme: any }>`
   outline-offset: 2px;
 `
 
-const SmallButton = styled(SharedSmallButton)`
-  font-size: 16px;
-`
+// アイコン用ボタン（チェックリストの編集・保存・キャンセル）
+const SmallButton = styled(IconButton)``
 
 const DeleteItemButton = styled.button<{ $theme?: any }>`
   border: none;

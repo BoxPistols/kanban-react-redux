@@ -72,6 +72,25 @@ export const DangerButton = styled.button<{ $theme?: Theme }>`
   }
 `
 
+// アウトラインプライマリボタン（インポートなど、セカンダリよりも目立たせたいが塗りつぶしは不要な場合）
+export const OutlinedPrimaryButton = styled.button<{ $theme?: Theme }>`
+  ${baseButtonStyles}
+  border: 1px solid ${color.Blue};
+  background-color: ${props => props.$theme?.surface || color.White};
+  color: ${color.Blue};
+
+  &:hover:not(:disabled) {
+    background-color: ${color.Blue};
+    color: ${color.White};
+  }
+
+  &:active:not(:disabled) {
+    background-color: ${color.Navy};
+    border-color: ${color.Navy};
+    color: ${color.White};
+  }
+`
+
 // 小さいボタン（アイコンボタンやインラインアクション用）
 export const SmallButton = styled.button<{ $theme?: Theme }>`
   ${baseButtonStyles}
@@ -115,6 +134,20 @@ export const SmallDangerButton = styled.button<{ $theme?: Theme }>`
   }
 `
 
+// アイコンボタン（チェックリストの編集・保存・キャンセルなどのアイコン用）
+export const IconButton = styled.button<{ $theme?: Theme }>`
+  ${baseButtonStyles}
+  padding: 4px 8px;
+  font-size: 16px;
+  border: 1px solid ${props => props.$theme?.border || color.Silver};
+  background-color: ${props => props.$theme?.surface || color.White};
+  color: ${props => props.$theme?.text || color.Black};
+
+  &:hover:not(:disabled) {
+    background-color: ${props => props.$theme?.surfaceHover || color.LightSilver};
+  }
+`
+
 // フルワイドボタン（フォーム内で横幅いっぱいに使用）
 export const FullWidthPrimaryButton = styled(PrimaryButton)`
   width: 100%;
@@ -125,7 +158,7 @@ export const FullWidthSecondaryButton = styled(SecondaryButton)`
 `
 
 // 後方互換性のためのエイリアス（非推奨: 将来的に削除予定）
-/** @deprecated PrimaryButton を使用してください */
+/** @deprecated SecondaryButton を使用してください */
 export const Button = SecondaryButton
 /** @deprecated PrimaryButton を使用してください */
 export const ConfirmButton = PrimaryButton

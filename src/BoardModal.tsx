@@ -6,6 +6,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   DangerButton as SharedDangerButton,
+  OutlinedPrimaryButton,
   SmallPrimaryButton,
   SmallButton,
   SmallDangerButton
@@ -732,7 +733,7 @@ const ExportButton = styled(SecondaryButton)`
   font-size: 13px;
 `
 
-const ImportButton = styled(PrimaryButton)`
+const ImportButton = styled(OutlinedPrimaryButton)`
   padding: 8px 16px;
   font-size: 13px;
 `
