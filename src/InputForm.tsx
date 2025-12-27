@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
-import { Button, ConfirmButton } from './Button'
+import { PrimaryButton, SecondaryButton } from './Button'
 import { useThemeStore } from './store/themeStore'
 import { getTheme } from './theme'
 
@@ -103,10 +103,10 @@ const ButtonRow = styled.div`
   }
 `
 
-const AddButton = styled(ConfirmButton).attrs({
+const AddButton = styled(PrimaryButton).attrs({
     children: 'Add',
 })``
 
-const CancelButton = styled(Button).attrs({
+const CancelButton = styled(SecondaryButton).attrs({
     children: 'Cancel',
 })``

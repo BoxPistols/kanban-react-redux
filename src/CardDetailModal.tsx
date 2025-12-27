@@ -17,6 +17,12 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { v4 as uuidv4 } from 'uuid'
 import * as color from './color'
+import {
+  PrimaryButton,
+  SecondaryButton,
+  SmallButton as SharedSmallButton,
+  SmallPrimaryButton
+} from './Button'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
@@ -746,20 +752,8 @@ const EditChecklistInput = styled.input<{ $theme: any }>`
   outline-offset: 2px;
 `
 
-const SmallButton = styled.button<{ $theme: any }>`
-  border: none;
-  background: ${props => props.$theme.surface};
-  color: ${props => props.$theme.text};
+const SmallButton = styled(SharedSmallButton)`
   font-size: 16px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  border: 1px solid ${props => props.$theme.border};
-
-  &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-  }
 `
 
 const DeleteItemButton = styled.button<{ $theme?: any }>`
@@ -825,21 +819,7 @@ const ChecklistInput = styled.input<{ $theme: any }>`
   }
 `
 
-const AddButton = styled.button`
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${color.Blue};
-  color: ${color.White};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover {
-    background-color: #026AA7;
-  }
-`
+const AddButton = styled(SmallPrimaryButton)``
 
 const Footer = styled.div<{ $theme: any }>`
   display: flex;
@@ -850,34 +830,12 @@ const Footer = styled.div<{ $theme: any }>`
   flex-shrink: 0;
 `
 
-const SaveButton = styled.button`
+const SaveButton = styled(PrimaryButton)`
   flex: 1;
   padding: 10px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${color.Blue};
-  color: ${color.White};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #026AA7;
-  }
 `
 
-const CancelButton = styled.button<{ $theme: any }>`
+const CancelButton = styled(SecondaryButton)`
   flex: 1;
   padding: 10px 16px;
-  border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
-  background-color: ${props => props.$theme.surface};
-  color: ${props => props.$theme.text};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-  }
 `

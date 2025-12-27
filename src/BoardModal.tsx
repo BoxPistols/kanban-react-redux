@@ -2,6 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 import { v4 as uuidv4 } from 'uuid'
 import * as color from './color'
+import {
+  PrimaryButton,
+  SecondaryButton,
+  DangerButton as SharedDangerButton,
+  SmallPrimaryButton,
+  SmallButton,
+  SmallDangerButton
+} from './Button'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
@@ -334,7 +342,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                 <ExportButton type="button" onClick={handleExportLabels} $theme={theme}>
                   ラベルをエクスポート
                 </ExportButton>
-                <ImportButton type="button" onClick={() => importFileInputRef.current?.click()} $theme={theme}>
+                <ImportButton type="button" onClick={() => importFileInputRef.current?.click()}>
                   ラベルをインポート
                 </ImportButton>
                 <HiddenFileInput
@@ -572,53 +580,18 @@ const ButtonGroup = styled.div`
   margin-top: 24px;
 `
 
-const SubmitButton = styled.button`
+const SubmitButton = styled(PrimaryButton)`
   flex: 1;
   padding: 10px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${color.Blue};
-  color: ${color.White};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #026AA7;
-  }
 `
 
-const CancelButton = styled.button<{ $theme: Theme }>`
+const CancelButton = styled(SecondaryButton)`
   flex: 1;
   padding: 10px 16px;
-  border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
-  background-color: ${props => props.$theme.surface};
-  color: ${props => props.$theme.text};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-  }
 `
 
-const DeleteButton = styled.button`
+const DeleteButton = styled(SharedDangerButton)`
   padding: 10px 16px;
-  border: 1px solid ${color.Red};
-  border-radius: 4px;
-  background-color: ${color.White};
-  color: ${color.Red};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${color.Red};
-    color: ${color.White};
-  }
 `
 
 const TabBar = styled.div<{ $theme: Theme }>`
@@ -754,37 +727,14 @@ const ExportImportRow = styled.div`
   flex-wrap: wrap;
 `
 
-const ExportButton = styled.button<{ $theme: Theme }>`
+const ExportButton = styled(SecondaryButton)`
   padding: 8px 16px;
-  border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
-  background-color: ${props => props.$theme.surface};
-  color: ${props => props.$theme.text};
   font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-  }
 `
 
-const ImportButton = styled.button<{ $theme: Theme }>`
+const ImportButton = styled(PrimaryButton)`
   padding: 8px 16px;
-  border: 1px solid ${color.Blue};
-  border-radius: 4px;
-  background-color: ${props => props.$theme.surface};
-  color: ${color.Blue};
   font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${color.Blue};
-    color: ${color.White};
-  }
 `
 
 const HiddenFileInput = styled.input`
@@ -795,19 +745,8 @@ const HiddenFileInput = styled.input`
   pointer-events: none;
 `
 
-const AddLabelButton = styled.button`
+const AddLabelButton = styled(SmallPrimaryButton)`
   padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${color.Blue};
-  color: ${color.White};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #026AA7;
-  }
 `
 
 const LabelsList = styled.div<{ $theme: Theme }>`
@@ -838,67 +777,20 @@ const LabelPreview = styled.div<{ $color: string }>`
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 `
 
-const EditLabelButton = styled.button<{ $theme: Theme }>`
+const EditLabelButton = styled(SmallButton)`
   padding: 6px 12px;
-  border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
-  background-color: ${props => props.$theme.surface};
-  color: ${props => props.$theme.text};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-  }
 `
 
-const DeleteLabelButton = styled.button`
+const DeleteLabelButton = styled(SmallDangerButton)`
   padding: 6px 12px;
-  border: 1px solid ${color.Red};
-  border-radius: 4px;
-  background-color: ${color.White};
-  color: ${color.Red};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${color.Red};
-    color: ${color.White};
-  }
 `
 
-const SaveLabelButton = styled.button`
+const SaveLabelButton = styled(SmallPrimaryButton)`
   padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${color.Blue};
-  color: ${color.White};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #026AA7;
-  }
 `
 
-const CancelLabelButton = styled.button<{ $theme: Theme }>`
+const CancelLabelButton = styled(SmallButton)`
   padding: 6px 12px;
-  border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
-  background-color: ${props => props.$theme.surface};
-  color: ${props => props.$theme.text};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: ${props => props.$theme.surfaceHover};
-  }
 `
 
 const EmptyLabels = styled.div<{ $theme: Theme }>`
