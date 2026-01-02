@@ -198,12 +198,19 @@ const Container = styled.div`
   display: flex;
   align-items: center;
   padding: 8px 16px;
+  /* iPhoneのノッチ/ダイナミックアイランド対応 */
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
   background-color: ${color.Navy};
   position: relative;
   z-index: 100;
 
   @media (max-width: 768px) {
     padding: 8px 12px;
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
   }
 `
 
@@ -352,6 +359,10 @@ const MobileMenu = styled.div`
   height: 100%;
   background: ${color.Navy};
   padding: 16px;
+  /* iPhoneのノッチ/ダイナミックアイランド対応 */
+  padding-top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
   animation: slideIn 0.3s ease-out;
