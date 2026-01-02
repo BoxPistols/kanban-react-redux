@@ -197,20 +197,20 @@ export function Header({ className }: { className?: string }) {
 const Container = styled.div`
   display: flex;
   align-items: center;
-  padding: 8px 16px;
   /* iPhoneのノッチ/ダイナミックアイランド対応 */
-  padding-top: max(8px, env(safe-area-inset-top, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-top: max(8px, env(safe-area-inset-top, 0));
+  padding-right: max(16px, env(safe-area-inset-right, 0));
+  padding-bottom: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0));
   background-color: ${color.Navy};
   position: relative;
   z-index: 100;
 
   @media (max-width: 768px) {
-    padding: 8px 12px;
-    padding-top: max(8px, env(safe-area-inset-top, 0px));
-    padding-right: max(12px, env(safe-area-inset-right, 0px));
-    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-top: max(8px, env(safe-area-inset-top, 0));
+    padding-right: max(12px, env(safe-area-inset-right, 0));
+    padding-bottom: 8px;
+    padding-left: max(12px, env(safe-area-inset-left, 0));
   }
 `
 
@@ -358,11 +358,11 @@ const MobileMenu = styled.div`
   max-width: 320px;
   height: 100%;
   background: ${color.Navy};
-  padding: 16px;
   /* iPhoneのノッチ/ダイナミックアイランド対応 */
-  padding-top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-top: max(16px, calc(env(safe-area-inset-top, 0) + 8px));
+  padding-right: max(16px, env(safe-area-inset-right, 0));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0));
+  padding-left: max(16px, env(safe-area-inset-left, 0));
   overflow-y: auto;
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
   animation: slideIn 0.3s ease-out;
