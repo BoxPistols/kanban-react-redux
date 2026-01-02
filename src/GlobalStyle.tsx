@@ -2,8 +2,11 @@ import { createGlobalStyle } from 'styled-components'
 import type { Theme } from './theme'
 
 export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
-  html, body, #app {
+  html, body, #app, #root {
     height: 100%;
+    /* iPhoneのセーフエリアを考慮した最小高さ */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
   body {
