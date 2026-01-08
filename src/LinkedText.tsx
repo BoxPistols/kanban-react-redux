@@ -16,7 +16,6 @@ type Segment = {
   content?: string
   url?: string
   displayText?: string
-  loading?: boolean
 }
 
 /**
@@ -55,7 +54,6 @@ export const LinkedText = React.memo(function LinkedText({
       type: 'link',
       url,
       displayText,
-      loading: !meta || meta.error,
     })
 
     lastIndex = endIndex
@@ -74,7 +72,7 @@ export const LinkedText = React.memo(function LinkedText({
       {segments.map((segment, i) =>
         segment.type === 'link' ? (
           <StyledLink
-            key={i}
+            key={`link-${i}-${segment.url}`}
             href={segment.url}
             target="_blank"
             rel="noopener noreferrer"
@@ -84,7 +82,7 @@ export const LinkedText = React.memo(function LinkedText({
             {segment.displayText}
           </StyledLink>
         ) : (
-          <span key={i}>{segment.content}</span>
+          <span key={`text-${i}`}>{segment.content}</span>
         )
       )}
     </span>
@@ -92,30 +90,17 @@ export const LinkedText = React.memo(function LinkedText({
 })
 
 const StyledLink = styled.a<{ $theme: Theme }>`
-  color: #0074d9;
+  color: ${props => props.$theme.linkColor};
   text-decoration: underline;
   cursor: pointer;
   word-break: break-word;
 
   &:hover {
-    color: #0056a4;
+    color: ${props => props.$theme.linkColorHover};
     text-decoration: none;
   }
 
   &:visited {
-    color: #5243aa;
+    color: ${props => props.$theme.linkColorVisited};
   }
-
-  /* ダークモードサポート */
-  ${(props) =>
-    props.$theme.background === '#1A1D23' &&
-    `
-    color: #4C9AFF;
-    &:hover {
-      color: #85B8FF;
-    }
-    &:visited {
-      color: #8777D9;
-    }
-  `}
 `

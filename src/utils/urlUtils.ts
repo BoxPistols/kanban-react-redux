@@ -1,5 +1,10 @@
-// URL検出の正規表現（http:// または https:// で始まるもの）
-const URL_REGEX = /(https?:\/\/[^\s]+)/gi
+// 定数定義
+const FETCH_TIMEOUT_MS = 5000 // メタデータ取得のタイムアウト（5秒）
+const MAX_TITLE_LENGTH = 150 // タイトルの最大文字数
+const CACHE_DURATION_MS = 30 * 24 * 60 * 60 * 1000 // キャッシュの有効期限（30日）
+
+// URL検出の正規表現（http:// または https:// で始まり、末尾の句読点を除外）
+const URL_REGEX = /https?:\/\/[^\s<>"'\)\]\}\.,!?;:]+/gi
 
 /**
  * テキスト内のURLを検出し、位置情報とともに返す
@@ -54,7 +59,7 @@ async function fetchYouTubeMetadata(url: string): Promise<{ title?: string; erro
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
     const response = await fetch(oembedUrl, {
       signal: controller.signal,
@@ -87,10 +92,12 @@ export async function fetchUrlMetadata(
     }
 
     // CORS Proxyを使用してHTMLを取得
+    // 注意: 外部サービス（api.allorigins.win）を使用しています
+    // 本番環境では自己ホスト型のプロキシの使用を推奨します
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
     const response = await fetch(proxyUrl, {
       signal: controller.signal,
@@ -116,8 +123,8 @@ export async function fetchUrlMetadata(
     const title = ogTitle || titleTag
 
     if (title) {
-      // タイトルが長すぎる場合は切り詰める（最大150文字）
-      return { title: title.length > 150 ? title.slice(0, 150) + '...' : title }
+      // タイトルが長すぎる場合は切り詰める
+      return { title: title.length > MAX_TITLE_LENGTH ? title.slice(0, MAX_TITLE_LENGTH) + '...' : title }
     }
 
     return { error: true }
@@ -131,6 +138,5 @@ export async function fetchUrlMetadata(
  * キャッシュされたメタデータが有効かどうかを判定（30日以内）
  */
 export function isMetadataFresh(fetchedAt: number): boolean {
-  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
-  return Date.now() - fetchedAt < THIRTY_DAYS
+  return Date.now() - fetchedAt < CACHE_DURATION_MS
 }
