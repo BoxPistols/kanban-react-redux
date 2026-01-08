@@ -17,6 +17,9 @@ export interface Theme {
   scrollbarTrack: string
   scrollbarThumb: string
   scrollbarThumbHover: string
+  linkColor: string
+  linkColorHover: string
+  linkColorVisited: string
 }
 
 export const lightTheme: Theme = {
@@ -35,7 +38,10 @@ export const lightTheme: Theme = {
   shadowHover: 'hsla(0, 0%, 7%, 0.2)',
   scrollbarTrack: '#F4F5F7',
   scrollbarThumb: '#C1C7D0',
-  scrollbarThumbHover: '#A5ADBA'
+  scrollbarThumbHover: '#A5ADBA',
+  linkColor: '#0074D9',
+  linkColorHover: '#0056A4',
+  linkColorVisited: '#5243AA'
 }
 
 export const darkTheme: Theme = {
@@ -54,7 +60,10 @@ export const darkTheme: Theme = {
   shadowHover: 'hsla(0, 0%, 0%, 0.5)',
   scrollbarTrack: '#161A1D',
   scrollbarThumb: '#3D444D',
-  scrollbarThumbHover: '#515861'
+  scrollbarThumbHover: '#515861',
+  linkColor: '#4C9AFF',
+  linkColorHover: '#85B8FF',
+  linkColorVisited: '#8777D9'
 }
 
 export function getTheme(isDarkMode: boolean): Theme {

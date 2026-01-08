@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import styled from 'styled-components'
 import {
   DndContext,
@@ -33,7 +33,7 @@ import { getContrastTextColor, isLightColor } from './utils/colorUtils'
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
 import { useUrlMetadata } from './hooks/useUrlMetadata'
-import type { Card, ChecklistItem, Label } from './types'
+import type { Card, ChecklistItem, Label, UrlMetadata } from './types'
 
 interface CardDetailModalProps {
   card: Card
@@ -53,7 +53,7 @@ interface SortableChecklistItemProps {
   onSaveEdit: () => void
   onCancelEdit: () => void
   theme: Theme
-  metadata?: any[]
+  metadata?: UrlMetadata[]
 }
 
 function SortableChecklistItem({
@@ -183,12 +183,15 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
   // URLメタデータの取得
   const allText = description + ' ' + checklist.map(item => item.text).join(' ')
+
+  const onMetadataUpdate = useCallback((newMetadata: import('./types').UrlMetadata[]) => {
+    updateCard(card.id, { urlMetadata: newMetadata })
+  }, [card.id, updateCard])
+
   const { metadata } = useUrlMetadata(
     allText,
     card.urlMetadata,
-    (newMetadata) => {
-      updateCard(card.id, { urlMetadata: newMetadata })
-    }
+    onMetadataUpdate
   )
 
   const progress = checklist.length > 0

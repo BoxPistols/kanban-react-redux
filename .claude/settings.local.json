@@ -6,7 +6,9 @@
   },
   "permissions": {
     "allow": [
-      "WebFetch(domain:firebase.blog)"
+      "WebFetch(domain:firebase.blog)",
+      "Bash(gh pr view:*)",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []
