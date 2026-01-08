@@ -9,6 +9,7 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
 import { CardDetailModal } from './CardDetailModal'
+import { LinkedText } from './LinkedText'
 import type { Card as CardType } from './types'
 
 export function Card({
@@ -101,7 +102,9 @@ export function Card({
           <TextContent>
             <Title $theme={theme}>{displayText}</Title>
             {descriptionPreview && (
-              <Description $theme={theme}>{descriptionPreview}</Description>
+              <Description $theme={theme}>
+                <LinkedText text={descriptionPreview} metadata={card.urlMetadata} theme={theme} />
+              </Description>
             )}
           </TextContent>
         </ContentRow>
