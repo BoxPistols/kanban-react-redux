@@ -31,6 +31,8 @@ import { CARD_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
 import { getContrastTextColor, isLightColor } from './utils/colorUtils'
 import { BaseModal } from './BaseModal'
+import { LinkedText } from './LinkedText'
+import { useUrlMetadata } from './hooks/useUrlMetadata'
 import type { Card, ChecklistItem, Label } from './types'
 
 interface CardDetailModalProps {
@@ -51,6 +53,7 @@ interface SortableChecklistItemProps {
   onSaveEdit: () => void
   onCancelEdit: () => void
   theme: Theme
+  metadata?: any[]
 }
 
 function SortableChecklistItem({
@@ -65,7 +68,8 @@ function SortableChecklistItem({
   onEditTextChange,
   onSaveEdit,
   onCancelEdit,
-  theme
+  theme,
+  metadata
 }: SortableChecklistItemProps) {
   const {
     attributes,
@@ -124,7 +128,7 @@ function SortableChecklistItem({
             onDoubleClick={onEdit}
             title="ダブルクリックで編集"
           >
-            {item.text}
+            <LinkedText text={item.text} metadata={metadata} theme={theme} />
           </ChecklistItemText>
           <SmallButton onClick={onEdit} title="編集" $theme={theme}>
             &#9998;
@@ -167,6 +171,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : ''
   )
   const [cardColor, setCardColor] = useState(card.color || '')
+  const [editingDescription, setEditingDescription] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -174,6 +179,16 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
         distance: 8
       }
     })
+  )
+
+  // URLメタデータの取得
+  const allText = description + ' ' + checklist.map(item => item.text).join(' ')
+  const { metadata } = useUrlMetadata(
+    allText,
+    card.urlMetadata,
+    (newMetadata) => {
+      updateCard(card.id, { urlMetadata: newMetadata })
+    }
   )
 
   const progress = checklist.length > 0
@@ -369,13 +384,25 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
           {/* Description Section */}
           <Section>
             <SectionTitle $theme={theme}>説明</SectionTitle>
-            <DescriptionTextArea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="詳細な説明を入力..."
-              rows={4}
-              $theme={theme}
-            />
+            {!editingDescription && description ? (
+              <DescriptionDisplay
+                $theme={theme}
+                onClick={() => setEditingDescription(true)}
+                title="クリックして編集"
+              >
+                <LinkedText text={description} metadata={metadata} theme={theme} />
+              </DescriptionDisplay>
+            ) : (
+              <DescriptionTextArea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={() => setEditingDescription(false)}
+                placeholder="詳細な説明を入力..."
+                rows={4}
+                $theme={theme}
+                autoFocus={editingDescription}
+              />
+            )}
           </Section>
 
           {/* Checklist Section */}
@@ -417,6 +444,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                           onSaveEdit={saveEditChecklistItem}
                           onCancelEdit={cancelEditChecklistItem}
                           theme={theme}
+                          metadata={metadata}
                         />
                       ))}
                     </ChecklistItems>
@@ -667,6 +695,25 @@ const DescriptionTextArea = styled.textarea<{ $theme: any }>`
     outline: 2px solid ${color.Blue};
     outline-offset: 2px;
     border-color: ${color.Blue};
+  }
+`
+
+const DescriptionDisplay = styled.div<{ $theme: any }>`
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 14px;
+  color: ${props => props.$theme.text};
+  background-color: ${props => props.$theme.inputBackground};
+  min-height: 80px;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
+
+  &:hover {
+    border-color: ${props => props.$theme.border};
   }
 `
 

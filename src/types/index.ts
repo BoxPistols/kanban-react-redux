@@ -13,6 +13,13 @@ export interface ChecklistItem {
   order: number
 }
 
+export interface UrlMetadata {
+  url: string
+  title?: string
+  fetchedAt: number
+  error?: boolean
+}
+
 export interface Card {
   id: string
   text: string
@@ -29,6 +36,7 @@ export interface Card {
   checklist?: ChecklistItem[]
   dueDate?: number | null  // nullは明示的な削除を表す
   progress?: number
+  urlMetadata?: UrlMetadata[]  // URL メタ情報のキャッシュ
 }
 
 export interface Column {
