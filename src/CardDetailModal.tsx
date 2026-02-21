@@ -470,6 +470,17 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
           </Section>
         </Content>
 
+        <DateFooter $theme={theme}>
+          <DateItem>
+            <DateLabel $theme={theme}>作成</DateLabel>
+            <DateValue $theme={theme}>{new Date(card.createdAt).toLocaleString('ja-JP')}</DateValue>
+          </DateItem>
+          <DateItem>
+            <DateLabel $theme={theme}>更新</DateLabel>
+            <DateValue $theme={theme}>{new Date(card.updatedAt).toLocaleString('ja-JP')}</DateValue>
+          </DateItem>
+        </DateFooter>
+
         <Footer $theme={theme}>
           <SaveButton onClick={handleSave}>保存</SaveButton>
           <CancelButton onClick={onClose} $theme={theme}>キャンセル</CancelButton>
@@ -869,6 +880,32 @@ const ChecklistInput = styled.input<{ $theme: any }>`
 `
 
 const AddButton = styled(SmallPrimaryButton)``
+
+const DateFooter = styled.div<{ $theme: any }>`
+  display: flex;
+  gap: 16px;
+  padding: 8px 20px;
+  border-top: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surfaceHover};
+  flex-shrink: 0;
+`
+
+const DateItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`
+
+const DateLabel = styled.span<{ $theme: any }>`
+  font-size: 11px;
+  font-weight: 600;
+  color: ${props => props.$theme.textSecondary};
+`
+
+const DateValue = styled.span<{ $theme: any }>`
+  font-size: 11px;
+  color: ${props => props.$theme.textSecondary};
+`
 
 const Footer = styled.div<{ $theme: any }>`
   display: flex;
