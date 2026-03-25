@@ -33,6 +33,7 @@ export function App() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [offlineMode, setOfflineMode] = useState(false)
   const [showColumnManager, setShowColumnManager] = useState(false)
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set())
 
   // オフラインモードをストアに同期
   useEffect(() => {
@@ -112,6 +113,25 @@ export function App() {
     const unsubscribeCards = subscribeToCards(currentBoardId)
     return () => unsubscribeCards()
   }, [subscribeToCards, currentBoardId, offlineMode])
+
+  // 折りたたみ状態の復元
+  useEffect(() => {
+    if (!currentBoardId) {
+      setCollapsedColumns(new Set())
+      return
+    }
+    try {
+      const stored = localStorage.getItem('kanban-collapsed-columns')
+      if (stored) {
+        const data = JSON.parse(stored)
+        setCollapsedColumns(new Set(data[currentBoardId] || []))
+      } else {
+        setCollapsedColumns(new Set())
+      }
+    } catch {
+      setCollapsedColumns(new Set())
+    }
+  }, [currentBoardId])
 
   // Show loading while checking auth
   if (isFirebaseEnabled && !isInitialized && !offlineMode) {
@@ -216,6 +236,26 @@ export function App() {
     }
   }
 
+  const toggleColumnCollapse = (columnId: string) => {
+    setCollapsedColumns(prev => {
+      const next = new Set(prev)
+      if (next.has(columnId)) {
+        next.delete(columnId)
+      } else {
+        next.add(columnId)
+      }
+      if (currentBoardId) {
+        try {
+          const stored = localStorage.getItem('kanban-collapsed-columns')
+          const data = stored ? JSON.parse(stored) : {}
+          data[currentBoardId] = [...next]
+          localStorage.setItem('kanban-collapsed-columns', JSON.stringify(data))
+        } catch { /* localStorage書き込み失敗時は無視 */ }
+      }
+      return next
+    })
+  }
+
   const activeCard = activeId ? cards.find(c => c.id === activeId) : null
 
   return (
@@ -249,6 +289,8 @@ export function App() {
                       cards={columnCards}
                       boardId={currentBoardId}
                       columnColor={column.color}
+                      isCollapsed={collapsedColumns.has(column.id)}
+                      onToggleCollapse={() => toggleColumnCollapse(column.id)}
                     />
                   )
                 })}

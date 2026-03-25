@@ -169,18 +169,27 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
   border-left: 3px solid ${props => props.$cardColor || props.$labelColor || 'transparent'};
   box-shadow: 0 1px 3px ${props => props.$theme.shadow};
   padding: 10px 12px;
-  background-color: ${props => props.$theme.cardBackground};
+  background: ${props => props.$theme.surfaceGlass};
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   opacity: ${props => (props.$isDragging ? 0.5 : 1)};
   touch-action: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.15s;
+  transition: box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.15s;
 
   &:hover {
-    box-shadow: 0 4px 12px ${props => props.$theme.shadowHover};
-    transform: translateY(-1px);
+    box-shadow: 0 6px 20px ${props => props.$theme.shadowHover},
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `
 

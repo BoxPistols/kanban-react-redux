@@ -27,19 +27,19 @@ export interface Theme {
 }
 
 export const lightTheme: Theme = {
-  background: '#F0F2F5',
+  background: '#EDEEF2',
   surface: color.White,
-  surfaceHover: '#F5F6F8',
+  surfaceHover: '#F3F4F8',
   text: '#1A1D23',
   textSecondary: '#5E6C84',
-  border: '#DFE1E6',
+  border: 'rgba(0, 0, 0, 0.08)',
   cardBackground: color.White,
-  columnBackground: '#F7F8FA',
+  columnBackground: 'rgba(255, 255, 255, 0.55)',
   headerBackground: '#1B2638',
   inputBackground: '#FAFBFC',
   inputBorder: '#DFE1E6',
-  shadow: 'rgba(9, 30, 66, 0.08)',
-  shadowHover: 'rgba(9, 30, 66, 0.16)',
+  shadow: 'rgba(9, 30, 66, 0.06)',
+  shadowHover: 'rgba(9, 30, 66, 0.14)',
   scrollbarTrack: '#F4F5F7',
   scrollbarThumb: '#C1C7D0',
   scrollbarThumbHover: '#A5ADBA',
@@ -48,23 +48,23 @@ export const lightTheme: Theme = {
   linkColorVisited: '#5243AA',
   accentGradient: 'linear-gradient(135deg, #0065FF 0%, #6554C0 100%)',
   cardBorderRadius: '10px',
-  surfaceGlass: 'rgba(255, 255, 255, 0.7)'
+  surfaceGlass: 'rgba(255, 255, 255, 0.6)'
 }
 
 export const darkTheme: Theme = {
-  background: '#0D1117',
+  background: '#0B0F14',
   surface: '#161B22',
   surfaceHover: '#1C2333',
   text: '#E6EDF3',
   textSecondary: '#8B949E',
-  border: '#30363D',
+  border: 'rgba(255, 255, 255, 0.08)',
   cardBackground: '#161B22',
-  columnBackground: '#0D1117',
+  columnBackground: 'rgba(13, 17, 23, 0.65)',
   headerBackground: '#010409',
   inputBackground: '#0D1117',
   inputBorder: '#30363D',
-  shadow: 'rgba(0, 0, 0, 0.3)',
-  shadowHover: 'rgba(0, 0, 0, 0.5)',
+  shadow: 'rgba(0, 0, 0, 0.35)',
+  shadowHover: 'rgba(0, 0, 0, 0.55)',
   scrollbarTrack: '#0D1117',
   scrollbarThumb: '#30363D',
   scrollbarThumbHover: '#484F58',
@@ -73,7 +73,7 @@ export const darkTheme: Theme = {
   linkColorVisited: '#BC8CFF',
   accentGradient: 'linear-gradient(135deg, #58A6FF 0%, #BC8CFF 100%)',
   cardBorderRadius: '10px',
-  surfaceGlass: 'rgba(22, 27, 34, 0.8)'
+  surfaceGlass: 'rgba(22, 27, 34, 0.7)'
 }
 
 export function getTheme(isDarkMode: boolean): Theme {
