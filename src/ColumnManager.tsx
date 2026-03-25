@@ -229,7 +229,7 @@ export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
     )
 }
 
-const ModalContent = styled.div<{ $theme: any }>`
+const ModalContent = styled.div<{ $theme: Theme }>`
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -238,7 +238,7 @@ const ModalContent = styled.div<{ $theme: any }>`
     overflow: hidden;
 `
 
-const Header = styled.div<{ $theme: any }>`
+const Header = styled.div<{ $theme: Theme }>`
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -248,14 +248,14 @@ const Header = styled.div<{ $theme: any }>`
     flex-shrink: 0;
 `
 
-const ModalTitle = styled.h2<{ $theme: any }>`
+const ModalTitle = styled.h2<{ $theme: Theme }>`
     margin: 0;
     font-size: 18px;
     font-weight: 700;
     color: ${(props) => props.$theme.text};
 `
 
-const CloseButton = styled.button<{ $theme: any }>`
+const CloseButton = styled.button<{ $theme: Theme }>`
     border: none;
     background: none;
     font-size: 24px;
@@ -270,14 +270,14 @@ const CloseButton = styled.button<{ $theme: any }>`
     }
 `
 
-const Content = styled.div<{ $theme: any }>`
+const Content = styled.div<{ $theme: Theme }>`
     padding: 20px;
     flex: 1;
     overflow-y: auto;
     background-color: ${(props) => props.$theme.surface};
 `
 
-const Description = styled.p<{ $theme: any }>`
+const Description = styled.p<{ $theme: Theme }>`
     margin: 0 0 16px 0;
     font-size: 13px;
     color: ${(props) => props.$theme.textSecondary};
@@ -291,7 +291,7 @@ const ColumnsList = styled.div`
     margin-bottom: 16px;
 `
 
-const ColumnItemRow = styled.div<{ $theme: any }>`
+const ColumnItemRow = styled.div<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -305,7 +305,7 @@ const ColumnItemRow = styled.div<{ $theme: any }>`
     }
 `
 
-const DragHandle = styled.div<{ $theme: any }>`
+const DragHandle = styled.div<{ $theme: Theme }>`
     cursor: grab;
     color: ${(props) => props.$theme.textSecondary};
     font-size: 14px;
@@ -325,7 +325,7 @@ const ColorDot = styled.div<{ $color: string }>`
     flex-shrink: 0;
 `
 
-const ColumnTitle = styled.div<{ $theme: any }>`
+const ColumnTitle = styled.div<{ $theme: Theme }>`
     flex: 1;
     font-size: 14px;
     font-weight: 600;
@@ -334,7 +334,7 @@ const ColumnTitle = styled.div<{ $theme: any }>`
     min-width: 0;
 `
 
-const EditInput = styled.input<{ $theme: any }>`
+const EditInput = styled.input<{ $theme: Theme }>`
     flex: 1;
     padding: 4px 8px;
     border: 1px solid ${color.Blue};
@@ -353,7 +353,7 @@ const ActionsRow = styled.div`
     flex-shrink: 0;
 `
 
-const SmallIconButton = styled.button<{ $theme: any; $danger?: boolean }>`
+const SmallIconButton = styled.button<{ $theme: Theme; $danger?: boolean }>`
     border: none;
     background: none;
     font-size: 16px;
@@ -376,7 +376,7 @@ const ColorPicker = styled.div`
     padding-left: 28px;
 `
 
-const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: any }>`
+const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: Theme }>`
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -395,7 +395,7 @@ const AddSection = styled.div`
     gap: 8px;
 `
 
-const AddInput = styled.input<{ $theme: any }>`
+const AddInput = styled.input<{ $theme: Theme }>`
     flex: 1;
     padding: 10px 12px;
     border: 1px solid ${(props) => props.$theme.border};
@@ -421,7 +421,7 @@ const AddButton = styled(PrimaryButton)`
     }
 `
 
-const Footer = styled.div<{ $theme: any }>`
+const Footer = styled.div<{ $theme: Theme }>`
     display: flex;
     justify-content: flex-end;
     padding: 16px 20px;

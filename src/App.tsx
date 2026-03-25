@@ -21,7 +21,7 @@ import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { BoardIcon } from './icon'
-import { getTheme } from './theme'
+import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import type { Card as CardType, ColumnType } from './types'
 
@@ -330,7 +330,7 @@ export function App() {
     )
 }
 
-const Container = styled.div<{ $theme: any }>`
+const Container = styled.div<{ $theme: Theme }>`
     display: flex;
     flex-flow: column;
     height: 100%;
@@ -343,7 +343,7 @@ const Header = styled(_Header)`
     flex-shrink: 0;
 `
 
-const MainArea = styled.div<{ $theme: any }>`
+const MainArea = styled.div<{ $theme: Theme }>`
     flex: 1;
     min-height: 90vh;
     padding: 16px 0;
@@ -418,21 +418,21 @@ const EmptyIcon = styled.div`
     }
 `
 
-const EmptyTitle = styled.h2<{ $theme: any }>`
+const EmptyTitle = styled.h2<{ $theme: Theme }>`
     font-size: 24px;
     color: ${(props) => props.$theme.text};
     margin: 0 0 12px 0;
     font-weight: 600;
 `
 
-const EmptyText = styled.p<{ $theme: any }>`
+const EmptyText = styled.p<{ $theme: Theme }>`
     font-size: 16px;
     color: ${(props) => props.$theme.textSecondary};
     margin: 0;
     max-width: 400px;
 `
 
-const LoadingContainer = styled.div<{ $theme: any }>`
+const LoadingContainer = styled.div<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -440,12 +440,12 @@ const LoadingContainer = styled.div<{ $theme: any }>`
     background-color: ${(props) => props.$theme.background};
 `
 
-const LoadingText = styled.div<{ $theme: any }>`
+const LoadingText = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
     font-size: 18px;
 `
 
-const AddColumnButton = styled.button<{ $theme: any }>`
+const AddColumnButton = styled.button<{ $theme: Theme }>`
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -6,7 +6,7 @@ import * as color from './color'
 import { CheckIcon as _CheckIcon, TrashIcon, CalendarIcon, ListIcon, DocumentIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
 import { CardDetailModal } from './CardDetailModal'
 import { LinkedText } from './LinkedText'
@@ -154,7 +154,7 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
     )
 }
 
-const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $cardColor?: string; $theme: any }>`
+const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $cardColor?: string; $theme: Theme }>`
     position: relative;
     z-index: 0;
     border: 1px solid ${(props) => props.$theme.border};
@@ -226,7 +226,7 @@ const TextContent = styled.div`
     gap: 4px;
 `
 
-const Title = styled.div<{ $theme: any }>`
+const Title = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
     font-size: 13px;
     font-weight: 600;
@@ -234,7 +234,7 @@ const Title = styled.div<{ $theme: any }>`
     word-break: break-word;
 `
 
-const Description = styled.div<{ $theme: any }>`
+const Description = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 12px;
     line-height: 1.4;
@@ -254,7 +254,7 @@ const ImageThumb = styled.img`
     border-radius: 4px;
 `
 
-const MoreImages = styled.div<{ $theme: any }>`
+const MoreImages = styled.div<{ $theme: Theme }>`
     font-size: 11px;
     color: ${(props) => props.$theme.textSecondary};
     padding: 0 4px;
@@ -301,7 +301,7 @@ const ChecklistBadge = styled.div<{ $allCompleted: boolean }>`
     }
 `
 
-const DescriptionBadge = styled.div<{ $theme: any }>`
+const DescriptionBadge = styled.div<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     padding: 2px 8px;
@@ -319,7 +319,7 @@ const DescriptionBadge = styled.div<{ $theme: any }>`
 const DeleteButton = styled.button.attrs({
     type: 'button',
     children: <TrashIcon />,
-})<{ $theme: any }>`
+})<{ $theme: Theme }>`
     position: absolute;
     top: 8px;
     right: 8px;

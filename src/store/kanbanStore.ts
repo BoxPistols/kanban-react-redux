@@ -68,15 +68,15 @@ function saveCardsToLocalStorage(cards: Card[]): void {
 
 // Firestoreは undefined 値をサポートしていないため、除去する
 // nullの場合はdeleteField()を使用してフィールドを削除する
-function removeUndefinedFields<T extends Record<string, any>>(obj: T, forFirestore = false): Partial<T> {
-    const result: any = {}
+function removeUndefinedFields<T extends Record<string, unknown>>(obj: T, forFirestore = false): Partial<T> {
+    const result: Partial<T> = {}
     for (const key in obj) {
         if (obj[key] === undefined) {
             // undefinedは除去
             continue
         } else if (obj[key] === null && forFirestore) {
             // Firestoreの場合、nullはdeleteField()に変換してフィールドを削除
-            result[key] = deleteField()
+            ;(result as Record<string, unknown>)[key] = deleteField()
         } else {
             result[key] = obj[key]
         }
@@ -256,8 +256,9 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
-                // Firebase mode - 新しいドキュメントとして追加
-                const { id, ...cardData } = restoredCard
+                // Firebase mode - 新しいドキュメントとして追加（idを除外して保存）
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { id: _id, ...cardData } = restoredCard
                 await addDoc(collection(db!, 'cards'), cardData)
             } else {
                 // LocalStorage mode - preserve original ID

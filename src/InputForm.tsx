@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import * as color from './color'
 import { PrimaryButton, SecondaryButton } from './Button'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, Theme } from './theme'
 
 export function InputForm({
     value,
@@ -77,7 +77,7 @@ function useAutoFitToContentHeight(content: string | undefined) {
 
 const Container = styled.div``
 
-const Input = styled.textarea<{ $theme: any }>`
+const Input = styled.textarea<{ $theme: Theme }>`
     display: block;
     width: 100%;
     margin-bottom: 8px;

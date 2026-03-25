@@ -8,7 +8,7 @@ import { PlusIcon } from './icon'
 import { InputForm as _InputForm } from './InputForm'
 import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, type Theme } from './theme'
 import type { Card as CardType, ColumnType } from './types'
 
 export function Column({
@@ -106,7 +106,7 @@ export function Column({
     )
 }
 
-const Container = styled.div<{ $theme: any; $columnColor?: string }>`
+const Container = styled.div<{ $theme: Theme; $columnColor?: string }>`
     display: flex;
     flex-flow: column;
     width: 340px;
@@ -156,7 +156,7 @@ const HeaderBar = styled.div<{ $columnColor?: string }>`
             : ''}
 `
 
-const CountBadge = styled.div<{ $theme: any; $columnColor?: string }>`
+const CountBadge = styled.div<{ $theme: Theme; $columnColor?: string }>`
     margin-right: 8px;
     border-radius: 20px;
     padding: 2px 8px;
@@ -167,7 +167,7 @@ const CountBadge = styled.div<{ $theme: any; $columnColor?: string }>`
     line-height: 1.3;
 `
 
-const ColumnName = styled.div<{ $theme: any }>`
+const ColumnName = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
     font-size: 14px;
     font-weight: 700;
@@ -177,7 +177,7 @@ const ColumnName = styled.div<{ $theme: any }>`
 const AddButton = styled.button.attrs({
     type: 'button',
     children: <PlusIcon />,
-})<{ $theme: any }>`
+})<{ $theme: Theme }>`
     margin-left: auto;
     color: ${(props) => props.$theme.textSecondary};
     padding: 4px;
@@ -205,7 +205,7 @@ const VerticalScroll = styled.div`
 `
 
 // --- 折りたたみ状態 ---
-const CollapsedColumn = styled.div<{ $theme: any; $columnColor?: string }>`
+const CollapsedColumn = styled.div<{ $theme: Theme; $columnColor?: string }>`
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -249,7 +249,7 @@ const CollapsedColumn = styled.div<{ $theme: any; $columnColor?: string }>`
     }
 `
 
-const CollapsedCount = styled.div<{ $theme: any; $columnColor?: string }>`
+const CollapsedCount = styled.div<{ $theme: Theme; $columnColor?: string }>`
     font-size: 11px;
     font-weight: 700;
     color: ${(props) => (props.$columnColor ? '#fff' : props.$theme.text)};
@@ -261,7 +261,7 @@ const CollapsedCount = styled.div<{ $theme: any; $columnColor?: string }>`
     box-shadow: ${(props) => (props.$columnColor ? `0 2px 6px ${props.$columnColor}40` : 'none')};
 `
 
-const CollapsedDivider = styled.div<{ $theme: any; $columnColor?: string }>`
+const CollapsedDivider = styled.div<{ $theme: Theme; $columnColor?: string }>`
     width: 18px;
     height: 1px;
     background: ${(props) =>
@@ -271,7 +271,7 @@ const CollapsedDivider = styled.div<{ $theme: any; $columnColor?: string }>`
     flex-shrink: 0;
 `
 
-const CollapsedTitle = styled.div<{ $theme: any }>`
+const CollapsedTitle = styled.div<{ $theme: Theme }>`
     writing-mode: vertical-rl;
     text-orientation: mixed;
     color: ${(props) => props.$theme.text};
@@ -286,7 +286,7 @@ const CollapsedTitle = styled.div<{ $theme: any }>`
     opacity: 0.85;
 `
 
-const CollapseButton = styled.button<{ $theme: any }>`
+const CollapseButton = styled.button<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     padding: 2px 6px;
     border-radius: 6px;

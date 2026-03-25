@@ -2,7 +2,7 @@ import { useState } from 'react'
 import styled from 'styled-components'
 import { useAuthStore } from './store/authStore'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, Theme } from './theme'
 
 interface AuthProps {
     onSkipAuth?: () => void
@@ -128,7 +128,7 @@ export function Auth({ onSkipAuth }: AuthProps) {
     )
 }
 
-const Container = styled.div<{ $theme: any }>`
+const Container = styled.div<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -136,7 +136,7 @@ const Container = styled.div<{ $theme: any }>`
     background-color: ${(props) => props.$theme.background};
 `
 
-const FormCard = styled.div<{ $theme: any }>`
+const FormCard = styled.div<{ $theme: Theme }>`
     background-color: ${(props) => props.$theme.surface};
     border-radius: 8px;
     box-shadow: 0 2px 8px ${(props) => props.$theme.shadow};
@@ -146,7 +146,7 @@ const FormCard = styled.div<{ $theme: any }>`
     margin: 20px;
 `
 
-const Title = styled.h1<{ $theme: any }>`
+const Title = styled.h1<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
     font-size: 28px;
     font-weight: 600;
@@ -154,7 +154,7 @@ const Title = styled.h1<{ $theme: any }>`
     text-align: center;
 `
 
-const Subtitle = styled.h2<{ $theme: any }>`
+const Subtitle = styled.h2<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 16px;
     font-weight: 400;
@@ -174,13 +174,13 @@ const InputGroup = styled.div`
     gap: 8px;
 `
 
-const Label = styled.label<{ $theme: any }>`
+const Label = styled.label<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
     font-size: 14px;
     font-weight: 500;
 `
 
-const Input = styled.input<{ $theme: any }>`
+const Input = styled.input<{ $theme: Theme }>`
     background-color: ${(props) => props.$theme.inputBackground};
     border: 1px solid ${(props) => props.$theme.inputBorder};
     border-radius: 4px;
@@ -199,7 +199,7 @@ const Input = styled.input<{ $theme: any }>`
     }
 `
 
-const ErrorMessage = styled.div<{ $theme: any }>`
+const ErrorMessage = styled.div<{ $theme: Theme }>`
     background-color: #ffebe9;
     border: 1px solid #ff5630;
     border-radius: 4px;
@@ -208,7 +208,7 @@ const ErrorMessage = styled.div<{ $theme: any }>`
     font-size: 14px;
 `
 
-const SubmitButton = styled.button<{ $theme: any }>`
+const SubmitButton = styled.button<{ $theme: Theme }>`
     background-color: #0079bf;
     border: none;
     border-radius: 4px;
@@ -229,25 +229,25 @@ const SubmitButton = styled.button<{ $theme: any }>`
     }
 `
 
-const Divider = styled.div<{ $theme: any }>`
+const Divider = styled.div<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     gap: 12px;
     margin: 20px 0;
 `
 
-const DividerLine = styled.div<{ $theme: any }>`
+const DividerLine = styled.div<{ $theme: Theme }>`
     flex: 1;
     height: 1px;
     background-color: ${(props) => props.$theme.border};
 `
 
-const DividerText = styled.span<{ $theme: any }>`
+const DividerText = styled.span<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 14px;
 `
 
-const GoogleButton = styled.button<{ $theme: any }>`
+const GoogleButton = styled.button<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -280,14 +280,14 @@ const GoogleIcon = styled.div`
     justify-content: center;
 `
 
-const ToggleText = styled.p<{ $theme: any }>`
+const ToggleText = styled.p<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 14px;
     margin: 24px 0 0 0;
     text-align: center;
 `
 
-const ToggleButton = styled.button<{ $theme: any }>`
+const ToggleButton = styled.button<{ $theme: Theme }>`
     background: none;
     border: none;
     color: #0079bf;
@@ -303,7 +303,7 @@ const ToggleButton = styled.button<{ $theme: any }>`
     }
 `
 
-const OfflineButton = styled.button<{ $theme: any }>`
+const OfflineButton = styled.button<{ $theme: Theme }>`
     margin-top: 16px;
     padding: 10px;
     border: 1px solid ${(props) => props.$theme.border};

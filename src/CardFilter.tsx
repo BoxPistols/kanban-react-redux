@@ -4,7 +4,7 @@ import { SearchIcon as _SearchIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, Theme } from './theme'
 
 export function CardFilter() {
     const { searchQuery, selectedLabelIds, setSearchQuery, toggleLabelFilter } = useKanbanStore()
@@ -58,7 +58,7 @@ const FilterContainer = styled.div`
     }
 `
 
-const SearchContainer = styled.label<{ $theme: any }>`
+const SearchContainer = styled.label<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     min-width: 200px;

@@ -11,6 +11,14 @@ import {
 import { getAuth } from 'firebase/auth'
 import { app, isFirebaseEnabled } from '../lib/firebase'
 
+// Firebase AuthError の型ガード
+function getErrorCode(error: unknown): string | undefined {
+    if (error instanceof Error && 'code' in error) {
+        return (error as { code: string }).code
+    }
+    return undefined
+}
+
 interface AuthState {
     user: User | null
     isLoading: boolean
@@ -43,15 +51,16 @@ export const useAuthStore = create<AuthState>((set) => ({
             await createUserWithEmailAndPassword(auth, email, password)
             // User will be set by onAuthStateChanged listener
             set({ isLoading: false })
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error signing up:', error)
             let errorMessage = 'アカウント作成に失敗しました'
+            const code = getErrorCode(error)
 
-            if (error.code === 'auth/email-already-in-use') {
+            if (code === 'auth/email-already-in-use') {
                 errorMessage = 'このメールアドレスは既に使用されています'
-            } else if (error.code === 'auth/weak-password') {
+            } else if (code === 'auth/weak-password') {
                 errorMessage = 'パスワードは6文字以上である必要があります'
-            } else if (error.code === 'auth/invalid-email') {
+            } else if (code === 'auth/invalid-email') {
                 errorMessage = 'メールアドレスの形式が正しくありません'
             }
 
@@ -72,15 +81,16 @@ export const useAuthStore = create<AuthState>((set) => ({
             await signInWithEmailAndPassword(auth, email, password)
             // User will be set by onAuthStateChanged listener
             set({ isLoading: false })
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error signing in:', error)
             let errorMessage = 'ログインに失敗しました'
+            const code = getErrorCode(error)
 
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
                 errorMessage = 'メールアドレスまたはパスワードが正しくありません'
-            } else if (error.code === 'auth/invalid-email') {
+            } else if (code === 'auth/invalid-email') {
                 errorMessage = 'メールアドレスの形式が正しくありません'
-            } else if (error.code === 'auth/too-many-requests') {
+            } else if (code === 'auth/too-many-requests') {
                 errorMessage = 'ログイン試行回数が多すぎます。しばらくしてからもう一度お試しください'
             }
 
@@ -102,15 +112,16 @@ export const useAuthStore = create<AuthState>((set) => ({
             await signInWithPopup(auth, provider)
             // User will be set by onAuthStateChanged listener
             set({ isLoading: false })
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error signing in with Google:', error)
             let errorMessage = 'Googleログインに失敗しました'
+            const code = getErrorCode(error)
 
-            if (error.code === 'auth/popup-closed-by-user') {
+            if (code === 'auth/popup-closed-by-user') {
                 errorMessage = 'ログインがキャンセルされました'
-            } else if (error.code === 'auth/popup-blocked') {
+            } else if (code === 'auth/popup-blocked') {
                 errorMessage = 'ポップアップがブロックされました。ブラウザの設定を確認してください'
-            } else if (error.code === 'auth/cancelled-popup-request') {
+            } else if (code === 'auth/cancelled-popup-request') {
                 // Ignore - user opened multiple popups
                 set({ isLoading: false })
                 return

@@ -87,8 +87,8 @@ function saveCurrentBoardId(boardId: string | null): void {
 }
 
 // Firestoreは undefined 値をサポートしていないため、除去する
-function removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
-    const result: any = {}
+function removeUndefinedFields<T extends Record<string, unknown>>(obj: T): Partial<T> {
+    const result: Partial<T> = {}
     for (const key in obj) {
         if (obj[key] !== undefined) {
             result[key] = obj[key]

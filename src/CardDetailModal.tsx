@@ -512,7 +512,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     )
 }
 
-const ModalContent = styled.div<{ $theme: any }>`
+const ModalContent = styled.div<{ $theme: Theme }>`
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -521,7 +521,7 @@ const ModalContent = styled.div<{ $theme: any }>`
     overflow: hidden;
 `
 
-const ModalHeader = styled.div<{ $color?: string; $theme: any }>`
+const ModalHeader = styled.div<{ $color?: string; $theme: Theme }>`
     position: sticky;
     top: 0;
     z-index: 1;
@@ -536,7 +536,7 @@ const ModalHeader = styled.div<{ $color?: string; $theme: any }>`
     flex-shrink: 0;
 `
 
-const TitleInput = styled.input<{ $theme: any }>`
+const TitleInput = styled.input<{ $theme: Theme }>`
     flex: 1;
     border: none;
     background: transparent;
@@ -556,7 +556,7 @@ const TitleInput = styled.input<{ $theme: any }>`
     }
 `
 
-const CloseButton = styled.button<{ $theme: any; $cardColor?: string }>`
+const CloseButton = styled.button<{ $theme: Theme; $cardColor?: string }>`
     border: none;
     background: ${(props) => (props.$cardColor ? 'rgba(0, 0, 0, 0.1)' : 'none')};
     font-size: 28px;
@@ -595,7 +595,7 @@ const CloseButton = styled.button<{ $theme: any; $cardColor?: string }>`
     }
 `
 
-const Content = styled.div<{ $theme: any }>`
+const Content = styled.div<{ $theme: Theme }>`
     padding: 20px;
     flex: 1;
     min-height: 0;
@@ -610,7 +610,7 @@ const Section = styled.div`
     margin-bottom: 24px;
 `
 
-const SectionTitle = styled.h3<{ $theme: any }>`
+const SectionTitle = styled.h3<{ $theme: Theme }>`
     margin: 0 0 12px 0;
     font-size: 13px;
     font-weight: 700;
@@ -657,7 +657,7 @@ const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode
     }
 `
 
-const EmptyState = styled.div<{ $theme: any }>`
+const EmptyState = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 13px;
     font-style: italic;
@@ -703,7 +703,7 @@ const ColorPicker = styled.div`
     flex-wrap: wrap;
 `
 
-const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: any }>`
+const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: Theme }>`
     width: 40px;
     height: 40px;
     border-radius: 8px;
@@ -717,7 +717,7 @@ const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: 
     }
 `
 
-const DescriptionTextArea = styled.textarea<{ $theme: any }>`
+const DescriptionTextArea = styled.textarea<{ $theme: Theme }>`
     width: 100%;
     padding: 12px 14px;
     border: 1px solid ${(props) => props.$theme.border};
@@ -737,7 +737,7 @@ const DescriptionTextArea = styled.textarea<{ $theme: any }>`
     }
 `
 
-const DescriptionDisplay = styled.div<{ $theme: any }>`
+const DescriptionDisplay = styled.div<{ $theme: Theme }>`
     width: 100%;
     padding: 12px 14px;
     border: 1px solid transparent;
@@ -812,14 +812,14 @@ const ImageRemoveButton = styled.button`
     }
 `
 
-const PasteHint = styled.div<{ $theme: any }>`
+const PasteHint = styled.div<{ $theme: Theme }>`
     margin-top: 6px;
     font-size: 11px;
     color: ${(props) => props.$theme.textSecondary};
     opacity: 0.7;
 `
 
-const ProgressBar = styled.div<{ $theme?: any }>`
+const ProgressBar = styled.div<{ $theme?: Theme }>`
     width: 100%;
     height: 6px;
     background-color: ${(props) => props.$theme?.border || color.LightSilver};
@@ -848,7 +848,7 @@ const ChecklistItems = styled.div`
     margin-bottom: 12px;
 `
 
-const ChecklistItemRow = styled.div<{ $theme?: any }>`
+const ChecklistItemRow = styled.div<{ $theme?: Theme }>`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -870,7 +870,7 @@ const Checkbox = styled.input`
     accent-color: ${color.Blue};
 `
 
-const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: any }>`
+const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: Theme }>`
     flex: 1;
     font-size: 14px;
     color: ${(props) => props.$theme?.text || color.Black};
@@ -880,7 +880,7 @@ const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: any }>`
     user-select: none;
 `
 
-const DragHandle = styled.div<{ $theme?: any }>`
+const DragHandle = styled.div<{ $theme?: Theme }>`
     cursor: grab;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
     font-size: 14px;
@@ -897,7 +897,7 @@ const DragHandle = styled.div<{ $theme?: any }>`
     }
 `
 
-const EditChecklistInput = styled.input<{ $theme: any }>`
+const EditChecklistInput = styled.input<{ $theme: Theme }>`
     flex: 1;
     padding: 6px 8px;
     border: 1px solid ${color.Blue};
@@ -912,7 +912,7 @@ const EditChecklistInput = styled.input<{ $theme: any }>`
 // アイコン用ボタン（チェックリストの編集・保存・キャンセル）
 const SmallButton = styled(IconButton)``
 
-const DeleteItemButton = styled.button<{ $theme?: any }>`
+const DeleteItemButton = styled.button<{ $theme?: Theme }>`
     border: none;
     background: none;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
@@ -959,7 +959,7 @@ const AddChecklistItemRow = styled.div`
     gap: 8px;
 `
 
-const ChecklistInput = styled.input<{ $theme: any }>`
+const ChecklistInput = styled.input<{ $theme: Theme }>`
     flex: 1;
     padding: 10px 12px;
     border: 1px solid ${(props) => props.$theme.border};
@@ -979,7 +979,7 @@ const AddChecklistButton = styled(SmallPrimaryButton)`
     border-radius: 8px;
 `
 
-const DateFooter = styled.div<{ $theme: any }>`
+const DateFooter = styled.div<{ $theme: Theme }>`
     display: flex;
     gap: 16px;
     padding: 8px 20px;
@@ -994,18 +994,18 @@ const DateItem = styled.div`
     gap: 6px;
 `
 
-const DateLabel = styled.span<{ $theme: any }>`
+const DateLabel = styled.span<{ $theme: Theme }>`
     font-size: 11px;
     font-weight: 600;
     color: ${(props) => props.$theme.textSecondary};
 `
 
-const DateValue = styled.span<{ $theme: any }>`
+const DateValue = styled.span<{ $theme: Theme }>`
     font-size: 11px;
     color: ${(props) => props.$theme.textSecondary};
 `
 
-const Footer = styled.div<{ $theme: any }>`
+const Footer = styled.div<{ $theme: Theme }>`
     display: flex;
     gap: 8px;
     padding: 16px 20px;
