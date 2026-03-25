@@ -12,7 +12,8 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import { BOARD_COLORS } from '../constants'
-import type { Board, Label } from '../types'
+import type { Board, Label, ColumnDefinition } from '../types'
+import { DEFAULT_COLUMNS } from '../types'
 
 const STORAGE_KEY = 'kanban-boards'
 const CURRENT_BOARD_KEY = 'kanban-current-board'
@@ -122,6 +123,12 @@ interface BoardState {
   addLabelToBoard: (boardId: string, label: Omit<Label, 'id'>) => Promise<void>
   removeLabelFromBoard: (boardId: string, labelId: string) => Promise<void>
   updateLabel: (boardId: string, labelId: string, updates: Partial<Label>) => Promise<void>
+  // カラム管理アクション
+  addColumn: (boardId: string, title: string, color?: string) => Promise<void>
+  removeColumn: (boardId: string, columnId: string) => Promise<void>
+  updateColumn: (boardId: string, columnId: string, updates: Partial<ColumnDefinition>) => Promise<void>
+  reorderColumns: (boardId: string, columns: ColumnDefinition[]) => Promise<void>
+  getColumns: (boardId?: string) => ColumnDefinition[]
   subscribeToBoards: () => () => void
   initializeOfflineMode: () => void
 }
@@ -163,6 +170,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         description: 'デフォルトのボード',
         color: BOARD_COLORS[0],
         labels: [],
+        columns: DEFAULT_COLUMNS,
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
@@ -170,6 +178,19 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       saveBoardsToLocalStorage(boards)
       currentBoardId = defaultBoard.id
       saveCurrentBoardId(currentBoardId)
+    }
+
+    // 既存ボードにcolumnsが未設定の場合、デフォルトカラムを追加
+    let updated = false
+    boards = boards.map(board => {
+      if (!board.columns || board.columns.length === 0) {
+        updated = true
+        return { ...board, columns: DEFAULT_COLUMNS }
+      }
+      return board
+    })
+    if (updated) {
+      saveBoardsToLocalStorage(boards)
     }
 
     set({ boards, currentBoardId, isLoading: false, error: null, forceOfflineMode: true })
@@ -188,6 +209,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         description: description || '',
         color: color || '#0079BF',
         labels: [],
+        columns: DEFAULT_COLUMNS,
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
@@ -322,6 +344,85 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     }
   },
 
+  // カラム管理
+  addColumn: async (boardId, title, color) => {
+    try {
+      const board = get().boards.find(b => b.id === boardId)
+      if (!board) return
+
+      const columns = board.columns || DEFAULT_COLUMNS
+      const newColumn: ColumnDefinition = {
+        id: uuidv4(),
+        title,
+        order: columns.length,
+        color
+      }
+
+      const updatedColumns = [...columns, newColumn]
+      await get().updateBoard(boardId, { columns: updatedColumns })
+    } catch (error) {
+      console.error('Error adding column:', error)
+      set({ error: 'カラムの追加に失敗しました' })
+    }
+  },
+
+  removeColumn: async (boardId, columnId) => {
+    try {
+      const board = get().boards.find(b => b.id === boardId)
+      if (!board) return
+
+      const columns = board.columns || DEFAULT_COLUMNS
+      if (columns.length <= 1) return // 最低1カラムは必要
+
+      const updatedColumns = columns
+        .filter(c => c.id !== columnId)
+        .map((c, index) => ({ ...c, order: index }))
+      await get().updateBoard(boardId, { columns: updatedColumns })
+    } catch (error) {
+      console.error('Error removing column:', error)
+      set({ error: 'カラムの削除に失敗しました' })
+    }
+  },
+
+  updateColumn: async (boardId, columnId, updates) => {
+    try {
+      const board = get().boards.find(b => b.id === boardId)
+      if (!board) return
+
+      const columns = board.columns || DEFAULT_COLUMNS
+      const updatedColumns = columns.map(col =>
+        col.id === columnId ? { ...col, ...updates } : col
+      )
+      await get().updateBoard(boardId, { columns: updatedColumns })
+    } catch (error) {
+      console.error('Error updating column:', error)
+      set({ error: 'カラムの更新に失敗しました' })
+    }
+  },
+
+  reorderColumns: async (boardId, columns) => {
+    try {
+      const reorderedColumns = columns.map((col, index) => ({
+        ...col,
+        order: index
+      }))
+      await get().updateBoard(boardId, { columns: reorderedColumns })
+    } catch (error) {
+      console.error('Error reordering columns:', error)
+      set({ error: 'カラムの並べ替えに失敗しました' })
+    }
+  },
+
+  getColumns: (boardId) => {
+    const id = boardId || get().currentBoardId
+    const board = get().boards.find(b => b.id === id)
+    const columns = board?.columns
+    if (columns && columns.length > 0) {
+      return [...columns].sort((a, b) => a.order - b.order)
+    }
+    return DEFAULT_COLUMNS
+  },
+
   subscribeToBoards: () => {
     set({ isLoading: true, error: null })
 
@@ -340,6 +441,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
               description: data.description || '',
               color: data.color || '#0079BF',
               labels: data.labels || [],
+              columns: data.columns || DEFAULT_COLUMNS,
               createdAt: data.createdAt ?? Date.now(),
               updatedAt: data.updatedAt ?? Date.now()
             } as Board

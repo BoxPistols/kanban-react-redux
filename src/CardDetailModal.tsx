@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import styled from 'styled-components'
 import {
   DndContext,
@@ -33,7 +33,7 @@ import { getContrastTextColor, isLightColor } from './utils/colorUtils'
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
 import { useUrlMetadata } from './hooks/useUrlMetadata'
-import type { Card, ChecklistItem, Label, UrlMetadata } from './types'
+import type { Card, ChecklistItem, Label, UrlMetadata, ImageAttachment } from './types'
 
 interface CardDetailModalProps {
   card: Card
@@ -172,6 +172,8 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   )
   const [cardColor, setCardColor] = useState(card.color || '')
   const [editingDescription, setEditingDescription] = useState(false)
+  const [images, setImages] = useState<ImageAttachment[]>(card.images || [])
+  const descriptionRef = useRef<HTMLTextAreaElement>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -198,8 +200,48 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     ? Math.round((checklist.filter(item => item.completed).length / checklist.length) * 100)
     : 0
 
+  // 画像ペースト処理
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        const file = item.getAsFile()
+        if (!file) continue
+
+        // 5MB制限
+        if (file.size > 5 * 1024 * 1024) {
+          alert('画像サイズは5MB以下にしてください')
+          return
+        }
+
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string
+          if (dataUrl) {
+            const newImage: ImageAttachment = {
+              id: uuidv4(),
+              dataUrl,
+              name: file.name || `image-${Date.now()}`,
+              createdAt: Date.now()
+            }
+            setImages(prev => [...prev, newImage])
+          }
+        }
+        reader.readAsDataURL(file)
+        break
+      }
+    }
+  }, [])
+
+  const handleRemoveImage = (imageId: string) => {
+    setImages(prev => prev.filter(img => img.id !== imageId))
+  }
+
   const handleSave = async () => {
-    console.log('💾 Saving card with labels:', selectedLabels)
     await updateCard(card.id, {
       title,
       description,
@@ -208,23 +250,18 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       // 日付が空の場合はnullを設定して削除を明示
       dueDate: dueDate ? new Date(dueDate).getTime() : null,
       progress,
-      color: cardColor
+      color: cardColor,
+      images: images.length > 0 ? images : undefined
     })
-    console.log('✅ Card saved successfully')
     onClose()
   }
 
   const toggleLabel = (label: Label) => {
-    console.log('🏷️  Toggle label:', label.name, 'Current selected:', selectedLabels)
     const isSelected = selectedLabels.some(l => l.id === label.id)
     if (isSelected) {
-      const newLabels = selectedLabels.filter(l => l.id !== label.id)
-      console.log('➖ Removing label, new labels:', newLabels)
-      setSelectedLabels(newLabels)
+      setSelectedLabels(selectedLabels.filter(l => l.id !== label.id))
     } else {
-      const newLabels = [...selectedLabels, label]
-      console.log('➕ Adding label, new labels:', newLabels)
-      setSelectedLabels(newLabels)
+      setSelectedLabels([...selectedLabels, label])
     }
   }
 
@@ -313,7 +350,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   return (
     <BaseModal onClose={onClose} maxWidth="600px">
       <ModalContent $theme={theme}>
-        <Header $color={cardColor} $theme={theme}>
+        <ModalHeader $color={cardColor} $theme={theme}>
           <TitleInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -321,7 +358,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             $theme={theme}
           />
           <CloseButton onClick={onClose} $theme={theme} $cardColor={cardColor}>×</CloseButton>
-        </Header>
+        </ModalHeader>
 
         <Content $theme={theme}>
           {/* Labels Section */}
@@ -384,7 +421,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             </ColorPicker>
           </Section>
 
-          {/* Description Section */}
+          {/* Description Section with Image Paste */}
           <Section>
             <SectionTitle $theme={theme}>説明</SectionTitle>
             {!editingDescription && description ? (
@@ -397,15 +434,37 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
               </DescriptionDisplay>
             ) : (
               <DescriptionTextArea
+                ref={descriptionRef}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 onBlur={() => setEditingDescription(false)}
-                placeholder="詳細な説明を入力..."
+                onPaste={handlePaste}
+                placeholder="詳細な説明を入力... (画像の貼り付けも可能)"
                 rows={4}
                 $theme={theme}
                 autoFocus={editingDescription}
               />
             )}
+
+            {/* 貼り付け画像の表示 */}
+            {images.length > 0 && (
+              <ImageGallery>
+                {images.map(img => (
+                  <ImageContainer key={img.id}>
+                    <ImagePreview src={img.dataUrl} alt={img.name || '画像'} />
+                    <ImageRemoveButton
+                      onClick={() => handleRemoveImage(img.id)}
+                      title="画像を削除"
+                    >
+                      ×
+                    </ImageRemoveButton>
+                  </ImageContainer>
+                ))}
+              </ImageGallery>
+            )}
+            <PasteHint $theme={theme}>
+              Ctrl+V / Cmd+V で画像を貼り付けできます
+            </PasteHint>
           </Section>
 
           {/* Checklist Section */}
@@ -465,7 +524,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                 placeholder="新しい項目を追加..."
                 $theme={theme}
               />
-              <AddButton onClick={addChecklistItem}>追加</AddButton>
+              <AddChecklistButton onClick={addChecklistItem}>追加</AddChecklistButton>
             </AddChecklistItemRow>
           </Section>
         </Content>
@@ -499,7 +558,7 @@ const ModalContent = styled.div<{ $theme: any }>`
   overflow: hidden;
 `
 
-const Header = styled.div<{ $color?: string; $theme: any }>`
+const ModalHeader = styled.div<{ $color?: string; $theme: any }>`
   position: sticky;
   top: 0;
   z-index: 1;
@@ -588,9 +647,11 @@ const Section = styled.div`
 
 const SectionTitle = styled.h3<{ $theme: any }>`
   margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: ${props => props.$theme.text};
+  font-size: 13px;
+  font-weight: 700;
+  color: ${props => props.$theme.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   display: flex;
   align-items: center;
 `
@@ -600,6 +661,7 @@ const ProgressText = styled.span`
   font-size: 12px;
   color: ${color.Gray};
   font-weight: normal;
+  text-transform: none;
 `
 
 const LabelsContainer = styled.div`
@@ -609,8 +671,8 @@ const LabelsContainer = styled.div`
 `
 
 const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode?: boolean }>`
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 20px;
   border: 2px solid ${props => {
     if (!props.$selected) return 'transparent'
     return props.$isDarkMode ? color.White : color.Black
@@ -621,7 +683,7 @@ const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode
   font-weight: 600;
   cursor: pointer;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  transition: border-color 0.2s, transform 0.1s;
+  transition: all 0.15s ease;
 
   &:hover {
     opacity: 0.9;
@@ -637,13 +699,13 @@ const EmptyState = styled.div<{ $theme: any }>`
 
 const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: Theme; $isDarkMode?: boolean }>`
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid ${props =>
     props.$isOverdue ? color.Red :
     props.$isDueSoon ? '#FF9F1A' :
     props.$theme.border
   };
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   color: ${props => props.$theme.text};
   background-color: ${props => {
@@ -682,7 +744,7 @@ const ColorPicker = styled.div`
 const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: any }>`
   width: 40px;
   height: 40px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 3px solid ${props => props.$selected ? props.$theme.text : props.$theme.border};
   background-color: ${props => props.$color || props.$theme.surface};
   cursor: pointer;
@@ -695,15 +757,16 @@ const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: 
 
 const DescriptionTextArea = styled.textarea<{ $theme: any }>`
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   color: ${props => props.$theme.text};
   background-color: ${props => props.$theme.inputBackground};
   font-family: inherit;
   resize: vertical;
   box-sizing: border-box;
+  line-height: 1.6;
 
   &:focus {
     outline: 2px solid ${color.Blue};
@@ -714,9 +777,9 @@ const DescriptionTextArea = styled.textarea<{ $theme: any }>`
 
 const DescriptionDisplay = styled.div<{ $theme: any }>`
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   color: ${props => props.$theme.text};
   background-color: ${props => props.$theme.inputBackground};
@@ -725,17 +788,80 @@ const DescriptionDisplay = styled.div<{ $theme: any }>`
   white-space: pre-wrap;
   word-break: break-word;
   box-sizing: border-box;
+  line-height: 1.6;
 
   &:hover {
     border-color: ${props => props.$theme.border};
   }
 `
 
+// 画像関連スタイル
+const ImageGallery = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+`
+
+const ImageContainer = styled.div`
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+
+  &:hover > button {
+    opacity: 1;
+  }
+`
+
+const ImagePreview = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+`
+
+const ImageRemoveButton = styled.button`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  &:hover {
+    background: rgba(220, 50, 50, 0.9);
+  }
+`
+
+const PasteHint = styled.div<{ $theme: any }>`
+  margin-top: 6px;
+  font-size: 11px;
+  color: ${props => props.$theme.textSecondary};
+  opacity: 0.7;
+`
+
 const ProgressBar = styled.div<{ $theme?: any }>`
   width: 100%;
-  height: 8px;
+  height: 6px;
   background-color: ${props => props.$theme?.border || color.LightSilver};
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   margin-bottom: 12px;
 `
@@ -743,14 +869,17 @@ const ProgressBar = styled.div<{ $theme?: any }>`
 const ProgressFill = styled.div<{ $progress: number }>`
   height: 100%;
   width: ${props => props.$progress}%;
-  background-color: ${props => props.$progress === 100 ? color.Green : color.Blue};
+  background: ${props => props.$progress === 100
+    ? `linear-gradient(90deg, ${color.Green}, #2ecc71)`
+    : `linear-gradient(90deg, ${color.Blue}, #5dade2)`};
   transition: width 0.3s, background-color 0.3s;
+  border-radius: 3px;
 `
 
 const ChecklistItems = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 12px;
 `
 
@@ -758,9 +887,10 @@ const ChecklistItemRow = styled.div<{ $theme?: any }>`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  border-radius: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
   background-color: ${props => props.$theme?.surfaceHover || color.LightSilver};
+  transition: background-color 0.15s;
 
   &:hover {
     background-color: ${props => props.$theme?.border || '#E0E0E0'};
@@ -772,6 +902,7 @@ const Checkbox = styled.input`
   height: 18px;
   cursor: pointer;
   flex-shrink: 0;
+  accent-color: ${color.Blue};
 `
 
 const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: any }>`
@@ -805,7 +936,7 @@ const EditChecklistInput = styled.input<{ $theme: any }>`
   flex: 1;
   padding: 6px 8px;
   border: 1px solid ${color.Blue};
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   color: ${props => props.$theme.text};
   background-color: ${props => props.$theme.inputBackground};
@@ -838,7 +969,7 @@ const ConvertToCardButton = styled.button<{ $theme?: Theme }>`
   cursor: pointer;
   padding: 4px 8px;
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.2s;
   min-width: 28px;
   min-height: 28px;
@@ -865,9 +996,9 @@ const AddChecklistItemRow = styled.div`
 
 const ChecklistInput = styled.input<{ $theme: any }>`
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid ${props => props.$theme.border};
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
   color: ${props => props.$theme.text};
   background-color: ${props => props.$theme.inputBackground};
@@ -879,7 +1010,9 @@ const ChecklistInput = styled.input<{ $theme: any }>`
   }
 `
 
-const AddButton = styled(SmallPrimaryButton)``
+const AddChecklistButton = styled(SmallPrimaryButton)`
+  border-radius: 8px;
+`
 
 const DateFooter = styled.div<{ $theme: any }>`
   display: flex;
@@ -919,9 +1052,11 @@ const Footer = styled.div<{ $theme: any }>`
 const SaveButton = styled(PrimaryButton)`
   flex: 1;
   padding: 10px 16px;
+  border-radius: 8px;
 `
 
 const CancelButton = styled(SecondaryButton)`
   flex: 1;
   padding: 10px 16px;
+  border-radius: 8px;
 `

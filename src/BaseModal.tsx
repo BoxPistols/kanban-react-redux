@@ -37,7 +37,7 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 		// Modalが開いているときにbodyクラスを追加（CSSで制御）
 		const isIOSDevice = isIOS()
 		const scrollY = window.pageYOffset || window.scrollY || 0
-		
+
 		if (isIOSDevice) {
 			// iOSの場合: modal-open-iosクラスを追加
 			document.body.classList.add('modal-open-ios')
@@ -49,7 +49,7 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
 
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown)
-			
+
 			// bodyクラスを削除
 			if (isIOSDevice) {
 				document.body.classList.remove('modal-open-ios')
@@ -82,7 +82,8 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -93,6 +94,12 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
   padding-bottom: env(safe-area-inset-bottom, 0);
   pointer-events: auto;
   isolation: isolate;
+  animation: overlayIn 0.2s ease-out;
+
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
   @media (min-width: 769px) {
     align-items: center;
@@ -103,19 +110,31 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
 
 const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
   background-color: ${props => props.$theme.surface};
-  border-radius: 8px;
+  border-radius: 12px;
   width: 100%;
   max-width: ${props => props.$maxWidth};
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
   margin: 0;
   position: relative;
   z-index: 1001;
   pointer-events: auto;
   isolation: isolate;
   overflow: hidden;
+  animation: modalIn 0.25s ease-out;
+
+  @keyframes modalIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 
   @media (max-width: 768px) {
     border-radius: 0;
@@ -124,6 +143,7 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
     height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
     min-height: unset;
     max-height: none;
+    animation: none;
   }
 
   @media (min-width: 769px) {
@@ -133,4 +153,3 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
     margin: auto;
   }
 `
-

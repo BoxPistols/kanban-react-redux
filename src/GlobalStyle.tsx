@@ -10,15 +10,19 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   }
 
   body {
-    /* https://css-tricks.com/snippets/css/system-font-stack/ */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
       Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-feature-settings: 'kern' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 
     overflow-wrap: break-word;
     background-color: ${props => props.$theme.background};
     color: ${props => props.$theme.text};
     margin: 0;
     padding: 0;
+    line-height: 1.5;
   }
 
   /* Modalが開いているときのbodyスクロール固定（通常ブラウザ） */
@@ -67,18 +71,19 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
 
   /* スクロールバーのスタイル（Webkit: Chrome, Safari, Edge） */
   *::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
   }
 
   *::-webkit-scrollbar-track {
     background: ${props => props.$theme.scrollbarTrack};
+    border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb {
     background-color: ${props => props.$theme.scrollbarThumb};
-    border-radius: 6px;
-    border: 3px solid ${props => props.$theme.scrollbarTrack};
+    border-radius: 4px;
+    border: 2px solid ${props => props.$theme.scrollbarTrack};
   }
 
   *::-webkit-scrollbar-thumb:hover {
@@ -98,5 +103,17 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   /* ダブルタップによるズームを防止 */
   * {
     touch-action: manipulation;
+  }
+
+  /* ボタンのデフォルトリセット */
+  button {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* 選択色 */
+  ::selection {
+    background: rgba(0, 101, 255, 0.2);
   }
 `

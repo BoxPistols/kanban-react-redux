@@ -62,6 +62,7 @@ export function Card({
   const hasLabels = card.labels && card.labels.length > 0
   const hasChecklist = card.checklist && card.checklist.length > 0
   const hasDueDate = card.dueDate
+  const hasImages = card.images && card.images.length > 0
   const completedItems = card.checklist?.filter(item => item.completed).length || 0
   const totalItems = card.checklist?.length || 0
   const primaryLabelColor = hasLabels ? card.labels![0].color : undefined
@@ -80,6 +81,7 @@ export function Card({
         style={style}
         $isDragging={isDragging || isSortableDragging}
         $labelColor={primaryLabelColor}
+        $cardColor={card.color}
         $theme={theme}
         onClick={handleCardClick}
         data-card-container
@@ -108,6 +110,18 @@ export function Card({
             )}
           </TextContent>
         </ContentRow>
+
+        {/* 画像サムネイル */}
+        {hasImages && (
+          <ImageThumbnailRow>
+            {card.images!.slice(0, 3).map(img => (
+              <ImageThumb key={img.id} src={img.dataUrl} alt="" />
+            ))}
+            {card.images!.length > 3 && (
+              <MoreImages $theme={theme}>+{card.images!.length - 3}</MoreImages>
+            )}
+          </ImageThumbnailRow>
+        )}
 
         <MetadataRow>
           {hasDueDate && (
@@ -147,14 +161,14 @@ export function Card({
   )
 }
 
-const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $theme: any }>`
+const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $cardColor?: string; $theme: any }>`
   position: relative;
   z-index: 0;
-  border: solid 1px ${props => props.$theme.border};
-  border-radius: 6px;
-  border-top: 4px solid ${props => props.$labelColor || props.$theme.border};
+  border: 1px solid ${props => props.$theme.border};
+  border-radius: ${props => props.$theme.cardBorderRadius};
+  border-left: 3px solid ${props => props.$cardColor || props.$labelColor || 'transparent'};
   box-shadow: 0 1px 3px ${props => props.$theme.shadow};
-  padding: 10px;
+  padding: 10px 12px;
   background-color: ${props => props.$theme.cardBackground};
   cursor: pointer;
   opacity: ${props => (props.$isDragging ? 0.5 : 1)};
@@ -162,9 +176,11 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $the
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.15s;
 
   &:hover {
-    box-shadow: 0 2px 8px ${props => props.$theme.shadowHover};
+    box-shadow: 0 4px 12px ${props => props.$theme.shadowHover};
+    transform: translateY(-1px);
   }
 `
 
@@ -172,17 +188,17 @@ const LabelsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 4px;
 `
 
 const LabelBadge = styled.div<{ $color: string }>`
   padding: 2px 8px;
-  border-radius: 3px;
+  border-radius: 12px;
   background-color: ${props => props.$color};
   color: ${color.White};
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.02em;
 `
 
 const ContentRow = styled.div`
@@ -208,9 +224,9 @@ const TextContent = styled.div`
 
 const Title = styled.div<{ $theme: any }>`
   color: ${props => props.$theme.text};
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.5;
   word-break: break-word;
 `
 
@@ -219,6 +235,25 @@ const Description = styled.div<{ $theme: any }>`
   font-size: 12px;
   line-height: 1.4;
   word-break: break-word;
+`
+
+const ImageThumbnailRow = styled.div`
+  display: flex;
+  gap: 4px;
+  align-items: center;
+`
+
+const ImageThumb = styled.img`
+  width: 40px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+`
+
+const MoreImages = styled.div<{ $theme: any }>`
+  font-size: 11px;
+  color: ${props => props.$theme.textSecondary};
+  padding: 0 4px;
 `
 
 const MetadataRow = styled.div`
@@ -232,8 +267,8 @@ const DueDateBadge = styled.div<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 12px;
   background-color: ${props =>
     props.$isOverdue ? color.Red :
     props.$isDueSoon ? '#FF9F1A' :
@@ -242,12 +277,12 @@ const DueDateBadge = styled.div<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
   color: ${props =>
     props.$isOverdue || props.$isDueSoon ? color.White : color.Black
   };
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 
   svg {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
   }
 `
 
@@ -255,31 +290,31 @@ const ChecklistBadge = styled.div<{ $allCompleted: boolean }>`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 12px;
   background-color: ${props => props.$allCompleted ? color.Green : color.LightSilver};
   color: ${props => props.$allCompleted ? color.White : color.Black};
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 
   svg {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
   }
 `
 
 const DescriptionBadge = styled.div<{ $theme: any }>`
   display: flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 12px;
   background-color: ${props => props.$theme.surface};
   color: ${props => props.$theme.textSecondary};
-  font-size: 11px;
+  font-size: 10px;
 
   svg {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
   }
 `
 
@@ -293,12 +328,17 @@ const DeleteButton = styled.button.attrs({
   font-size: 14px;
   color: ${props => props.$theme.textSecondary};
   background: ${props => props.$theme.cardBackground};
-  border-radius: 3px;
-  padding: 2px;
-  opacity: 0.7;
+  border-radius: 6px;
+  padding: 3px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+
+  ${Container}:hover & {
+    opacity: 0.7;
+  }
 
   :hover {
     color: ${color.Red};
-    opacity: 1;
+    opacity: 1 !important;
   }
 `

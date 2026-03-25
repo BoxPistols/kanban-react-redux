@@ -14,6 +14,7 @@ import { GlobalStyle } from './GlobalStyle'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
+import { ColumnManager } from './ColumnManager'
 import { Auth } from './Auth'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -24,20 +25,14 @@ import { getTheme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import type { Card as CardType, ColumnType } from './types'
 
-const COLUMNS: { id: ColumnType; title: string }[] = [
-  { id: 'TODO', title: 'TODO' },
-  { id: 'Doing', title: 'Doing' },
-  { id: 'Waiting', title: 'Waiting' },
-  { id: 'Done', title: 'Done' }
-]
-
 export function App() {
   const { cards, searchQuery, selectedLabelIds, subscribeToCards, reorderCards, setForceOfflineMode: setKanbanOfflineMode } = useKanbanStore()
-  const { subscribeToBoards, currentBoardId, setForceOfflineMode: setBoardOfflineMode } = useBoardStore()
+  const { subscribeToBoards, currentBoardId, setForceOfflineMode: setBoardOfflineMode, getColumns } = useBoardStore()
   const { isDarkMode, initializeTheme } = useThemeStore()
   const { user, isInitialized, initAuth } = useAuthStore()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [offlineMode, setOfflineMode] = useState(false)
+  const [showColumnManager, setShowColumnManager] = useState(false)
 
   // オフラインモードをストアに同期
   useEffect(() => {
@@ -46,6 +41,11 @@ export function App() {
   }, [offlineMode, setBoardOfflineMode, setKanbanOfflineMode])
 
   const theme = getTheme(isDarkMode)
+
+  // ボードのカラム定義を取得
+  const columns = useMemo(() => {
+    return getColumns(currentBoardId || undefined)
+  }, [getColumns, currentBoardId, useBoardStore.getState().boards])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -152,7 +152,7 @@ export function App() {
     if (!activeCard) return
 
     // Check if dropping on a column or a card
-    const overColumn = COLUMNS.find(col => col.id === overId)
+    const overColumn = columns.find(col => col.id === overId)
     const overCard = cards.find(c => c.id === overId)
 
     if (overCard) {
@@ -237,19 +237,30 @@ export function App() {
                 <EmptyText $theme={theme}>ヘッダーの「+ ボード」ボタンから新しいボードを作成できます</EmptyText>
               </EmptyState>
             ) : (
-              COLUMNS.map(column => {
-                const columnCards = cardsByColumn[column.id] || []
+              <>
+                {columns.map(column => {
+                  const columnCards = cardsByColumn[column.id] || []
 
-                return (
-                  <Column
-                    key={column.id}
-                    id={column.id}
-                    title={column.title}
-                    cards={columnCards}
-                    boardId={currentBoardId}
-                  />
-                )
-              })
+                  return (
+                    <Column
+                      key={column.id}
+                      id={column.id}
+                      title={column.title}
+                      cards={columnCards}
+                      boardId={currentBoardId}
+                      columnColor={column.color}
+                    />
+                  )
+                })}
+                <AddColumnButton
+                  $theme={theme}
+                  onClick={() => setShowColumnManager(true)}
+                  title="レーンを管理"
+                >
+                  <AddColumnIcon>+</AddColumnIcon>
+                  <AddColumnText>レーン管理</AddColumnText>
+                </AddColumnButton>
+              </>
             )}
           </HorizontalScroll>
         </MainArea>
@@ -257,6 +268,13 @@ export function App() {
         <DragOverlay>
           {activeCard ? <CardComponent card={activeCard} isDragging /> : null}
         </DragOverlay>
+
+        {showColumnManager && currentBoardId && (
+          <ColumnManager
+            boardId={currentBoardId}
+            onClose={() => setShowColumnManager(false)}
+          />
+        )}
       </Container>
     </DndContext>
   )
@@ -375,4 +393,41 @@ const LoadingContainer = styled.div<{ $theme: any }>`
 const LoadingText = styled.div<{ $theme: any }>`
   color: ${props => props.$theme.text};
   font-size: 18px;
+`
+
+const AddColumnButton = styled.button<{ $theme: any }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 200px;
+  height: 120px;
+  border: 2px dashed ${props => props.$theme.border};
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 8px;
+  align-self: flex-start;
+  margin-top: 0;
+
+  &:hover {
+    border-color: ${props => props.$theme.textSecondary};
+    background: ${props => props.$theme.surfaceHover};
+    transform: translateY(-2px);
+  }
+`
+
+const AddColumnIcon = styled.div`
+  font-size: 28px;
+  color: inherit;
+  opacity: 0.5;
+  line-height: 1;
+`
+
+const AddColumnText = styled.div`
+  font-size: 13px;
+  color: inherit;
+  opacity: 0.5;
+  font-weight: 500;
 `

@@ -15,12 +15,14 @@ export function Column({
   id,
   title,
   cards,
-  boardId
+  boardId,
+  columnColor
 }: {
   id: ColumnType
   title: string
   cards: CardType[]
   boardId: string
+  columnColor?: string
 }) {
   const { addCard } = useKanbanStore()
   const { isDarkMode } = useThemeStore()
@@ -48,12 +50,12 @@ export function Column({
   const cardIds = cards.map(card => card.id)
 
   return (
-    <Container ref={setNodeRef} $theme={theme} data-column-container>
-      <Header>
-        <CountBadge $theme={theme}>{cards.length}</CountBadge>
+    <Container ref={setNodeRef} $theme={theme} $columnColor={columnColor} data-column-container>
+      <HeaderBar $columnColor={columnColor}>
+        <CountBadge $theme={theme} $columnColor={columnColor}>{cards.length}</CountBadge>
         <ColumnName $theme={theme}>{title}</ColumnName>
         <AddButton onClick={toggleInput} $theme={theme} />
-      </Header>
+      </HeaderBar>
 
       {inputMode && (
         <InputForm
@@ -75,16 +77,17 @@ export function Column({
   )
 }
 
-const Container = styled.div<{ $theme: any }>`
+const Container = styled.div<{ $theme: any; $columnColor?: string }>`
   display: flex;
   flex-flow: column;
-  width: 355px;
+  width: 340px;
   height: 100%;
-  border: solid 1px ${props => props.$theme.border};
-  border-radius: 6px;
+  border: none;
+  border-radius: 12px;
   background-color: ${props => props.$theme.columnBackground};
   position: relative;
   z-index: 0;
+  box-shadow: 0 1px 4px ${props => props.$theme.shadow};
 
   > :not(:last-child) {
     flex-shrink: 0;
@@ -101,27 +104,31 @@ const Container = styled.div<{ $theme: any }>`
   }
 `
 
-const Header = styled.div`
+const HeaderBar = styled.div<{ $columnColor?: string }>`
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  padding: 8px;
+  padding: 12px 12px 8px 12px;
+  border-radius: 12px 12px 0 0;
+  ${props => props.$columnColor ? `border-top: 3px solid ${props.$columnColor};` : ''}
 `
 
-const CountBadge = styled.div<{ $theme: any }>`
+const CountBadge = styled.div<{ $theme: any; $columnColor?: string }>`
   margin-right: 8px;
   border-radius: 20px;
-  padding: 2px 6px;
-  color: ${props => props.$theme.text};
-  background-color: ${props => props.$theme.surface};
+  padding: 2px 8px;
+  color: ${props => props.$columnColor ? color.White : props.$theme.text};
+  background-color: ${props => props.$columnColor || props.$theme.surface};
   font-size: 12px;
-  line-height: 1;
+  font-weight: 600;
+  line-height: 1.3;
 `
 
 const ColumnName = styled.div<{ $theme: any }>`
   color: ${props => props.$theme.text};
   font-size: 14px;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 `
 
 const AddButton = styled.button.attrs({
@@ -129,10 +136,14 @@ const AddButton = styled.button.attrs({
     children: <PlusIcon />,
 })<{ $theme: any }>`
   margin-left: auto;
-  color: ${props => props.$theme.text};
+  color: ${props => props.$theme.textSecondary};
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
 
   :hover {
     color: ${color.Blue};
+    background: ${props => props.$theme.surfaceHover};
   }
 `
 const InputForm = styled(_InputForm)`

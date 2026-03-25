@@ -1,0 +1,464 @@
+import { useState } from 'react'
+import styled from 'styled-components'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import * as color from './color'
+import { BaseModal } from './BaseModal'
+import { PrimaryButton, SecondaryButton } from './Button'
+import { useBoardStore } from './store/boardStore'
+import { useThemeStore } from './store/themeStore'
+import { getTheme, Theme } from './theme'
+import type { ColumnDefinition } from './types'
+
+// レーンの色パレット
+const COLUMN_COLORS = [
+  '',         // デフォルト（色なし）
+  '#2D5A8A', // Blue
+  '#3D7A5A', // Green
+  '#8A6A2D', // Amber
+  '#7A3D3D', // Red
+  '#6A4D8A', // Purple
+  '#2D6A7A', // Teal
+  '#8A4D6A', // Rose
+]
+
+interface SortableColumnItemProps {
+  column: ColumnDefinition
+  onEdit: (id: string, title: string) => void
+  onDelete: (id: string) => void
+  onColorChange: (id: string, color: string) => void
+  theme: Theme
+  canDelete: boolean
+}
+
+function SortableColumnItem({ column, onEdit, onDelete, onColorChange, theme, canDelete }: SortableColumnItemProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(column.title)
+  const [showColors, setShowColors] = useState(false)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: column.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  }
+
+  const handleSaveEdit = () => {
+    if (editTitle.trim()) {
+      onEdit(column.id, editTitle.trim())
+    }
+    setIsEditing(false)
+  }
+
+  return (
+    <ColumnItemRow ref={setNodeRef} style={style} $theme={theme}>
+      <DragHandle $theme={theme} {...attributes} {...listeners}>⋮⋮</DragHandle>
+
+      {column.color && <ColorDot $color={column.color} />}
+
+      {isEditing ? (
+        <EditInput
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onBlur={handleSaveEdit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSaveEdit()
+            if (e.key === 'Escape') { setEditTitle(column.title); setIsEditing(false) }
+          }}
+          autoFocus
+          $theme={theme}
+        />
+      ) : (
+        <ColumnTitle
+          $theme={theme}
+          onDoubleClick={() => setIsEditing(true)}
+          title="ダブルクリックで名前を変更"
+        >
+          {column.title}
+        </ColumnTitle>
+      )}
+
+      <ActionsRow>
+        <SmallIconButton
+          onClick={() => setShowColors(!showColors)}
+          $theme={theme}
+          title="色を変更"
+        >
+          🎨
+        </SmallIconButton>
+        <SmallIconButton
+          onClick={() => setIsEditing(true)}
+          $theme={theme}
+          title="名前を変更"
+        >
+          ✏️
+        </SmallIconButton>
+        {canDelete && (
+          <SmallIconButton
+            onClick={() => {
+              if (window.confirm(`「${column.title}」レーンを削除しますか？\nこのレーン内のカードは残ります。`)) {
+                onDelete(column.id)
+              }
+            }}
+            $theme={theme}
+            $danger
+            title="削除"
+          >
+            ×
+          </SmallIconButton>
+        )}
+      </ActionsRow>
+
+      {showColors && (
+        <ColorPicker>
+          {COLUMN_COLORS.map((c, i) => (
+            <ColorOption
+              key={i}
+              $color={c}
+              $selected={column.color === c || (!column.color && !c)}
+              $theme={theme}
+              onClick={() => {
+                onColorChange(column.id, c)
+                setShowColors(false)
+              }}
+            />
+          ))}
+        </ColorPicker>
+      )}
+    </ColumnItemRow>
+  )
+}
+
+interface ColumnManagerProps {
+  boardId: string
+  onClose: () => void
+}
+
+export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
+  const { getColumns, addColumn, removeColumn, updateColumn, reorderColumns } = useBoardStore()
+  const { isDarkMode } = useThemeStore()
+  const theme = getTheme(isDarkMode)
+
+  const columns = getColumns(boardId)
+  const [newColumnTitle, setNewColumnTitle] = useState('')
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = columns.findIndex(c => c.id === active.id)
+    const newIndex = columns.findIndex(c => c.id === over.id)
+    const reordered = arrayMove(columns, oldIndex, newIndex)
+    reorderColumns(boardId, reordered)
+  }
+
+  const handleAddColumn = () => {
+    if (!newColumnTitle.trim()) return
+    addColumn(boardId, newColumnTitle.trim())
+    setNewColumnTitle('')
+  }
+
+  const handleEditColumn = (columnId: string, title: string) => {
+    updateColumn(boardId, columnId, { title })
+  }
+
+  const handleDeleteColumn = (columnId: string) => {
+    removeColumn(boardId, columnId)
+  }
+
+  const handleColorChange = (columnId: string, newColor: string) => {
+    updateColumn(boardId, columnId, { color: newColor || undefined })
+  }
+
+  return (
+    <BaseModal onClose={onClose} maxWidth="500px">
+      <ModalContent $theme={theme}>
+        <Header $theme={theme}>
+          <ModalTitle $theme={theme}>レーン管理</ModalTitle>
+          <CloseButton onClick={onClose} $theme={theme}>×</CloseButton>
+        </Header>
+
+        <Content $theme={theme}>
+          <Description $theme={theme}>
+            ドラッグ&ドロップでレーンの並び順を変更できます。<br />
+            ダブルクリックで名前を変更できます。
+          </Description>
+
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={columns.map(c => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ColumnsList>
+                {columns.map(column => (
+                  <SortableColumnItem
+                    key={column.id}
+                    column={column}
+                    onEdit={handleEditColumn}
+                    onDelete={handleDeleteColumn}
+                    onColorChange={handleColorChange}
+                    theme={theme}
+                    canDelete={columns.length > 1}
+                  />
+                ))}
+              </ColumnsList>
+            </SortableContext>
+          </DndContext>
+
+          <AddSection>
+            <AddInput
+              type="text"
+              value={newColumnTitle}
+              onChange={(e) => setNewColumnTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
+              placeholder="新しいレーン名を入力..."
+              $theme={theme}
+            />
+            <AddButton onClick={handleAddColumn} disabled={!newColumnTitle.trim()}>
+              追加
+            </AddButton>
+          </AddSection>
+        </Content>
+
+        <Footer $theme={theme}>
+          <DoneButton onClick={onClose}>完了</DoneButton>
+        </Footer>
+      </ModalContent>
+    </BaseModal>
+  )
+}
+
+const ModalContent = styled.div<{ $theme: any }>`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+`
+
+const Header = styled.div<{ $theme: any }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surface};
+  flex-shrink: 0;
+`
+
+const ModalTitle = styled.h2<{ $theme: any }>`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: ${props => props.$theme.text};
+`
+
+const CloseButton = styled.button<{ $theme: any }>`
+  border: none;
+  background: none;
+  font-size: 24px;
+  color: ${props => props.$theme.textSecondary};
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+
+  &:hover {
+    color: ${props => props.$theme.text};
+    background: ${props => props.$theme.surfaceHover};
+  }
+`
+
+const Content = styled.div<{ $theme: any }>`
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  background-color: ${props => props.$theme.surface};
+`
+
+const Description = styled.p<{ $theme: any }>`
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: ${props => props.$theme.textSecondary};
+  line-height: 1.6;
+`
+
+const ColumnsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+`
+
+const ColumnItemRow = styled.div<{ $theme: any }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: ${props => props.$theme.surfaceHover};
+  flex-wrap: wrap;
+
+  &:hover {
+    background-color: ${props => props.$theme.border};
+  }
+`
+
+const DragHandle = styled.div<{ $theme: any }>`
+  cursor: grab;
+  color: ${props => props.$theme.textSecondary};
+  font-size: 14px;
+  padding: 0 4px;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+`
+
+const ColorDot = styled.div<{ $color: string }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: ${props => props.$color};
+  flex-shrink: 0;
+`
+
+const ColumnTitle = styled.div<{ $theme: any }>`
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: ${props => props.$theme.text};
+  cursor: pointer;
+  min-width: 0;
+`
+
+const EditInput = styled.input<{ $theme: any }>`
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid ${color.Blue};
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: ${props => props.$theme.text};
+  background: ${props => props.$theme.inputBackground};
+  outline: none;
+  min-width: 0;
+`
+
+const ActionsRow = styled.div`
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+`
+
+const SmallIconButton = styled.button<{ $theme: any; $danger?: boolean }>`
+  border: none;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: ${props => props.$danger ? color.Red : props.$theme.textSecondary};
+
+  &:hover {
+    background: ${props => props.$theme.surface};
+    color: ${props => props.$danger ? color.Red : props.$theme.text};
+  }
+`
+
+const ColorPicker = styled.div`
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  padding-top: 8px;
+  padding-left: 28px;
+`
+
+const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: any }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid ${props => props.$selected ? props.$theme.text : props.$theme.border};
+  background-color: ${props => props.$color || props.$theme.surface};
+  cursor: pointer;
+  transition: transform 0.1s;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+`
+
+const AddSection = styled.div`
+  display: flex;
+  gap: 8px;
+`
+
+const AddInput = styled.input<{ $theme: any }>`
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid ${props => props.$theme.border};
+  border-radius: 8px;
+  font-size: 14px;
+  color: ${props => props.$theme.text};
+  background-color: ${props => props.$theme.inputBackground};
+
+  &:focus {
+    outline: 2px solid ${color.Blue};
+    outline-offset: -1px;
+    border-color: ${color.Blue};
+  }
+`
+
+const AddButton = styled(PrimaryButton)`
+  padding: 10px 20px;
+  border-radius: 8px;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`
+
+const Footer = styled.div<{ $theme: any }>`
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid ${props => props.$theme.border};
+  background-color: ${props => props.$theme.surface};
+  flex-shrink: 0;
+`
+
+const DoneButton = styled(SecondaryButton)`
+  padding: 10px 32px;
+  border-radius: 8px;
+`

@@ -69,7 +69,7 @@ export function Header({ className }: { className?: string }) {
     }, [isMenuOpen])
 
     return (
-        <Container className={className}>
+        <Container className={className} $isDarkMode={isDarkMode}>
             {/* ロゴ - 常に表示 */}
             <Logo>Kanban board</Logo>
 
@@ -132,6 +132,7 @@ export function Header({ className }: { className?: string }) {
                     <MobileMenu
                         onClick={(e) => e.stopPropagation()}
                         data-menu-container
+                        $isDarkMode={isDarkMode}
                     >
                         <MenuSection>
                             <MenuSectionTitle>ボード</MenuSectionTitle>
@@ -194,17 +195,21 @@ export function Header({ className }: { className?: string }) {
     )
 }
 
-const Container = styled.div`
+const Container = styled.div<{ $isDarkMode?: boolean }>`
   display: flex;
   align-items: center;
   /* iPhoneのノッチ/ダイナミックアイランド対応 */
-  padding-top: max(8px, env(safe-area-inset-top, 0));
+  padding-top: max(10px, env(safe-area-inset-top, 0));
   padding-right: max(16px, env(safe-area-inset-right, 0));
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   padding-left: max(16px, env(safe-area-inset-left, 0));
-  background-color: ${color.Navy};
+  background: ${props => props.$isDarkMode
+    ? 'linear-gradient(180deg, #010409 0%, #0D1117 100%)'
+    : 'linear-gradient(180deg, #1B2638 0%, #243447 100%)'
+  };
   position: relative;
   z-index: 100;
+  backdrop-filter: blur(8px);
 
   @media (max-width: 768px) {
     padding-top: max(8px, env(safe-area-inset-top, 0));
@@ -215,10 +220,11 @@ const Container = styled.div`
 `
 
 const Logo = styled.div`
-  color: ${color.Silver};
+  color: rgba(255, 255, 255, 0.9);
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 700;
   flex-shrink: 0;
+  letter-spacing: -0.02em;
 
   @media (max-width: 768px) {
     font-size: 14px;
@@ -245,16 +251,16 @@ const ThemeToggle = styled.button`
   margin-left: 12px;
   padding: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
   font-size: 18px;
-  border-radius: 6px;
-  color: ${color.White};
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
   }
 
   svg {
@@ -277,7 +283,7 @@ const UserInitial = styled.div`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   color: ${color.White};
   font-size: 16px;
   font-weight: 600;
@@ -295,15 +301,15 @@ const UserEmail = styled.div`
 const LogoutButton = styled.button`
   padding: 6px 12px;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  font-size: 14px;
-  border-radius: 4px;
-  color: ${color.White};
+  font-size: 13px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.2);
   }
 `
 
@@ -314,9 +320,9 @@ const MobileMenuButton = styled.button`
   justify-content: center;
   padding: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
   color: ${color.White};
   transition: all 0.2s;
 
@@ -326,7 +332,7 @@ const MobileMenuButton = styled.button`
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.2);
   }
 
   @media (max-width: 768px) {
@@ -341,6 +347,7 @@ const MobileMenuOverlay = styled.div`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   z-index: 999;
   animation: fadeIn 0.2s ease-out;
 
@@ -350,14 +357,17 @@ const MobileMenuOverlay = styled.div`
   }
 `
 
-const MobileMenu = styled.div`
+const MobileMenu = styled.div<{ $isDarkMode?: boolean }>`
   position: absolute;
   top: 0;
   right: 0;
   width: 85%;
   max-width: 320px;
   height: 100%;
-  background: ${color.Navy};
+  background: ${props => props.$isDarkMode
+    ? 'linear-gradient(180deg, #010409 0%, #0D1117 100%)'
+    : 'linear-gradient(180deg, #1B2638 0%, #243447 100%)'
+  };
   /* iPhoneのノッチ/ダイナミックアイランド対応 */
   padding-top: max(16px, calc(env(safe-area-inset-top, 0) + 8px));
   padding-right: max(16px, env(safe-area-inset-right, 0));
@@ -379,17 +389,17 @@ const MenuSection = styled.div`
 `
 
 const MenuSectionTitle = styled.div`
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 12px;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.08em;
   margin-bottom: 12px;
 `
 
 const MenuDivider = styled.div`
   height: 1px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   margin: 4px 0;
 `
 
@@ -400,7 +410,7 @@ const MenuThemeToggle = styled.button`
   width: 100%;
   padding: 12px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   border-radius: 8px;
   color: ${color.White};
@@ -413,7 +423,7 @@ const MenuThemeToggle = styled.button`
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
   }
 `
 
@@ -429,7 +439,7 @@ const MenuLogoutButton = styled.button`
   padding: 12px;
   margin-top: 8px;
   border: none;
-  background: rgba(239, 83, 80, 0.2);
+  background: rgba(239, 83, 80, 0.15);
   cursor: pointer;
   border-radius: 8px;
   color: #ef5350;
@@ -438,7 +448,7 @@ const MenuLogoutButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(239, 83, 80, 0.3);
+    background: rgba(239, 83, 80, 0.25);
   }
 `
 
@@ -450,16 +460,16 @@ const TrashButton = styled.button`
   margin-left: 12px;
   padding: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
   font-size: 18px;
-  border-radius: 6px;
-  color: ${color.White};
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
   }
 
   svg {
@@ -493,7 +503,7 @@ const MenuTrashButton = styled.button`
   padding: 12px;
   margin-top: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   border-radius: 8px;
   color: ${color.White};
@@ -506,7 +516,7 @@ const MenuTrashButton = styled.button`
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
   }
 `
 
