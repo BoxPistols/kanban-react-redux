@@ -32,6 +32,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "format": "prettier --write \"./src/**/*.{ts,tsx}\"",
-    "lint": "eslint ./src/**/*.{ts,tsx}"
+    "lint": "eslint ./src/**/*.{ts,tsx}",
+    "lint:fix": "eslint --fix ./src/**/*.{ts,tsx}",
+    "fix": "eslint --fix ./src/**/*.{ts,tsx} && prettier --write \"./src/**/*.{ts,tsx}\""
   }
 }

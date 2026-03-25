@@ -18,8 +18,8 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
     text-rendering: optimizeLegibility;
 
     overflow-wrap: break-word;
-    background-color: ${props => props.$theme.background};
-    color: ${props => props.$theme.text};
+    background-color: ${(props) => props.$theme.background};
+    color: ${(props) => props.$theme.text};
     margin: 0;
     padding: 0;
     line-height: 1.5;
@@ -66,7 +66,7 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   /* スクロールバーのスタイル（Firefox） */
   * {
     scrollbar-width: thin;
-    scrollbar-color: ${props => props.$theme.scrollbarThumb} ${props => props.$theme.scrollbarTrack};
+    scrollbar-color: ${(props) => props.$theme.scrollbarThumb} ${(props) => props.$theme.scrollbarTrack};
   }
 
   /* スクロールバーのスタイル（Webkit: Chrome, Safari, Edge） */
@@ -76,18 +76,18 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   }
 
   *::-webkit-scrollbar-track {
-    background: ${props => props.$theme.scrollbarTrack};
+    background: ${(props) => props.$theme.scrollbarTrack};
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb {
-    background-color: ${props => props.$theme.scrollbarThumb};
+    background-color: ${(props) => props.$theme.scrollbarThumb};
     border-radius: 4px;
-    border: 2px solid ${props => props.$theme.scrollbarTrack};
+    border: 2px solid ${(props) => props.$theme.scrollbarTrack};
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background-color: ${props => props.$theme.scrollbarThumbHover};
+    background-color: ${(props) => props.$theme.scrollbarThumbHover};
   }
 
   /* iOS Safariで入力フィールドタップ時の自動ズームを防止 */
