@@ -187,14 +187,16 @@ const LabelsRow = styled.div`
 `
 
 const LabelBadge = styled.div<{ $color: string }>`
-    padding: 2px 8px;
+    padding: 4px 10px;
     border-radius: 4px;
     background: ${(props) => props.$color};
     color: ${color.White};
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    letter-spacing: 0.03em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    letter-spacing: 0.02em;
+    min-width: 40px;
+    text-align: center;
 `
 
 const ContentRow = styled.div`
