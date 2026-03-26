@@ -448,8 +448,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                 },
                 (error) => {
                     console.error('Error subscribing to boards:', error)
-                    // Firebase permission error - fall back to offline mode
-                    console.log('🔄 Falling back to offline mode due to Firebase error')
+                    // Firebaseエラー時はオフラインモードにフォールバック
                     get().initializeOfflineMode()
                 }
             )

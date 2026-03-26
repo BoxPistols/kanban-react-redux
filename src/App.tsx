@@ -51,9 +51,10 @@ export function App() {
     const theme = getTheme(isDarkMode)
 
     // ボードのカラム定義を取得
+    const boards = useBoardStore((state) => state.boards)
     const columns = useMemo(() => {
         return getColumns(currentBoardId || undefined)
-    }, [getColumns, currentBoardId, useBoardStore.getState().boards])
+    }, [getColumns, currentBoardId, boards])
 
     const sensors = useSensors(
         useSensor(PointerSensor, {

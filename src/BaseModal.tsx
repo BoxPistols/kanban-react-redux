@@ -64,7 +64,13 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
     // Portalを使ってbody直下にレンダリング（DOM階層を分離）
     const modalContent = (
         <Overlay onClick={onClose} $mobileAlignTop={mobileAlignTop}>
-            <Modal onClick={(e) => e.stopPropagation()} $theme={theme} $maxWidth={maxWidth}>
+            <Modal
+                onClick={(e) => e.stopPropagation()}
+                $theme={theme}
+                $maxWidth={maxWidth}
+                role='dialog'
+                aria-modal='true'
+            >
                 {children}
             </Modal>
         </Overlay>

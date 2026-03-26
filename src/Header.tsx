@@ -27,12 +27,6 @@ export function Header({ className }: { className?: string }) {
         loadTrash()
     }, [loadTrash])
 
-    // 一時的: ユーザーIDをコンソールに出力（セキュリティルール設定用）
-    if (user?.uid) {
-        console.log('🔑 あなたのユーザーID (Firestoreルール用):', user.uid)
-        console.log('📧 メールアドレス:', user.email)
-    }
-
     const handleLogout = async () => {
         if (window.confirm('ログアウトしますか？')) {
             await logOut()

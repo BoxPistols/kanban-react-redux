@@ -150,7 +150,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     initAuth: () => {
         if (!isFirebaseEnabled || !app) {
-            console.log('🔓 Firebase not configured, skipping authentication')
+            // Firebase未設定のため認証スキップ
             set({ isInitialized: true })
             return
         }
@@ -159,7 +159,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         // Listen for auth state changes
         onAuthStateChanged(auth, (user) => {
-            console.log('🔐 Auth state changed:', user ? `User: ${user.email}` : 'No user')
+            // 認証状態変更を反映
             set({ user, isInitialized: true, isLoading: false })
         })
     },

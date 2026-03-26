@@ -74,7 +74,7 @@ function SortableChecklistItem({
                         type='text'
                         value={editingText}
                         onChange={(e) => onEditTextChange(e.target.value)}
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 onSaveEdit()
                             } else if (e.key === 'Escape') {
@@ -527,7 +527,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                                 type='text'
                                 value={newChecklistItem}
                                 onChange={(e) => setNewChecklistItem(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addChecklistItem()}
+                                onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()}
                                 placeholder='新しい項目を追加...'
                                 $theme={theme}
                             />

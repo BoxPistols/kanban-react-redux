@@ -41,7 +41,7 @@
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ]

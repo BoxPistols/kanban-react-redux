@@ -399,6 +399,8 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                             checklist: data.checklist,
                             dueDate: data.dueDate,
                             progress: data.progress,
+                            urlMetadata: data.urlMetadata,
+                            images: data.images,
                         } as Card
                     })
                     // Filter by boardId if provided
@@ -408,7 +410,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                 (error) => {
                     console.error('Error subscribing to cards:', error)
                     // Firebase permission error - fall back to offline mode
-                    console.log('🔄 Falling back to offline mode for cards')
+                    // Firebaseエラー時はオフラインモードにフォールバック
                     loadLocal()
                 }
             )
