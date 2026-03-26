@@ -117,19 +117,19 @@ const Container = styled.div<{ $theme: Theme; $columnColor?: string }>`
     border: 1px solid ${(props) => props.$theme.border};
     border-radius: 14px;
     background: ${(props) => props.$theme.surfaceGlass};
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
     position: relative;
     z-index: 0;
     box-shadow:
-        0 2px 8px ${(props) => props.$theme.shadow},
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: box-shadow 0.2s ease;
+        0 1px 2px ${(props) => props.$theme.shadow},
+        0 4px 12px ${(props) => props.$theme.shadow};
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
         box-shadow:
-            0 4px 16px ${(props) => props.$theme.shadowHover},
-            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            0 2px 4px ${(props) => props.$theme.shadow},
+            0 8px 24px ${(props) => props.$theme.shadowHover};
     }
 
     > :not(:last-child) {
@@ -217,29 +217,33 @@ const CollapsedColumn = styled.div<{ $theme: Theme; $columnColor?: string }>`
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 46px;
-    min-width: 46px;
+    width: 44px;
+    min-width: 44px;
     height: 100%;
     border-radius: 12px;
     background: ${(props) => props.$theme.surfaceGlass};
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
     border: 1px solid ${(props) => props.$theme.border};
-    box-shadow: 0 2px 8px ${(props) => props.$theme.shadow};
+    box-shadow: 0 1px 2px ${(props) => props.$theme.shadow};
     cursor: pointer;
     padding: 14px 0;
     gap: 8px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     z-index: 0;
-    ${(props) => (props.$columnColor ? `border-top: 3px solid ${props.$columnColor};` : '')}
+    ${(props) =>
+        props.$columnColor
+            ? `
+        border-top: 3px solid ${props.$columnColor};
+        box-shadow: 0 1px 2px ${props.$theme.shadow}, 0 -4px 12px ${props.$columnColor}15;
+    `
+            : ''}
 
     &:hover {
         background: ${(props) => props.$theme.surfaceHover};
         box-shadow: 0 4px 16px ${(props) => props.$theme.shadowHover};
-        transform: translateY(-2px);
-        width: 50px;
-        min-width: 50px;
+        transform: translateY(-1px);
     }
 
     &:active {
@@ -249,11 +253,6 @@ const CollapsedColumn = styled.div<{ $theme: Theme; $columnColor?: string }>`
     @media (max-width: 768px) {
         width: 38px;
         min-width: 38px;
-
-        &:hover {
-            width: 42px;
-            min-width: 42px;
-        }
     }
 `
 

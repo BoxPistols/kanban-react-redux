@@ -24,6 +24,9 @@ export interface Theme {
     accentGradient: string
     cardBorderRadius: string
     surfaceGlass: string
+    // 背景グロー
+    accentGlow: string
+    accentGlow2: string
 }
 
 export const lightTheme: Theme = {
@@ -49,6 +52,8 @@ export const lightTheme: Theme = {
     accentGradient: 'linear-gradient(135deg, #0065FF 0%, #6554C0 100%)',
     cardBorderRadius: '10px',
     surfaceGlass: 'rgba(255, 255, 255, 0.6)',
+    accentGlow: 'rgba(0, 101, 255, 0.03)',
+    accentGlow2: 'rgba(101, 84, 192, 0.02)',
 }
 
 export const darkTheme: Theme = {
@@ -74,6 +79,8 @@ export const darkTheme: Theme = {
     accentGradient: 'linear-gradient(135deg, #58A6FF 0%, #BC8CFF 100%)',
     cardBorderRadius: '10px',
     surfaceGlass: 'rgba(22, 27, 34, 0.7)',
+    accentGlow: 'rgba(88, 166, 255, 0.04)',
+    accentGlow2: 'rgba(188, 140, 255, 0.03)',
 }
 
 export function getTheme(isDarkMode: boolean): Theme {

@@ -348,9 +348,20 @@ const MainArea = styled.div<{ $theme: Theme }>`
     min-height: 90vh;
     padding: 16px 0;
     overflow: hidden;
-    background-color: ${(props) => props.$theme.background};
+    background: ${(props) => props.$theme.background};
     position: relative;
     z-index: 0;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 80% 50% at 20% 40%, ${(props) => props.$theme.accentGlow} 0%, transparent 70%),
+            radial-gradient(ellipse 60% 40% at 80% 60%, ${(props) => props.$theme.accentGlow2} 0%, transparent 70%);
+        pointer-events: none;
+        z-index: -1;
+    }
 `
 
 const HorizontalScroll = styled.div`
