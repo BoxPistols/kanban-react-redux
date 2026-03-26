@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
-import { CheckIcon as _CheckIcon, TrashIcon, CalendarIcon, ListIcon, DocumentIcon } from './icon'
+import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
@@ -95,8 +95,6 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
                 )}
 
                 <ContentRow>
-                    <CheckIcon />
-
                     <TextContent>
                         <Title $theme={theme}>{displayText}</Title>
                         {descriptionPreview && (
@@ -209,13 +207,7 @@ const ContentRow = styled.div`
     display: flex;
     gap: 8px;
     align-items: flex-start;
-    padding-right: 24px;
-`
-
-const CheckIcon = styled(_CheckIcon)`
-    color: ${color.Green};
-    flex-shrink: 0;
-    margin-top: 2px;
+    padding-right: 20px;
 `
 
 const TextContent = styled.div`
@@ -223,15 +215,16 @@ const TextContent = styled.div`
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 `
 
 const Title = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.5;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.45;
     word-break: break-word;
+    letter-spacing: -0.01em;
 `
 
 const Description = styled.div<{ $theme: Theme }>`
@@ -239,6 +232,7 @@ const Description = styled.div<{ $theme: Theme }>`
     font-size: 12px;
     line-height: 1.4;
     word-break: break-word;
+    opacity: 0.85;
 `
 
 const ImageThumbnailRow = styled.div`
@@ -263,57 +257,46 @@ const MoreImages = styled.div<{ $theme: Theme }>`
 const MetadataRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    font-size: 12px;
+    gap: 5px;
+    align-items: center;
+`
+
+const MetaBadge = `
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+
+    svg {
+        width: 10px;
+        height: 10px;
+    }
 `
 
 const DueDateBadge = styled.div<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    background-color: ${(props) => (props.$isOverdue ? color.Red : props.$isDueSoon ? '#FF9F1A' : color.LightSilver)};
-    color: ${(props) => (props.$isOverdue || props.$isDueSoon ? color.White : color.Black)};
-    font-size: 10px;
-    font-weight: 600;
-
-    svg {
-        width: 11px;
-        height: 11px;
-    }
+    ${MetaBadge}
+    background: ${(props) =>
+        props.$isOverdue ? `${color.Red}20` : props.$isDueSoon ? '#FF9F1A20' : 'rgba(128, 128, 128, 0.12)'};
+    color: ${(props) => (props.$isOverdue ? color.Red : props.$isDueSoon ? '#FF9F1A' : 'inherit')};
+    opacity: ${(props) => (props.$isOverdue || props.$isDueSoon ? 1 : 0.6)};
 `
 
 const ChecklistBadge = styled.div<{ $allCompleted: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    background-color: ${(props) => (props.$allCompleted ? color.Green : color.LightSilver)};
-    color: ${(props) => (props.$allCompleted ? color.White : color.Black)};
-    font-size: 10px;
-    font-weight: 600;
-
-    svg {
-        width: 11px;
-        height: 11px;
-    }
+    ${MetaBadge}
+    background: ${(props) => (props.$allCompleted ? `${color.Green}20` : 'rgba(128, 128, 128, 0.12)')};
+    color: ${(props) => (props.$allCompleted ? color.Green : 'inherit')};
+    opacity: ${(props) => (props.$allCompleted ? 1 : 0.6)};
 `
 
 const DescriptionBadge = styled.div<{ $theme: Theme }>`
-    display: flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 12px;
-    background-color: ${(props) => props.$theme.surface};
+    ${MetaBadge}
+    background: rgba(128, 128, 128, 0.1);
     color: ${(props) => props.$theme.textSecondary};
-    font-size: 10px;
-
-    svg {
-        width: 11px;
-        height: 11px;
-    }
+    opacity: 0.6;
 `
 
 const DeleteButton = styled.button.attrs({

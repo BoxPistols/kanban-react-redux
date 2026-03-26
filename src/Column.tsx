@@ -155,23 +155,22 @@ const HeaderBar = styled.div<{ $columnColor?: string; $theme: Theme }>`
 `
 
 const CountBadge = styled.div<{ $theme: Theme; $columnColor?: string }>`
-    margin-right: 8px;
-    border-radius: 20px;
-    padding: 2px 8px;
-    color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
-    background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.2)' : props.$theme.surface)};
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.3;
-    backdrop-filter: ${(props) => (props.$columnColor ? 'blur(4px)' : 'none')};
+    margin-right: 6px;
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.9)' : props.$theme.textSecondary)};
+    background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.18)' : props.$theme.surface)};
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
 `
 
 const ColumnName = styled.div<{ $theme: Theme; $columnColor?: string }>`
     color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    ${(props) => (props.$columnColor ? 'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);' : '')}
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
 `
 
 const AddButton = styled.button.attrs({
