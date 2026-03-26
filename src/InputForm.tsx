@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import * as color from './color'
 import { PrimaryButton, SecondaryButton } from './Button'
 import { useThemeStore } from './store/themeStore'
-import { getTheme } from './theme'
+import { getTheme, Theme } from './theme'
 
 export function InputForm({
     value,
@@ -33,10 +33,10 @@ export function InputForm({
             <Input
                 ref={ref}
                 autoFocus
-                placeholder="Enter a note"
+                placeholder='Enter a note'
                 value={value}
-                onChange={ev => onChange?.(ev.currentTarget.value)}
-                onKeyDown={ev => {
+                onChange={(ev) => onChange?.(ev.currentTarget.value)}
+                onKeyDown={(ev) => {
                     if (!((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter')) return
                     handleConfirm()
                 }}
@@ -52,10 +52,10 @@ export function InputForm({
 }
 
 /**
-  * テキストエリアの高さを内容に合わせて自動調整する
-  *
-  * @param content テキストエリアの内容
-  */
+ * テキストエリアの高さを内容に合わせて自動調整する
+ *
+ * @param content テキストエリアの内容
+ */
 function useAutoFitToContentHeight(content: string | undefined) {
     const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -69,7 +69,7 @@ function useAutoFitToContentHeight(content: string | undefined) {
             el.style.height = `calc(${borderTopWidth} + ${el.scrollHeight}px + ${borderBottomWidth})`
         },
         // 内容が変わるたびに高さを再計算
-        [content],
+        [content]
     )
 
     return ref
@@ -77,30 +77,30 @@ function useAutoFitToContentHeight(content: string | undefined) {
 
 const Container = styled.div``
 
-const Input = styled.textarea<{ $theme: any }>`
-  display: block;
-  width: 100%;
-  margin-bottom: 8px;
-  border: solid 1px ${props => props.$theme.border};
-  border-radius: 3px;
-  padding: 6px 8px;
-  background-color: ${props => props.$theme.inputBackground};
-  color: ${props => props.$theme.text};
-  font-size: 14px;
-  line-height: 1.7;
+const Input = styled.textarea<{ $theme: Theme }>`
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+    border: solid 1px ${(props) => props.$theme.border};
+    border-radius: 3px;
+    padding: 6px 8px;
+    background-color: ${(props) => props.$theme.inputBackground};
+    color: ${(props) => props.$theme.text};
+    font-size: 14px;
+    line-height: 1.7;
 
-  :focus {
-    outline: none;
-    border-color: ${color.Blue};
-  }
+    :focus {
+        outline: none;
+        border-color: ${color.Blue};
+    }
 `
 
 const ButtonRow = styled.div`
-  display: flex;
+    display: flex;
 
-  > :not(:first-child) {
-    margin-left: 8px;
-  }
+    > :not(:first-child) {
+        margin-left: 8px;
+    }
 `
 
 const AddButton = styled(PrimaryButton).attrs({
