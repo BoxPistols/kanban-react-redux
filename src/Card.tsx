@@ -161,7 +161,11 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
     border-radius: ${(props) => props.$theme.cardBorderRadius};
     box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
     padding: 10px 12px;
-    background: ${(props) => props.$theme.surfaceGlass};
+    background: ${(props) => {
+        const accent = props.$cardColor
+        if (accent) return `linear-gradient(135deg, ${accent}18 0%, ${accent}08 100%), ${props.$theme.surfaceGlass}`
+        return props.$theme.surfaceGlass
+    }};
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     cursor: pointer;
@@ -170,15 +174,9 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
     display: flex;
     flex-direction: column;
     gap: 8px;
-    overflow: hidden;
     transition:
         box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-    ${(props) => {
-        const accentColor = props.$cardColor || props.$labelColor
-        return accentColor ? `border-top: 2px solid ${accentColor};` : ''
-    }}
 
     &:hover {
         box-shadow: 0 6px 20px ${(props) => props.$theme.shadowHover};
