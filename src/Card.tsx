@@ -159,13 +159,7 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
     border-radius: ${(props) => props.$theme.cardBorderRadius};
     box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
     padding: 10px 12px;
-    background: ${(props) => {
-        const accent = props.$cardColor
-        if (accent) return `linear-gradient(135deg, ${accent}18 0%, ${accent}08 100%), ${props.$theme.surfaceGlass}`
-        return props.$theme.surfaceGlass
-    }};
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: ${(props) => props.$theme.cardBackground};
     cursor: pointer;
     opacity: ${(props) => (props.$isDragging ? 0.5 : 1)};
     touch-action: none;
