@@ -26,7 +26,9 @@ module.exports = {
     'react/react-in-jsx-scope': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': 'warn'
+    '@typescript-eslint/no-unused-vars': 'warn',
+    'no-extra-semi': 'off',
+    '@typescript-eslint/no-extra-semi': 'off'
   },
   settings: {
     react: {
