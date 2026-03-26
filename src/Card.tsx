@@ -159,7 +159,6 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
     z-index: 0;
     border: 1px solid ${(props) => props.$theme.border};
     border-radius: ${(props) => props.$theme.cardBorderRadius};
-    border-left: 3px solid ${(props) => props.$cardColor || props.$labelColor || 'transparent'};
     box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
     padding: 10px 12px;
     background: ${(props) => props.$theme.surfaceGlass};
@@ -171,15 +170,18 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow: hidden;
     transition:
-        box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        border-color 0.15s;
+        box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ${(props) => {
+        const accentColor = props.$cardColor || props.$labelColor
+        return accentColor ? `border-top: 2px solid ${accentColor};` : ''
+    }}
 
     &:hover {
-        box-shadow:
-            0 6px 20px ${(props) => props.$theme.shadowHover},
-            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        box-shadow: 0 6px 20px ${(props) => props.$theme.shadowHover};
         transform: translateY(-2px);
     }
 
