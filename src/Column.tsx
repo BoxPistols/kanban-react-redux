@@ -73,11 +73,13 @@ export function Column({
 
     return (
         <Container ref={setNodeRef} $theme={theme} $columnColor={columnColor} data-column-container>
-            <HeaderBar $columnColor={columnColor}>
+            <HeaderBar $columnColor={columnColor} $theme={theme}>
                 <CountBadge $theme={theme} $columnColor={columnColor}>
                     {cards.length}
                 </CountBadge>
-                <ColumnName $theme={theme}>{title}</ColumnName>
+                <ColumnName $theme={theme} $columnColor={columnColor}>
+                    {title}
+                </ColumnName>
                 {onToggleCollapse && (
                     <CollapseButton
                         onClick={(e) => {
@@ -85,12 +87,13 @@ export function Column({
                             onToggleCollapse()
                         }}
                         $theme={theme}
+                        $columnColor={columnColor}
                         title='レーンを畳む'
                     >
                         ‹
                     </CollapseButton>
                 )}
-                <AddButton onClick={toggleInput} $theme={theme} />
+                <AddButton onClick={toggleInput} $theme={theme} $columnColor={columnColor} />
             </HeaderBar>
 
             {inputMode && <InputForm value={text} onChange={setText} onConfirm={confirmInput} onCancel={cancelInput} />}
@@ -144,15 +147,18 @@ const Container = styled.div<{ $theme: Theme; $columnColor?: string }>`
     }
 `
 
-const HeaderBar = styled.div<{ $columnColor?: string }>`
+const HeaderBar = styled.div<{ $columnColor?: string; $theme: Theme }>`
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 12px 12px 8px 12px;
+    padding: 10px 12px;
     border-radius: 14px 14px 0 0;
     ${(props) =>
         props.$columnColor
-            ? `border-top: 3px solid ${props.$columnColor}; box-shadow: 0 2px 8px ${props.$columnColor}15;`
+            ? `
+        background: linear-gradient(135deg, ${props.$columnColor} 0%, ${props.$columnColor}CC 100%);
+        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    `
             : ''}
 `
 
@@ -160,33 +166,35 @@ const CountBadge = styled.div<{ $theme: Theme; $columnColor?: string }>`
     margin-right: 8px;
     border-radius: 20px;
     padding: 2px 8px;
-    color: ${(props) => (props.$columnColor ? color.White : props.$theme.text)};
-    background-color: ${(props) => props.$columnColor || props.$theme.surface};
+    color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
+    background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.2)' : props.$theme.surface)};
     font-size: 12px;
     font-weight: 600;
     line-height: 1.3;
+    backdrop-filter: ${(props) => (props.$columnColor ? 'blur(4px)' : 'none')};
 `
 
-const ColumnName = styled.div<{ $theme: Theme }>`
-    color: ${(props) => props.$theme.text};
+const ColumnName = styled.div<{ $theme: Theme; $columnColor?: string }>`
+    color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.02em;
+    ${(props) => (props.$columnColor ? 'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);' : '')}
 `
 
 const AddButton = styled.button.attrs({
     type: 'button',
     children: <PlusIcon />,
-})<{ $theme: Theme }>`
+})<{ $theme: Theme; $columnColor?: string }>`
     margin-left: auto;
-    color: ${(props) => props.$theme.textSecondary};
+    color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.7)' : props.$theme.textSecondary)};
     padding: 4px;
     border-radius: 6px;
     transition: all 0.15s;
 
     :hover {
-        color: ${color.Blue};
-        background: ${(props) => props.$theme.surfaceHover};
+        color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 1)' : color.Blue)};
+        background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.15)' : props.$theme.surfaceHover)};
     }
 `
 const InputForm = styled(_InputForm)`
@@ -286,8 +294,8 @@ const CollapsedTitle = styled.div<{ $theme: Theme }>`
     opacity: 0.85;
 `
 
-const CollapseButton = styled.button<{ $theme: Theme }>`
-    color: ${(props) => props.$theme.textSecondary};
+const CollapseButton = styled.button<{ $theme: Theme; $columnColor?: string }>`
+    color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.5)' : props.$theme.textSecondary)};
     padding: 2px 6px;
     border-radius: 6px;
     font-size: 16px;
@@ -297,12 +305,12 @@ const CollapseButton = styled.button<{ $theme: Theme }>`
     transition: all 0.15s ease;
 
     [data-column-container]:hover & {
-        opacity: 0.4;
+        opacity: 0.5;
     }
 
     &:hover {
         opacity: 1 !important;
-        color: ${(props) => props.$theme.text};
-        background: ${(props) => props.$theme.surfaceHover};
+        color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 1)' : props.$theme.text)};
+        background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.15)' : props.$theme.surfaceHover)};
     }
 `
