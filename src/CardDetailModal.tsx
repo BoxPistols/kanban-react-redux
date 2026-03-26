@@ -12,7 +12,7 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
 import { CARD_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
-import { getContrastTextColor, isLightColor } from './utils/colorUtils'
+// colorUtils: 将来カラー関連の機能拡張時に使用
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
 import { useUrlMetadata } from './hooks/useUrlMetadata'
@@ -323,7 +323,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                         placeholder='カードのタイトル'
                         $theme={theme}
                     />
-                    <CloseButton onClick={onClose} $theme={theme} $cardColor={cardColor}>
+                    <CloseButton onClick={onClose} $theme={theme}>
                         ×
                     </CloseButton>
                 </ModalHeader>
@@ -528,10 +528,9 @@ const ModalHeader = styled.div<{ $color?: string; $theme: Theme }>`
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px 20px;
-    border-bottom: 1px solid ${(props) => props.$theme.border};
-    background-color: ${(props) => props.$color || props.$theme.surface};
-    border-radius: 8px 8px 0 0;
+    padding: 20px 24px 16px;
+    background-color: ${(props) => props.$theme.surface};
+    border-radius: 12px 12px 0 0;
     gap: 12px;
     flex-shrink: 0;
 `
@@ -540,32 +539,29 @@ const TitleInput = styled.input<{ $theme: Theme }>`
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 22px;
+    font-weight: 700;
     color: ${(props) => props.$theme.text};
-    padding: 4px 8px;
+    padding: 2px 4px;
     border-radius: 4px;
+    letter-spacing: -0.02em;
 
     &:hover {
         background-color: ${(props) => props.$theme.surfaceHover};
     }
 
     &:focus {
-        outline: 2px solid ${color.Blue};
+        outline: none;
         background-color: ${(props) => props.$theme.inputBackground};
+        box-shadow: inset 0 0 0 1px ${(props) => props.$theme.border};
     }
 `
 
 const CloseButton = styled.button<{ $theme: Theme; $cardColor?: string }>`
     border: none;
-    background: ${(props) => (props.$cardColor ? 'rgba(0, 0, 0, 0.1)' : 'none')};
-    font-size: 28px;
-    color: ${(props) => {
-        if (props.$cardColor) {
-            return getContrastTextColor(props.$cardColor)
-        }
-        return props.$theme.textSecondary
-    }};
+    background: none;
+    font-size: 24px;
+    color: ${(props) => props.$theme.textSecondary};
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -573,30 +569,18 @@ const CloseButton = styled.button<{ $theme: Theme; $cardColor?: string }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
+    border-radius: 6px;
     flex-shrink: 0;
-    transition:
-        background-color 0.2s,
-        color 0.2s;
+    transition: all 0.15s;
 
     &:hover {
-        background-color: ${(props) => {
-            if (props.$cardColor) {
-                return isLightColor(props.$cardColor) ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.2)'
-            }
-            return props.$theme.surfaceHover
-        }};
-        color: ${(props) => {
-            if (props.$cardColor) {
-                return getContrastTextColor(props.$cardColor)
-            }
-            return props.$theme.text
-        }};
+        background-color: ${(props) => props.$theme.surfaceHover};
+        color: ${(props) => props.$theme.text};
     }
 `
 
 const Content = styled.div<{ $theme: Theme }>`
-    padding: 20px;
+    padding: 0 24px 24px;
     flex: 1;
     min-height: 0;
     background-color: ${(props) => props.$theme.surface};
@@ -607,16 +591,15 @@ const Content = styled.div<{ $theme: Theme }>`
 `
 
 const Section = styled.div`
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 `
 
 const SectionTitle = styled.h3<{ $theme: Theme }>`
-    margin: 0 0 12px 0;
-    font-size: 13px;
-    font-weight: 700;
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    font-weight: 600;
     color: ${(props) => props.$theme.textSecondary};
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
     display: flex;
     align-items: center;
 `
@@ -636,24 +619,19 @@ const LabelsContainer = styled.div`
 `
 
 const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode?: boolean }>`
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 2px solid
-        ${(props) => {
-            if (!props.$selected) return 'transparent'
-            return props.$isDarkMode ? color.White : color.Black
-        }};
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 2px solid ${(props) => (props.$selected ? 'rgba(255, 255, 255, 0.6)' : 'transparent')};
     background-color: ${(props) => props.$color};
     color: ${color.White};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: all 0.15s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.15s;
 
     &:hover {
-        opacity: 0.9;
-        transform: scale(1.02);
+        opacity: 0.85;
     }
 `
 
@@ -704,16 +682,17 @@ const ColorPicker = styled.div`
 `
 
 const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: Theme }>`
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    border: 3px solid ${(props) => (props.$selected ? props.$theme.text : props.$theme.border)};
+    width: 36px;
+    height: 28px;
+    border-radius: 4px;
+    border: 2px solid ${(props) => (props.$selected ? props.$theme.text : 'transparent')};
     background-color: ${(props) => props.$color || props.$theme.surface};
     cursor: pointer;
-    transition: transform 0.1s;
+    transition: opacity 0.15s;
+    ${(props) => (!props.$color ? `border: 2px solid ${props.$theme.border};` : '')}
 
     &:hover {
-        transform: scale(1.1);
+        opacity: 0.8;
     }
 `
 
