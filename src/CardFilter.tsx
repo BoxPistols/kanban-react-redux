@@ -34,7 +34,7 @@ export function CardFilter() {
                             $color={label.color}
                             $isSelected={selectedLabelIds.includes(label.id)}
                             onClick={() => toggleLabelFilter(label.id)}
-                            title={`Filter by ${label.name}`}
+                            title={`${label.name} でフィルター`}
                         >
                             {label.name}
                         </LabelChip>
@@ -120,16 +120,16 @@ const LabelsContainer = styled.div`
 `
 
 const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
-    padding: 4px 10px;
-    border-radius: 12px;
-    border: 2px solid ${(props) => (props.$isSelected ? props.$color : 'transparent')};
-    background-color: ${(props) => (props.$isSelected ? props.$color : 'rgba(255, 255, 255, 0.15)')};
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: none;
+    background: ${(props) => (props.$isSelected ? props.$color : 'rgba(255, 255, 255, 0.12)')};
     color: ${color.White};
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
-    opacity: ${(props) => (props.$isSelected ? 1 : 0.7)};
+    transition: opacity 0.15s;
+    opacity: ${(props) => (props.$isSelected ? 1 : 0.6)};
     white-space: nowrap;
     flex-shrink: 0;
     max-width: 120px;
@@ -138,10 +138,5 @@ const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
 
     &:hover {
         opacity: 1;
-        transform: scale(1.05);
-    }
-
-    &:active {
-        transform: scale(0.95);
     }
 `
