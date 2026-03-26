@@ -59,8 +59,6 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
     const hasImages = card.images && card.images.length > 0
     const completedItems = card.checklist?.filter((item) => item.completed).length || 0
     const totalItems = card.checklist?.length || 0
-    const primaryLabelColor = hasLabels ? card.labels![0].color : undefined
-
     const { isDueSoon, isOverdue } = getDueDateStatus(card.dueDate)
 
     // Get description preview (first 80 characters)
@@ -76,73 +74,77 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
                 ref={setNodeRef}
                 style={style}
                 $isDragging={isDragging || isSortableDragging}
-                $labelColor={primaryLabelColor}
-                $cardColor={card.color}
                 $theme={theme}
                 onClick={handleCardClick}
                 data-card-container
                 {...listeners}
                 {...attributes}
             >
-                {hasLabels && (
-                    <LabelsRow>
-                        {card.labels!.map((label) => (
-                            <LabelBadge key={label.id} $color={label.color}>
-                                {label.name}
-                            </LabelBadge>
-                        ))}
-                    </LabelsRow>
-                )}
+                {card.color && <CardCover $color={card.color} />}
 
-                <ContentRow>
-                    <TextContent>
-                        <Title $theme={theme}>{displayText}</Title>
-                        {descriptionPreview && (
-                            <Description $theme={theme}>
-                                <LinkedText text={descriptionPreview} metadata={card.urlMetadata} theme={theme} />
-                            </Description>
+                <CardBody>
+                    {hasLabels && (
+                        <LabelsRow>
+                            {card.labels!.map((label) => (
+                                <LabelBadge key={label.id} $color={label.color}>
+                                    {label.name}
+                                </LabelBadge>
+                            ))}
+                        </LabelsRow>
+                    )}
+
+                    <ContentRow>
+                        <TextContent>
+                            <Title $theme={theme}>{displayText}</Title>
+                            {descriptionPreview && (
+                                <Description $theme={theme}>
+                                    <LinkedText text={descriptionPreview} metadata={card.urlMetadata} theme={theme} />
+                                </Description>
+                            )}
+                        </TextContent>
+                    </ContentRow>
+
+                    {/* 画像サムネイル */}
+                    {hasImages && (
+                        <ImageThumbnailRow>
+                            {card.images!.slice(0, 3).map((img) => (
+                                <ImageThumb key={img.id} src={img.dataUrl} alt='' />
+                            ))}
+                            {card.images!.length > 3 && (
+                                <MoreImages $theme={theme}>+{card.images!.length - 3}</MoreImages>
+                            )}
+                        </ImageThumbnailRow>
+                    )}
+
+                    <MetadataRow>
+                        {hasDueDate && (
+                            <DueDateBadge $isOverdue={isOverdue} $isDueSoon={isDueSoon && !isOverdue}>
+                                <CalendarIcon />
+                                <span>
+                                    {new Date(card.dueDate!).toLocaleDateString('ja-JP', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                    })}
+                                </span>
+                            </DueDateBadge>
                         )}
-                    </TextContent>
-                </ContentRow>
 
-                {/* 画像サムネイル */}
-                {hasImages && (
-                    <ImageThumbnailRow>
-                        {card.images!.slice(0, 3).map((img) => (
-                            <ImageThumb key={img.id} src={img.dataUrl} alt='' />
-                        ))}
-                        {card.images!.length > 3 && <MoreImages $theme={theme}>+{card.images!.length - 3}</MoreImages>}
-                    </ImageThumbnailRow>
-                )}
+                        {hasChecklist && (
+                            <ChecklistBadge $allCompleted={completedItems === totalItems}>
+                                <ListIcon />
+                                <span>
+                                    {completedItems}/{totalItems}
+                                </span>
+                            </ChecklistBadge>
+                        )}
 
-                <MetadataRow>
-                    {hasDueDate && (
-                        <DueDateBadge $isOverdue={isOverdue} $isDueSoon={isDueSoon && !isOverdue}>
-                            <CalendarIcon />
-                            <span>
-                                {new Date(card.dueDate!).toLocaleDateString('ja-JP', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                })}
-                            </span>
-                        </DueDateBadge>
-                    )}
-
-                    {hasChecklist && (
-                        <ChecklistBadge $allCompleted={completedItems === totalItems}>
-                            <ListIcon />
-                            <span>
-                                {completedItems}/{totalItems}
-                            </span>
-                        </ChecklistBadge>
-                    )}
-
-                    {card.description && (
-                        <DescriptionBadge $theme={theme} title='説明あり'>
-                            <DocumentIcon />
-                        </DescriptionBadge>
-                    )}
-                </MetadataRow>
+                        {card.description && (
+                            <DescriptionBadge $theme={theme} title='説明あり'>
+                                <DocumentIcon />
+                            </DescriptionBadge>
+                        )}
+                    </MetadataRow>
+                </CardBody>
 
                 <DeleteButton onClick={handleDelete} $theme={theme} />
             </Container>
@@ -152,34 +154,45 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
     )
 }
 
-const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $cardColor?: string; $theme: Theme }>`
+const Container = styled.div<{ $isDragging?: boolean; $theme: Theme }>`
     position: relative;
     z-index: 0;
     border: 1px solid ${(props) => props.$theme.border};
     border-radius: ${(props) => props.$theme.cardBorderRadius};
     box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
-    padding: 10px 12px;
-    background: ${(props) => props.$cardColor || props.$theme.cardBackground};
-    color: ${(props) => (props.$cardColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
-    ${(props) => (props.$cardColor ? 'border-color: transparent;' : '')}
+    background: ${(props) => props.$theme.cardBackground};
+    color: ${(props) => props.$theme.text};
     cursor: pointer;
     opacity: ${(props) => (props.$isDragging ? 0.5 : 1)};
     touch-action: none;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    overflow: hidden;
     transition:
         box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
-        box-shadow: 0 6px 20px ${(props) => props.$theme.shadowHover};
-        transform: translateY(-2px);
+        box-shadow: 0 4px 16px ${(props) => props.$theme.shadowHover};
+        transform: translateY(-1px);
     }
 
     &:active {
         transform: translateY(0);
     }
+`
+
+const CardCover = styled.div<{ $color: string }>`
+    height: 32px;
+    background: ${(props) => props.$color};
+    flex-shrink: 0;
+`
+
+const CardBody = styled.div`
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 `
 
 const LabelsRow = styled.div`
@@ -217,7 +230,7 @@ const TextContent = styled.div`
 `
 
 const Title = styled.div<{ $theme: Theme }>`
-    color: inherit;
+    color: ${(props) => props.$theme.text};
     font-size: 13.5px;
     font-weight: 500;
     line-height: 1.45;
@@ -226,8 +239,7 @@ const Title = styled.div<{ $theme: Theme }>`
 `
 
 const Description = styled.div<{ $theme: Theme }>`
-    color: inherit;
-    opacity: 0.7;
+    color: ${(props) => props.$theme.textSecondary};
     font-size: 12px;
     line-height: 1.4;
     word-break: break-word;
@@ -306,8 +318,8 @@ const DeleteButton = styled.button.attrs({
     top: 8px;
     right: 8px;
     font-size: 14px;
-    color: inherit;
-    background: transparent;
+    color: ${(props) => props.$theme.textSecondary};
+    background: ${(props) => props.$theme.cardBackground};
     border-radius: 6px;
     padding: 3px;
     opacity: 0;
