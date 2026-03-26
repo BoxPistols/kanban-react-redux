@@ -115,15 +115,13 @@ const Container = styled.div<{ $theme: Theme; $columnColor?: string }>`
     width: 340px;
     height: 100%;
     border: 1px solid ${(props) => props.$theme.border};
-    border-radius: 14px;
+    border-radius: 12px;
     background: ${(props) => props.$theme.surfaceGlass};
     backdrop-filter: blur(16px) saturate(1.2);
     -webkit-backdrop-filter: blur(16px) saturate(1.2);
     position: relative;
     z-index: 0;
-    box-shadow:
-        0 1px 2px ${(props) => props.$theme.shadow},
-        0 4px 12px ${(props) => props.$theme.shadow};
+    box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
     transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
@@ -152,14 +150,8 @@ const HeaderBar = styled.div<{ $columnColor?: string; $theme: Theme }>`
     justify-content: flex-start;
     align-items: center;
     padding: 10px 12px;
-    border-radius: 14px 14px 0 0;
-    ${(props) =>
-        props.$columnColor
-            ? `
-        background: linear-gradient(135deg, ${props.$columnColor} 0%, ${props.$columnColor}CC 100%);
-        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-    `
-            : ''}
+    border-radius: 12px 12px 0 0;
+    ${(props) => (props.$columnColor ? `background: ${props.$columnColor};` : '')}
 `
 
 const CountBadge = styled.div<{ $theme: Theme; $columnColor?: string }>`
@@ -221,24 +213,20 @@ const CollapsedColumn = styled.div<{ $theme: Theme; $columnColor?: string }>`
     min-width: 44px;
     height: 100%;
     border-radius: 12px;
-    background: ${(props) => props.$theme.surfaceGlass};
+    background: ${(props) =>
+        props.$columnColor
+            ? `linear-gradient(180deg, ${props.$columnColor}20 0%, transparent 40%), ${props.$theme.surfaceGlass}`
+            : props.$theme.surfaceGlass};
     backdrop-filter: blur(16px) saturate(1.2);
     -webkit-backdrop-filter: blur(16px) saturate(1.2);
     border: 1px solid ${(props) => props.$theme.border};
-    box-shadow: 0 1px 2px ${(props) => props.$theme.shadow};
+    box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
     cursor: pointer;
     padding: 14px 0;
     gap: 8px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     z-index: 0;
-    ${(props) =>
-        props.$columnColor
-            ? `
-        border-top: 3px solid ${props.$columnColor};
-        box-shadow: 0 1px 2px ${props.$theme.shadow}, 0 -4px 12px ${props.$columnColor}15;
-    `
-            : ''}
 
     &:hover {
         background: ${(props) => props.$theme.surfaceHover};
