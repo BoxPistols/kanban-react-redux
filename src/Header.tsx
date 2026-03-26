@@ -70,15 +70,26 @@ export function Header({ className }: { className?: string }) {
 
     return (
         <Container className={className} $isDarkMode={isDarkMode}>
-            {/* ロゴ - 常に表示 */}
-            <Logo>Kanban board</Logo>
+            {/* 左グループ: ロゴ + ボード */}
+            <LeftGroup>
+                <Logo>Kanban board</Logo>
+                <DesktopOnly>
+                    <BoardSelector />
+                </DesktopOnly>
+            </LeftGroup>
 
-            {/* ボードセレクター - PC表示 */}
+            <Spacer />
+
+            {/* 右グループ: フィルター + アクション */}
             <DesktopOnly>
-                <BoardSelector />
+                <CardFilter />
             </DesktopOnly>
 
-            {/* テーマ切り替え - PC表示 */}
+            <DesktopOnly>
+                <HeaderDivider />
+            </DesktopOnly>
+
+            {/* アクションボタン群 */}
             <DesktopOnly>
                 <ThemeToggle
                     onClick={toggleDarkMode}
@@ -88,7 +99,6 @@ export function Header({ className }: { className?: string }) {
                 </ThemeToggle>
             </DesktopOnly>
 
-            {/* ゴミ箱ボタン - PC表示 */}
             <DesktopOnly>
                 <TrashButton onClick={() => setIsTrashModalOpen(true)} title='ゴミ箱'>
                     <TrashIcon />
@@ -96,7 +106,6 @@ export function Header({ className }: { className?: string }) {
                 </TrashButton>
             </DesktopOnly>
 
-            {/* ユーザー情報 - PC表示 */}
             {isFirebaseEnabled && user && (
                 <DesktopOnly>
                     <UserInfo>
@@ -107,13 +116,6 @@ export function Header({ className }: { className?: string }) {
                     </UserInfo>
                 </DesktopOnly>
             )}
-
-            <Spacer />
-
-            {/* フィルター - PC表示 */}
-            <DesktopOnly>
-                <CardFilter />
-            </DesktopOnly>
 
             {/* ハンバーガーメニューボタン - モバイル表示 */}
             <MobileMenuButton
@@ -224,6 +226,13 @@ const Logo = styled.div`
     }
 `
 
+const LeftGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+`
+
 const DesktopOnly = styled.div`
     display: flex;
     align-items: center;
@@ -235,38 +244,46 @@ const DesktopOnly = styled.div`
 
 const Spacer = styled.div`
     flex: 1;
+    min-width: 8px;
+`
+
+const HeaderDivider = styled.div`
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 0 8px;
+    flex-shrink: 0;
 `
 
 const ThemeToggle = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 12px;
-    padding: 8px;
+    margin-left: 4px;
+    padding: 7px;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    font-size: 18px;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.75);
     transition: all 0.2s;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.05);
+        background: rgba(255, 255, 255, 0.16);
+        color: rgba(255, 255, 255, 1);
     }
 
     svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 `
 
 const UserInfo = styled.div`
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-left: 16px;
+    gap: 8px;
+    margin-left: 8px;
 `
 
 const UserInitial = styled.div`
@@ -458,24 +475,23 @@ const TrashButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 12px;
-    padding: 8px;
+    margin-left: 4px;
+    padding: 7px;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    font-size: 18px;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.75);
     transition: all 0.2s;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        transform: scale(1.05);
+        background: rgba(255, 255, 255, 0.16);
+        color: rgba(255, 255, 255, 1);
     }
 
     svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 `
 

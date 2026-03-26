@@ -122,6 +122,16 @@ function SortableColumnItem({ column, onEdit, onDelete, onColorChange, theme, ca
                             }}
                         />
                     ))}
+                    <CustomColorLabel $theme={theme} title='カスタムカラー'>
+                        <CustomColorInput
+                            type='color'
+                            value={column.color || '#2D5A8A'}
+                            onChange={(e) => {
+                                onColorChange(column.id, e.target.value)
+                            }}
+                        />
+                        <CustomColorIcon>⊕</CustomColorIcon>
+                    </CustomColorLabel>
                 </ColorPicker>
             )}
         </ColumnItemRow>
@@ -388,6 +398,38 @@ const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: 
     &:hover {
         transform: scale(1.15);
     }
+`
+
+const CustomColorLabel = styled.label<{ $theme: Theme }>`
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px dashed ${(props) => props.$theme.border};
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+
+    &:hover {
+        transform: scale(1.15);
+        border-color: ${(props) => props.$theme.textSecondary};
+    }
+`
+
+const CustomColorInput = styled.input`
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+`
+
+const CustomColorIcon = styled.span`
+    font-size: 14px;
+    pointer-events: none;
+    opacity: 0.5;
 `
 
 const AddSection = styled.div`
