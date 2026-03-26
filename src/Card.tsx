@@ -198,20 +198,15 @@ const CardBody = styled.div`
 const LabelsRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 3px;
 `
 
 const LabelBadge = styled.div<{ $color: string }>`
-    padding: 4px 10px;
+    height: 8px;
+    min-width: 36px;
     border-radius: 4px;
     background: ${(props) => props.$color};
-    color: ${color.White};
-    font-size: 11px;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    letter-spacing: 0.02em;
-    min-width: 40px;
-    text-align: center;
+    font-size: 0;
 `
 
 const ContentRow = styled.div`

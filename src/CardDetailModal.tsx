@@ -240,7 +240,15 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
 
     const handleAddLabel = async () => {
         if (!newLabelName.trim() || !currentBoardId) return
-        await addLabelToBoard(currentBoardId, { name: newLabelName.trim(), color: newLabelColor })
+        const labelName = newLabelName.trim()
+        const labelColor = newLabelColor
+        await addLabelToBoard(currentBoardId, { name: labelName, color: labelColor })
+        // boardStoreの最新ラベルから追加されたラベルを取得してカードに紐付け
+        const updatedBoard = useBoardStore.getState().boards.find((b) => b.id === currentBoardId)
+        const addedLabel = updatedBoard?.labels?.find((l) => l.name === labelName && l.color === labelColor)
+        if (addedLabel) {
+            setSelectedLabels((prev) => [...prev, addedLabel])
+        }
         setNewLabelName('')
         setShowAddLabel(false)
     }
