@@ -87,7 +87,7 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    z-index: 1000;
+    z-index: 30;
     touch-action: manipulation;
     overscroll-behavior: contain;
     padding-top: env(safe-area-inset-top, 0);
@@ -123,7 +123,7 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
     margin: 0;
     position: relative;
-    z-index: 1001;
+    z-index: 31;
     pointer-events: auto;
     isolation: isolate;
     overflow: hidden;

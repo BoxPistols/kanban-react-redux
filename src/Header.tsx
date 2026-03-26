@@ -202,7 +202,7 @@ const Container = styled.div<{ $isDarkMode?: boolean }>`
     border-bottom: 1px solid
         ${(props) => (props.$isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.08)')};
     position: relative;
-    z-index: 100;
+    z-index: 10;
 
     @media (max-width: 768px) {
         padding-top: max(8px, env(safe-area-inset-top, 0));
@@ -356,7 +356,7 @@ const MobileMenuOverlay = styled.div`
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
-    z-index: 999;
+    z-index: 20;
     animation: fadeIn 0.2s ease-out;
 
     @keyframes fadeIn {
@@ -387,7 +387,7 @@ const MobileMenu = styled.div<{ $isDarkMode?: boolean }>`
     padding-left: max(16px, env(safe-area-inset-left, 0));
     overflow-y: auto;
     box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
-    animation: slideIn 0.3s ease-out;
+    animation: slideIn 0.25s ease-out;
     z-index: 1;
 
     @keyframes slideIn {

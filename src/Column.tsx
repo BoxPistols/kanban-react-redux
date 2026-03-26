@@ -124,7 +124,7 @@ const Container = styled.div<{ $theme: Theme; $columnColor?: string }>`
     box-shadow:
         0 1px 2px ${(props) => props.$theme.shadow},
         0 4px 12px ${(props) => props.$theme.shadow};
-    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover {
         box-shadow:

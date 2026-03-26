@@ -116,4 +116,24 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   ::selection {
     background: rgba(0, 101, 255, 0.2);
   }
+
+  /* アクセシビリティ: モーション軽減設定 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* フォーカスリング: キーボード操作時のみ表示 */
+  :focus-visible {
+    outline: 2px solid ${(props) => props.$theme.linkColor};
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
 `
