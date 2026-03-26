@@ -463,9 +463,10 @@ const AddColumnButton = styled.button<{ $theme: Theme }>`
     justify-content: center;
     min-width: 200px;
     height: 120px;
-    border: 2px dashed ${(props) => props.$theme.border};
+    border: 2px dashed ${(props) => props.$theme.textSecondary}50;
     border-radius: 12px;
     background: transparent;
+    color: ${(props) => props.$theme.textSecondary};
     cursor: pointer;
     transition: all 0.2s ease;
     gap: 8px;
@@ -475,20 +476,16 @@ const AddColumnButton = styled.button<{ $theme: Theme }>`
     &:hover {
         border-color: ${(props) => props.$theme.textSecondary};
         background: ${(props) => props.$theme.surfaceHover};
-        transform: translateY(-2px);
+        color: ${(props) => props.$theme.text};
     }
 `
 
 const AddColumnIcon = styled.div`
     font-size: 28px;
-    color: inherit;
-    opacity: 0.5;
     line-height: 1;
 `
 
 const AddColumnText = styled.div`
     font-size: 13px;
-    color: inherit;
-    opacity: 0.5;
     font-weight: 500;
 `
