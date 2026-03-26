@@ -10,7 +10,7 @@ import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
-import { CARD_COLORS } from './constants'
+import { CARD_COLORS, LABEL_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
 // colorUtils: 将来カラー関連の機能拡張時に使用
 import { BaseModal } from './BaseModal'
@@ -124,7 +124,7 @@ function SortableChecklistItem({
 
 export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     const { updateCard, addCard } = useKanbanStore()
-    const { boards, currentBoardId } = useBoardStore()
+    const { boards, currentBoardId, addLabelToBoard } = useBoardStore()
     const { isDarkMode } = useThemeStore()
 
     const theme = getTheme(isDarkMode)
@@ -143,6 +143,9 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     const [cardColor, setCardColor] = useState(card.color || '')
     const [editingDescription, setEditingDescription] = useState(false)
     const [images, setImages] = useState<ImageAttachment[]>(card.images || [])
+    const [showAddLabel, setShowAddLabel] = useState(false)
+    const [newLabelName, setNewLabelName] = useState('')
+    const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0])
     const descriptionRef = useRef<HTMLTextAreaElement>(null)
 
     const sensors = useSensors(
@@ -233,6 +236,13 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
         } else {
             setSelectedLabels([...selectedLabels, label])
         }
+    }
+
+    const handleAddLabel = async () => {
+        if (!newLabelName.trim() || !currentBoardId) return
+        await addLabelToBoard(currentBoardId, { name: newLabelName.trim(), color: newLabelColor })
+        setNewLabelName('')
+        setShowAddLabel(false)
     }
 
     const addChecklistItem = () => {
@@ -344,10 +354,46 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                                     {label.name}
                                 </LabelTag>
                             ))}
-                            {boardLabels.length === 0 && (
-                                <EmptyState $theme={theme}>ボードにラベルを追加してください</EmptyState>
-                            )}
+                            <AddLabelButton
+                                $theme={theme}
+                                onClick={() => setShowAddLabel(!showAddLabel)}
+                                title='ラベルを追加'
+                            >
+                                +
+                            </AddLabelButton>
                         </LabelsContainer>
+                        {showAddLabel && (
+                            <AddLabelForm>
+                                <AddLabelColors>
+                                    {LABEL_COLORS.map((c) => (
+                                        <LabelColorOption
+                                            key={c}
+                                            $color={c}
+                                            $selected={newLabelColor === c}
+                                            onClick={() => setNewLabelColor(c)}
+                                        />
+                                    ))}
+                                </AddLabelColors>
+                                <AddLabelInputRow>
+                                    <AddLabelInput
+                                        type='text'
+                                        value={newLabelName}
+                                        onChange={(e) => setNewLabelName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddLabel()}
+                                        placeholder='ラベル名'
+                                        $theme={theme}
+                                        autoFocus
+                                    />
+                                    <AddLabelSubmit
+                                        onClick={handleAddLabel}
+                                        disabled={!newLabelName.trim()}
+                                        $color={newLabelColor}
+                                    >
+                                        追加
+                                    </AddLabelSubmit>
+                                </AddLabelInputRow>
+                            </AddLabelForm>
+                        )}
                     </Section>
 
                     {/* Due Date Section */}
@@ -635,10 +681,92 @@ const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode
     }
 `
 
-const EmptyState = styled.div<{ $theme: Theme }>`
+const AddLabelButton = styled.button<{ $theme: Theme }>`
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px dashed ${(props) => props.$theme.textSecondary}60;
+    background: transparent;
     color: ${(props) => props.$theme.textSecondary};
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        border-color: ${(props) => props.$theme.text};
+        color: ${(props) => props.$theme.text};
+    }
+`
+
+const AddLabelForm = styled.div`
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`
+
+const AddLabelColors = styled.div`
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+`
+
+const LabelColorOption = styled.button<{ $color: string; $selected: boolean }>`
+    width: 24px;
+    height: 18px;
+    border-radius: 3px;
+    border: 2px solid ${(props) => (props.$selected ? 'rgba(255, 255, 255, 0.7)' : 'transparent')};
+    background: ${(props) => props.$color};
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:hover {
+        opacity: 0.8;
+    }
+`
+
+const AddLabelInputRow = styled.div`
+    display: flex;
+    gap: 6px;
+`
+
+const AddLabelInput = styled.input<{ $theme: Theme }>`
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid ${(props) => props.$theme.border};
+    border-radius: 4px;
+    background: ${(props) => props.$theme.inputBackground};
+    color: ${(props) => props.$theme.text};
     font-size: 13px;
-    font-style: italic;
+
+    &:focus {
+        outline: none;
+        border-color: ${(props) => props.$theme.textSecondary};
+    }
+`
+
+const AddLabelSubmit = styled.button<{ $color: string }>`
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    background: ${(props) => props.$color};
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+        opacity: 0.85;
+    }
 `
 
 const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: Theme; $isDarkMode?: boolean }>`
