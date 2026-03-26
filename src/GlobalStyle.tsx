@@ -10,9 +10,9 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-      Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-    font-feature-settings: 'kern' 1;
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+      'Noto Sans JP', sans-serif;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;

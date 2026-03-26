@@ -198,13 +198,11 @@ const Container = styled.div<{ $isDarkMode?: boolean }>`
     padding-right: max(16px, env(safe-area-inset-right, 0));
     padding-bottom: 10px;
     padding-left: max(16px, env(safe-area-inset-left, 0));
-    background: ${(props) =>
-        props.$isDarkMode
-            ? 'linear-gradient(180deg, #010409 0%, #0D1117 100%)'
-            : 'linear-gradient(180deg, #1B2638 0%, #243447 100%)'};
+    background: ${(props) => (props.$isDarkMode ? '#010409' : '#1B2638')};
+    border-bottom: 1px solid
+        ${(props) => (props.$isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.08)')};
     position: relative;
     z-index: 100;
-    backdrop-filter: blur(8px);
 
     @media (max-width: 768px) {
         padding-top: max(8px, env(safe-area-inset-top, 0));
@@ -215,11 +213,11 @@ const Container = styled.div<{ $isDarkMode?: boolean }>`
 `
 
 const Logo = styled.div`
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 16px;
-    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 15px;
+    font-weight: 600;
     flex-shrink: 0;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
 
     @media (max-width: 768px) {
         font-size: 14px;
