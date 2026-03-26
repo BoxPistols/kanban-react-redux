@@ -159,7 +159,9 @@ const Container = styled.div<{ $isDragging?: boolean; $labelColor?: string; $car
     border-radius: ${(props) => props.$theme.cardBorderRadius};
     box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
     padding: 10px 12px;
-    background: ${(props) => props.$theme.cardBackground};
+    background: ${(props) => props.$cardColor || props.$theme.cardBackground};
+    color: ${(props) => (props.$cardColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
+    ${(props) => (props.$cardColor ? 'border-color: transparent;' : '')}
     cursor: pointer;
     opacity: ${(props) => (props.$isDragging ? 0.5 : 1)};
     touch-action: none;
@@ -215,7 +217,7 @@ const TextContent = styled.div`
 `
 
 const Title = styled.div<{ $theme: Theme }>`
-    color: ${(props) => props.$theme.text};
+    color: inherit;
     font-size: 13.5px;
     font-weight: 500;
     line-height: 1.45;
@@ -224,7 +226,8 @@ const Title = styled.div<{ $theme: Theme }>`
 `
 
 const Description = styled.div<{ $theme: Theme }>`
-    color: ${(props) => props.$theme.textSecondary};
+    color: inherit;
+    opacity: 0.7;
     font-size: 12px;
     line-height: 1.4;
     word-break: break-word;
@@ -303,8 +306,8 @@ const DeleteButton = styled.button.attrs({
     top: 8px;
     right: 8px;
     font-size: 14px;
-    color: ${(props) => props.$theme.textSecondary};
-    background: ${(props) => props.$theme.cardBackground};
+    color: inherit;
+    background: transparent;
     border-radius: 6px;
     padding: 3px;
     opacity: 0;
