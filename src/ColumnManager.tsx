@@ -11,16 +11,16 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
 import type { ColumnDefinition } from './types'
 
-// レーンの色パレット
+// レーンの色パレット (jewel tones)
 const COLUMN_COLORS = [
     '', // デフォルト（色なし）
-    '#2D5A8A', // Blue
-    '#3D7A5A', // Green
-    '#8A6A2D', // Amber
-    '#7A3D3D', // Red
-    '#6A4D8A', // Purple
-    '#2D6A7A', // Teal
-    '#8A4D6A', // Rose
+    '#2B6CB0', // Sapphire
+    '#2F855A', // Emerald
+    '#B7791F', // Amber
+    '#C53030', // Ruby
+    '#805AD5', // Amethyst
+    '#2C7A7B', // Teal
+    '#D53F8C', // Rose
 ]
 
 interface SortableColumnItemProps {
