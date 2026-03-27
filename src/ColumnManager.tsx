@@ -186,7 +186,7 @@ export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
             <ModalContent $theme={theme}>
                 <Header $theme={theme}>
                     <ModalTitle $theme={theme}>レーン管理</ModalTitle>
-                    <CloseButton onClick={onClose} $theme={theme}>
+                    <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
                         ×
                     </CloseButton>
                 </Header>
@@ -232,7 +232,9 @@ export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
                 </Content>
 
                 <Footer $theme={theme}>
-                    <DoneButton onClick={onClose}>完了</DoneButton>
+                    <DoneButton onClick={onClose} aria-label='完了'>
+                        完了
+                    </DoneButton>
                 </Footer>
             </ModalContent>
         </BaseModal>

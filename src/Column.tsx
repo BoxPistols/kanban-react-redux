@@ -61,6 +61,7 @@ export function Column({
                 $theme={theme}
                 $columnColor={columnColor}
                 title={`${title} (${cards.length}) - クリックで展開`}
+                aria-label={`${title} (${cards.length}) - クリックで展開`}
             >
                 <CollapsedCount $theme={theme} $columnColor={columnColor}>
                     {cards.length}
@@ -89,11 +90,12 @@ export function Column({
                         $theme={theme}
                         $columnColor={columnColor}
                         title='レーンを畳む'
+                        aria-label='レーンを畳む'
                     >
                         ‹
                     </CollapseButton>
                 )}
-                <AddButton onClick={toggleInput} $theme={theme} $columnColor={columnColor} />
+                <AddButton onClick={toggleInput} $theme={theme} $columnColor={columnColor} aria-label='カードを追加' />
             </HeaderBar>
 
             {inputMode && <InputForm value={text} onChange={setText} onConfirm={confirmInput} onCancel={cancelInput} />}

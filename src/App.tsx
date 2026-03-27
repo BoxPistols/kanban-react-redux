@@ -312,6 +312,7 @@ export function App() {
                                     $theme={theme}
                                     onClick={() => setShowColumnManager(true)}
                                     title='レーンを管理'
+                                    aria-label='レーンを管理'
                                 >
                                     <AddColumnIcon>+</AddColumnIcon>
                                     <AddColumnText>レーン管理</AddColumnText>

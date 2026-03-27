@@ -146,7 +146,7 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
                     </MetadataRow>
                 </CardBody>
 
-                <DeleteButton onClick={handleDelete} $theme={theme} />
+                <DeleteButton onClick={handleDelete} $theme={theme} aria-label='カードを削除' />
             </Container>
 
             {showModal && <CardDetailModal card={card} onClose={() => setShowModal(false)} />}

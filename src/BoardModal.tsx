@@ -221,7 +221,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
             <ModalContent $theme={theme}>
                 <Header $theme={theme}>
                     <Title $theme={theme}>{boardId ? 'ボードを編集' : '新しいボード'}</Title>
-                    <CloseButton onClick={onClose} $theme={theme}>
+                    <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
                         ×
                     </CloseButton>
                 </Header>
@@ -301,7 +301,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                                         type='text'
                                         value={newLabelName}
                                         onChange={(e) => setNewLabelName(e.target.value)}
-                                        onKeyPress={handleLabelKeyPress}
+                                        onKeyDown={handleLabelKeyPress}
                                         placeholder='ラベル名'
                                         $theme={theme}
                                     />

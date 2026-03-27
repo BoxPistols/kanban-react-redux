@@ -12,7 +12,6 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
 import { CARD_COLORS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
-// colorUtils: 将来カラー関連の機能拡張時に使用
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
 import { useUrlMetadata } from './hooks/useUrlMetadata'
@@ -323,7 +322,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                         placeholder='カードのタイトル'
                         $theme={theme}
                     />
-                    <CloseButton onClick={onClose} $theme={theme}>
+                    <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
                         ×
                     </CloseButton>
                 </ModalHeader>
@@ -502,8 +501,10 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                 </DateFooter>
 
                 <Footer $theme={theme}>
-                    <SaveButton onClick={handleSave}>保存</SaveButton>
-                    <CancelButton onClick={onClose} $theme={theme}>
+                    <SaveButton onClick={handleSave} aria-label='保存'>
+                        保存
+                    </SaveButton>
+                    <CancelButton onClick={onClose} $theme={theme} aria-label='キャンセル'>
                         キャンセル
                     </CancelButton>
                 </Footer>

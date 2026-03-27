@@ -88,13 +88,14 @@ export function Header({ className }: { className?: string }) {
                 <ThemeToggle
                     onClick={toggleDarkMode}
                     title={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+                    aria-label={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
                 >
                     {isDarkMode ? <SunIcon /> : <MoonIcon />}
                 </ThemeToggle>
             </DesktopOnly>
 
             <DesktopOnly>
-                <TrashButton onClick={() => setIsTrashModalOpen(true)} title='ゴミ箱'>
+                <TrashButton onClick={() => setIsTrashModalOpen(true)} title='ゴミ箱' aria-label='ゴミ箱'>
                     <TrashIcon />
                     {trashedCards.length > 0 && <TrashBadge>{trashedCards.length}</TrashBadge>}
                 </TrashButton>
@@ -106,7 +107,9 @@ export function Header({ className }: { className?: string }) {
                         <UserInitial title={user.email || undefined}>
                             {user.email ? getFirstChar(user.email) : ''}
                         </UserInitial>
-                        <LogoutButton onClick={handleLogout}>ログアウト</LogoutButton>
+                        <LogoutButton onClick={handleLogout} aria-label='ログアウト'>
+                            ログアウト
+                        </LogoutButton>
                     </UserInfo>
                 </DesktopOnly>
             )}
@@ -118,6 +121,7 @@ export function Header({ className }: { className?: string }) {
                     setIsMenuOpen(!isMenuOpen)
                 }}
                 title='メニュー'
+                aria-label='メニュー'
                 data-menu-container
             >
                 {isMenuOpen ? <CloseIcon /> : <MenuIcon />}

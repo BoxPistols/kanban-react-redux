@@ -74,7 +74,7 @@ export function TrashModal({ onClose }: TrashModalProps) {
             <ModalContent $theme={theme}>
                 <Header $theme={theme}>
                     <Title $theme={theme}>ゴミ箱</Title>
-                    <CloseButton onClick={onClose} $theme={theme}>
+                    <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
                         ×
                     </CloseButton>
                 </Header>
