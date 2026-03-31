@@ -17,24 +17,24 @@ export const BOARD_COLORS = [
 
 // Label color palette (vivid jewel tones for readability)
 export const LABEL_COLORS = [
-    '#38A169', // Emerald
-    '#D69E2E', // Gold
-    '#E53E3E', // Ruby
-    '#805AD5', // Amethyst
-    '#3182CE', // Sapphire
-    '#319795', // Teal
-    '#DD6B20', // Amber
-    '#D53F8C', // Rose
-    '#5A67D8', // Indigo
-    '#718096', // Slate
+    '#D69E2E', // Gold (Life/KSD用)
+    '#38A169', // Emerald (Dev用)
+    '#E53E3E', // Ruby (Imp用)
+    '#3182CE', // Sapphire (Study用)
+    '#805AD5', // Amethyst (Per用)
+    '#319795', // Teal (その他)
+    '#718096', // Slate (Other用)
+    '#D53F8C', // Rose (Fun用)
 ]
 
-// Card color palette (muted jewel tones - S:35-45%, elegant)
+// Card color palette (ラベルと完全一致)
 export const CARD_COLORS = [
-    '#B7791F', // Amber Gold
-    '#2F855A', // Emerald
-    '#6B46C1', // Deep Purple
-    '#C53030', // Ruby
-    '#2B6CB0', // Sapphire
-    '#2C7A7B', // Deep Teal
+    '#D69E2E', // Gold
+    '#38A169', // Emerald
+    '#E53E3E', // Ruby
+    '#3182CE', // Sapphire
+    '#805AD5', // Amethyst
+    '#319795', // Teal
+    '#718096', // Slate
+    '#D53F8C', // Rose
 ]
