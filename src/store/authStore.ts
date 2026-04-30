@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     GoogleAuthProvider,
     signOut,
     onAuthStateChanged,
@@ -109,24 +110,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ isLoading: true, error: null })
             const auth = getAuth(app)
             const provider = new GoogleAuthProvider()
-            await signInWithPopup(auth, provider)
-            // User will be set by onAuthStateChanged listener
-            set({ isLoading: false })
+            // Use redirect instead of popup to avoid CORS issues
+            await signInWithRedirect(auth, provider)
+            // User will be set by onAuthStateChanged listener after redirect
         } catch (error: unknown) {
             console.error('Error signing in with Google:', error)
-            let errorMessage = 'Googleログインに失敗しました'
-            const code = getErrorCode(error)
-
-            if (code === 'auth/popup-closed-by-user') {
-                errorMessage = 'ログインがキャンセルされました'
-            } else if (code === 'auth/popup-blocked') {
-                errorMessage = 'ポップアップがブロックされました。ブラウザの設定を確認してください'
-            } else if (code === 'auth/cancelled-popup-request') {
-                // Ignore - user opened multiple popups
-                set({ isLoading: false })
-                return
-            }
-
+            const errorMessage = 'Googleログインに失敗しました'
             set({ error: errorMessage, isLoading: false })
             throw error
         }
@@ -156,6 +145,26 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
 
         const auth = getAuth(app)
+
+        // Handle redirect result from Google Sign-In
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    // Successfully signed in via redirect
+                    set({ isLoading: false })
+                }
+            })
+            .catch((error) => {
+                console.error('Error handling redirect result:', error)
+                let errorMessage = 'ログインに失敗しました'
+                const code = getErrorCode(error)
+
+                if (code === 'auth/account-exists-with-different-credential') {
+                    errorMessage = '別の方法で既に登録されているアカウントです'
+                }
+
+                set({ error: errorMessage, isLoading: false })
+            })
 
         // Listen for auth state changes
         onAuthStateChanged(auth, (user) => {
