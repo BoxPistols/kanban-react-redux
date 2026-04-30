@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -8,11 +8,13 @@ import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
-import { CardDetailModal } from './CardDetailModal'
 import { LinkedText } from './LinkedText'
 import type { Card as CardType } from './types'
 
-export function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
+// 遅延ロード: CardDetailModal
+const CardDetailModal = lazy(() => import('./CardDetailModal').then((m) => ({ default: m.CardDetailModal })))
+
+export const Card = memo(function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
     const { deleteCard } = useKanbanStore()
     const { isDarkMode } = useThemeStore()
     const [showModal, setShowModal] = useState(false)
@@ -108,7 +110,7 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
                     {hasImages && (
                         <ImageThumbnailRow>
                             {card.images!.slice(0, 3).map((img) => (
-                                <ImageThumb key={img.id} src={img.dataUrl} alt='' />
+                                <ImageThumb key={img.id} src={img.dataUrl} alt='' loading='lazy' />
                             ))}
                             {card.images!.length > 3 && (
                                 <MoreImages $theme={theme}>+{card.images!.length - 3}</MoreImages>
@@ -149,10 +151,14 @@ export function Card({ card, isDragging = false }: { card: CardType; isDragging?
                 <DeleteButton onClick={handleDelete} $theme={theme} aria-label='カードを削除' />
             </Container>
 
-            {showModal && <CardDetailModal card={card} onClose={() => setShowModal(false)} />}
+            {showModal && (
+                <Suspense fallback={null}>
+                    <CardDetailModal card={card} onClose={() => setShowModal(false)} />
+                </Suspense>
+            )}
         </>
     )
-}
+})
 
 const Container = styled.div<{ $isDragging?: boolean; $theme: Theme }>`
     position: relative;
@@ -183,9 +189,10 @@ const Container = styled.div<{ $isDragging?: boolean; $theme: Theme }>`
 `
 
 const CardCover = styled.div<{ $color: string }>`
-    height: 32px;
+    height: 8px;
     background: ${(props) => props.$color};
     flex-shrink: 0;
+    opacity: 0.85;
 `
 
 const CardBody = styled.div`
@@ -202,10 +209,11 @@ const LabelsRow = styled.div`
 `
 
 const LabelBadge = styled.div<{ $color: string }>`
-    height: 8px;
-    min-width: 36px;
-    border-radius: 4px;
+    height: 6px;
+    width: 40px;
+    border-radius: 3px;
     background: ${(props) => props.$color};
+    opacity: 0.75;
     font-size: 0;
 `
 

@@ -48,6 +48,7 @@ export interface ImageAttachment {
 
 export interface Card {
     id: string
+    userId?: string // ユーザーID（マルチユーザー対応）
     text: string
     columnId: ColumnType
     boardId: string
@@ -74,6 +75,7 @@ export interface Column {
 
 export interface Board {
     id: string
+    userId?: string // ユーザーID（マルチユーザー対応）
     name: string
     description?: string
     color?: string

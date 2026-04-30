@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { useBoardStore } from './store/boardStore'
 import { BoardModal } from './BoardModal'
 import { EditIcon } from './icon'
 
-export function BoardSelector() {
+export const BoardSelector = memo(function BoardSelector() {
     const { boards, currentBoardId, setCurrentBoardId } = useBoardStore()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingBoard, setEditingBoard] = useState<string | null>(null)
@@ -33,7 +33,11 @@ export function BoardSelector() {
                 {currentBoard?.color && (
                     <BoardColorIndicator $color={currentBoard.color} title={`ボードカラー: ${currentBoard.color}`} />
                 )}
-                <Select value={currentBoardId || ''} onChange={(e) => handleBoardChange(e.target.value)}>
+                <Select
+                    value={currentBoardId || ''}
+                    onChange={(e) => handleBoardChange(e.target.value)}
+                    aria-label='ボード選択'
+                >
                     {boards.length === 0 && <option value=''>ボードを作成してください</option>}
                     {boards.map((board) => (
                         <option key={board.id} value={board.id}>
@@ -43,12 +47,20 @@ export function BoardSelector() {
                 </Select>
 
                 {currentBoard && (
-                    <EditButton onClick={(e) => handleEditBoard(e, currentBoard.id)} title='ボードを編集'>
+                    <EditButton
+                        onClick={(e) => handleEditBoard(e, currentBoard.id)}
+                        title='ボードを編集'
+                        aria-label='ボードを編集'
+                    >
                         <EditIcon />
                     </EditButton>
                 )}
 
-                <AddButton onClick={() => setIsModalOpen(true)} title='新しいボードを作成'>
+                <AddButton
+                    onClick={() => setIsModalOpen(true)}
+                    title='新しいボードを作成'
+                    aria-label='新しいボードを作成'
+                >
                     + ボード
                 </AddButton>
             </Container>
@@ -56,14 +68,14 @@ export function BoardSelector() {
             {isModalOpen && <BoardModal boardId={editingBoard} onClose={handleCloseModal} />}
         </>
     )
-}
+})
 
 const Container = styled.div`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-left: 16px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 6px;
 
@@ -82,23 +94,23 @@ const BoardColorIndicator = styled.div<{ $color: string }>`
     height: 24px;
     border-radius: 50%;
     background-color: ${(props) => props.$color};
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 
     @media (max-width: 768px) {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
     }
 `
 
 const Select = styled.select`
-    padding: 8px 12px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    height: 32px;
+    padding: 0 12px;
+    border: none;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.15);
     color: ${color.White};
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     max-width: 200px;
@@ -106,13 +118,11 @@ const Select = styled.select`
 
     &:hover {
         background-color: rgba(255, 255, 255, 0.25);
-        border-color: rgba(255, 255, 255, 0.5);
     }
 
     &:focus {
         outline: none;
         background-color: rgba(255, 255, 255, 0.25);
-        border-color: ${color.White};
     }
 
     option {
@@ -123,50 +133,60 @@ const Select = styled.select`
     @media (max-width: 768px) {
         flex: 1;
         max-width: none;
-        font-size: 14px;
-        padding: 10px 12px;
+        padding: 0 12px;
     }
 `
 
 const EditButton = styled.button`
-    padding: 6px 8px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border: none;
     background: rgba(255, 255, 255, 0.15);
     cursor: pointer;
-    font-size: 16px;
     border-radius: 4px;
     color: ${color.White};
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
         background-color: rgba(255, 255, 255, 0.25);
-        transform: scale(1.1);
+        transform: scale(1.05);
+    }
+
+    svg {
+        display: block;
+        width: 16px;
+        height: 16px;
     }
 
     @media (max-width: 768px) {
-        font-size: 14px;
-        padding: 4px 6px;
+        width: 32px;
+        height: 32px;
     }
 `
 
 const AddButton = styled.button`
-    padding: 8px 14px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    height: 32px;
+    padding: 0 14px;
+    border: none;
     border-radius: 4px;
-    background-color: rgba(33, 150, 243, 0.8);
+    background-color: rgba(33, 150, 243, 0.9);
     color: ${color.White};
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 
     &:hover {
         background-color: ${color.Blue};
-        border-color: ${color.White};
         transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     }
 
     &:active {
@@ -175,8 +195,7 @@ const AddButton = styled.button`
 
     @media (max-width: 768px) {
         width: 100%;
-        font-size: 14px;
-        padding: 12px 16px;
+        padding: 0 16px;
         margin-top: 8px;
     }
 `

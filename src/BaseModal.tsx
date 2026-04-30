@@ -1,4 +1,4 @@
-import { useEffect, ReactNode } from 'react'
+import { useEffect, ReactNode, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import styled from 'styled-components'
 import { useThemeStore } from './store/themeStore'
@@ -24,6 +24,16 @@ function isIOS(): boolean {
 export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTop = false }: BaseModalProps) {
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
+    const modalRef = useRef<HTMLDivElement>(null)
+
+    // フォーカス管理: モーダル内の最初のフォーカス可能要素にフォーカス
+    useEffect(() => {
+        const focusableElements = modalRef.current?.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        const firstElement = focusableElements?.[0] as HTMLElement
+        firstElement?.focus()
+    }, [])
 
     // Escapeキーでモーダルを閉じる & bodyクラスでスクロールを無効化
     useEffect(() => {
@@ -65,11 +75,13 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
     const modalContent = (
         <Overlay onClick={onClose} $mobileAlignTop={mobileAlignTop}>
             <Modal
+                ref={modalRef}
                 onClick={(e) => e.stopPropagation()}
                 $theme={theme}
                 $maxWidth={maxWidth}
                 role='dialog'
                 aria-modal='true'
+                aria-labelledby='modal-title'
             >
                 {children}
             </Modal>

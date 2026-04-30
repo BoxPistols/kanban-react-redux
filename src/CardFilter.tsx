@@ -1,19 +1,107 @@
+import { useState, useEffect, memo } from 'react'
 import styled from 'styled-components'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { SearchIcon as _SearchIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
+import { useDebounce } from './hooks/useDebounce'
+import type { Label } from './types'
 
-export function CardFilter() {
+// Sortable Label Chip Component
+interface SortableLabelChipProps {
+    label: Label
+    isSelected: boolean
+    toggleLabelFilter: (labelId: string) => void
+}
+
+function SortableLabelChip({ label, isSelected, toggleLabelFilter }: SortableLabelChipProps) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: label.id,
+    })
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+        <LabelChip
+            ref={setNodeRef}
+            style={style}
+            $color={label.color}
+            $isSelected={isSelected}
+            onClick={() => toggleLabelFilter(label.id)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    toggleLabelFilter(label.id)
+                }
+            }}
+            aria-checked={isSelected}
+            title={`${label.name} でフィルター`}
+            aria-label={`${label.name} でフィルター`}
+            {...attributes}
+            {...listeners}
+        >
+            {label.name}
+        </LabelChip>
+    )
+}
+
+export const CardFilter = memo(function CardFilter() {
     const { searchQuery, selectedLabelIds, setSearchQuery, toggleLabelFilter } = useKanbanStore()
-    const { boards, currentBoardId } = useBoardStore()
+    const { boards, currentBoardId, updateBoard } = useBoardStore()
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
 
+    // ローカル入力値（即座に更新）
+    const [inputValue, setInputValue] = useState(searchQuery)
+    // デバウンス後の値（300ms遅延）
+    const debouncedValue = useDebounce(inputValue, 300)
+
+    // デバウンス後の値をストアに反映
+    useEffect(() => {
+        setSearchQuery(debouncedValue)
+    }, [debouncedValue, setSearchQuery])
+
+    // ストアの値が外部から変更された場合に同期
+    useEffect(() => {
+        setInputValue(searchQuery)
+    }, [searchQuery])
+
     const currentBoard = boards.find((b) => b.id === currentBoardId)
     const labels = currentBoard?.labels || []
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event
+        if (!over || !currentBoardId || !currentBoard?.labels || active.id === over.id) return
+
+        const oldIndex = currentBoard.labels.findIndex((l) => l.id === active.id)
+        const newIndex = currentBoard.labels.findIndex((l) => l.id === over.id)
+
+        if (oldIndex === -1 || newIndex === -1) return
+
+        // 配列を並び替える
+        const reorderedLabels = [...currentBoard.labels]
+        const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
+        reorderedLabels.splice(newIndex, 0, movedLabel)
+
+        await updateBoard(currentBoardId, { labels: reorderedLabels })
+    }
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5, // 5px移動するまでドラッグ開始しない
+            },
+        })
+    )
 
     return (
         <FilterContainer>
@@ -21,29 +109,34 @@ export function CardFilter() {
                 <SearchIcon />
                 <Input
                     placeholder='Filter cards'
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    aria-label='カード検索'
                 />
             </SearchContainer>
 
             {labels.length > 0 && (
-                <LabelsContainer>
-                    {labels.map((label) => (
-                        <LabelChip
-                            key={label.id}
-                            $color={label.color}
-                            $isSelected={selectedLabelIds.includes(label.id)}
-                            onClick={() => toggleLabelFilter(label.id)}
-                            title={`${label.name} でフィルター`}
-                        >
-                            {label.name}
-                        </LabelChip>
-                    ))}
-                </LabelsContainer>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={labels.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
+                        <LabelsContainer>
+                            {labels.map((label) => {
+                                const isSelected = selectedLabelIds.includes(label.id)
+                                return (
+                                    <SortableLabelChip
+                                        key={label.id}
+                                        label={label}
+                                        isSelected={isSelected}
+                                        toggleLabelFilter={toggleLabelFilter}
+                                    />
+                                )
+                            })}
+                        </LabelsContainer>
+                    </SortableContext>
+                </DndContext>
             )}
         </FilterContainer>
     )
-}
+})
 
 const FilterContainer = styled.div`
     display: flex;
@@ -62,6 +155,7 @@ const SearchContainer = styled.label<{ $theme: Theme }>`
     display: flex;
     align-items: center;
     min-width: 200px;
+    height: 32px;
     border: solid 1px rgba(255, 255, 255, 0.3);
     border-radius: 3px;
     background-color: rgba(255, 255, 255, 0.1);
@@ -120,14 +214,17 @@ const LabelsContainer = styled.div`
 `
 
 const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
-    padding: 3px 10px;
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
     border-radius: 4px;
     border: none;
     background: ${(props) => (props.$isSelected ? props.$color : 'rgba(255, 255, 255, 0.12)')};
     color: ${color.White};
     font-size: 12px;
     font-weight: 500;
-    cursor: pointer;
+    cursor: move;
     transition: opacity 0.15s;
     opacity: ${(props) => (props.$isSelected ? 1 : 0.6)};
     white-space: nowrap;
@@ -135,8 +232,13 @@ const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: none;
 
     &:hover {
         opacity: 1;
+    }
+
+    &:active {
+        cursor: grabbing;
     }
 `

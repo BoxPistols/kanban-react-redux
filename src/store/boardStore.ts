@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy } from 'firebase/firestore'
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
+import { useAuthStore } from './authStore'
 import { BOARD_COLORS } from '../constants'
 import type { Board, Label, ColumnDefinition } from '../types'
 import { DEFAULT_COLUMNS } from '../types'
@@ -108,7 +109,7 @@ interface BoardState {
     setBoards: (boards: Board[]) => void
     setCurrentBoardId: (boardId: string | null) => void
     setForceOfflineMode: (offline: boolean) => void
-    addBoard: (name: string, description?: string, color?: string) => Promise<void>
+    addBoard: (name: string, description?: string, color?: string, labels?: Label[]) => Promise<void>
     updateBoard: (id: string, updates: Partial<Board>) => Promise<void>
     deleteBoard: (id: string) => Promise<void>
     addLabelToBoard: (boardId: string, label: Omit<Label, 'id'>) => Promise<void>
@@ -192,14 +193,20 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         }
     },
 
-    addBoard: async (name, description, color) => {
+    addBoard: async (name, description, color, labels) => {
         try {
             set({ isLoading: true, error: null })
+
+            // 現在のユーザーIDを取得
+            const user = useAuthStore.getState().user
+            const userId = user?.uid
+
             const newBoardData = {
+                userId, // ユーザーID追加
                 name,
                 description: description || '',
                 color: color || '#0079BF',
-                labels: [],
+                labels: labels || [],
                 columns: DEFAULT_COLUMNS,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -413,7 +420,15 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
         const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
         if (useFirebase) {
-            const q = query(collection(db!, 'boards'), orderBy('createdAt'))
+            // ユーザーIDでフィルタリング
+            const user = useAuthStore.getState().user
+            if (!user) {
+                // ユーザーが未認証の場合はオフラインモードにフォールバック
+                get().initializeOfflineMode()
+                return () => {}
+            }
+
+            const q = query(collection(db!, 'boards'), where('userId', '==', user.uid), orderBy('createdAt'))
 
             const unsubscribe = onSnapshot(
                 q,
@@ -422,6 +437,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                         const data = doc.data()
                         return {
                             id: doc.id,
+                            userId: data.userId,
                             name: data.name ?? '',
                             description: data.description || '',
                             color: data.color || '#0079BF',

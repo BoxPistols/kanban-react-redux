@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import {
     DndContext,
@@ -14,7 +14,6 @@ import { GlobalStyle } from './GlobalStyle'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
-import { ColumnManager } from './ColumnManager'
 import { Auth } from './Auth'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -24,6 +23,9 @@ import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import type { Card as CardType, ColumnType } from './types'
+
+// 遅延ロード: モーダル系コンポーネント
+const ColumnManager = lazy(() => import('./ColumnManager').then((m) => ({ default: m.ColumnManager })))
 
 export function App() {
     const {
@@ -116,13 +118,13 @@ export function App() {
     useEffect(() => {
         const unsubscribeBoards = subscribeToBoards()
         return () => unsubscribeBoards()
-    }, [subscribeToBoards, offlineMode])
+    }, [subscribeToBoards])
 
     useEffect(() => {
         if (!currentBoardId) return
         const unsubscribeCards = subscribeToCards(currentBoardId)
         return () => unsubscribeCards()
-    }, [subscribeToCards, currentBoardId, offlineMode])
+    }, [subscribeToCards, currentBoardId])
 
     // 折りたたみ状態の復元
     useEffect(() => {
@@ -325,7 +327,9 @@ export function App() {
                 <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
 
                 {showColumnManager && currentBoardId && (
-                    <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
+                    <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
+                        <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
+                    </Suspense>
                 )}
             </Container>
         </DndContext>
@@ -339,6 +343,19 @@ const Container = styled.div<{ $theme: Theme }>`
     background-color: ${(props) => props.$theme.background};
     position: relative;
     z-index: 0;
+`
+
+const LoadingOverlay = styled.div<{ $theme: Theme }>`
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: ${(props) => props.$theme.background}ee;
+    backdrop-filter: blur(4px);
+    color: ${(props) => props.$theme.text};
+    font-size: 14px;
+    z-index: 9999;
 `
 
 const Header = styled(_Header)`

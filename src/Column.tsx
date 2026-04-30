@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo, useMemo } from 'react'
 import styled from 'styled-components'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -11,7 +11,7 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import type { Card as CardType, ColumnType } from './types'
 
-export function Column({
+export const Column = memo(function Column({
     id,
     title,
     cards,
@@ -51,7 +51,7 @@ export function Column({
         setInputMode(false)
     }
 
-    const cardIds = cards.map((card) => card.id)
+    const cardIds = useMemo(() => cards.map((card) => card.id), [cards])
 
     if (isCollapsed) {
         return (
@@ -109,7 +109,7 @@ export function Column({
             </VerticalScroll>
         </Container>
     )
-}
+})
 
 const Container = styled.div<{ $theme: Theme; $columnColor?: string }>`
     display: flex;

@@ -10,7 +10,7 @@ import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
-import { CARD_COLORS } from './constants'
+import { CARD_COLOR_LABELS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
@@ -317,10 +317,12 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             <ModalContent $theme={theme}>
                 <ModalHeader $color={cardColor} $theme={theme}>
                     <TitleInput
+                        id='modal-title'
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder='カードのタイトル'
                         $theme={theme}
+                        aria-label='カードタイトル'
                     />
                     <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
                         ×
@@ -332,17 +334,29 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                     <Section>
                         <SectionTitle $theme={theme}>ラベル</SectionTitle>
                         <LabelsContainer>
-                            {boardLabels.map((label) => (
-                                <LabelTag
-                                    key={label.id}
-                                    $color={label.color}
-                                    $selected={selectedLabels.some((l) => l.id === label.id)}
-                                    $isDarkMode={isDarkMode}
-                                    onClick={() => toggleLabel(label)}
-                                >
-                                    {label.name}
-                                </LabelTag>
-                            ))}
+                            {boardLabels.map((label) => {
+                                const isSelected = selectedLabels.some((l) => l.id === label.id)
+                                return (
+                                    <LabelTag
+                                        key={label.id}
+                                        $color={label.color}
+                                        $selected={isSelected}
+                                        $isDarkMode={isDarkMode}
+                                        onClick={() => toggleLabel(label)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                toggleLabel(label)
+                                            }
+                                        }}
+                                        role='checkbox'
+                                        aria-checked={isSelected}
+                                        tabIndex={0}
+                                    >
+                                        {label.name}
+                                    </LabelTag>
+                                )
+                            })}
                             {boardLabels.length === 0 && (
                                 <EmptyHint $theme={theme}>ボード編集からラベルを追加できます</EmptyHint>
                             )}
@@ -374,15 +388,36 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                                 $selected={!cardColor}
                                 $theme={theme}
                                 onClick={() => setCardColor('')}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        setCardColor('')
+                                    }
+                                }}
+                                role='radio'
+                                aria-checked={!cardColor}
+                                tabIndex={0}
                                 title='デフォルト'
+                                aria-label='デフォルト色'
                             />
-                            {CARD_COLORS.map((c) => (
+                            {CARD_COLOR_LABELS.map((label) => (
                                 <ColorOption
-                                    key={c}
-                                    $color={c}
-                                    $selected={cardColor === c}
+                                    key={label.color}
+                                    $color={label.color}
+                                    $selected={cardColor === label.color}
                                     $theme={theme}
-                                    onClick={() => setCardColor(c)}
+                                    onClick={() => setCardColor(label.color)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault()
+                                            setCardColor(label.color)
+                                        }
+                                    }}
+                                    role='radio'
+                                    aria-checked={cardColor === label.color}
+                                    tabIndex={0}
+                                    title={`${label.name} - ${label.description}`}
+                                    aria-label={`${label.name} - ${label.description}`}
                                 />
                             ))}
                         </ColorPicker>
@@ -416,9 +451,13 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                         {/* 貼り付け画像の表示 */}
                         {images.length > 0 && (
                             <ImageGallery>
-                                {images.map((img) => (
+                                {images.map((img, index) => (
                                     <ImageContainer key={img.id}>
-                                        <ImagePreview src={img.dataUrl} alt={img.name || '画像'} />
+                                        <ImagePreview
+                                            src={img.dataUrl}
+                                            alt={img.name || '画像'}
+                                            loading={index > 2 ? 'lazy' : 'eager'}
+                                        />
                                         <ImageRemoveButton onClick={() => handleRemoveImage(img.id)} title='画像を削除'>
                                             ×
                                         </ImageRemoveButton>

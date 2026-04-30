@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { CardFilter } from './CardFilter'
 import { BoardSelector } from './BoardSelector'
-import { TrashModal } from './TrashModal'
-import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon } from './icon'
+import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon, SettingsIcon } from './icon'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { useTrashStore } from './store/trashStore'
+import { useBoardStore } from './store/boardStore'
+import { useKanbanStore } from './store/kanbanStore'
 import { isFirebaseEnabled } from './lib/firebase'
+import { generateSeedData, filterSeedBoards, filterSeedCards } from './utils/seedData'
+
+// 遅延ロード: TrashModal
+const TrashModal = lazy(() => import('./TrashModal').then((m) => ({ default: m.TrashModal })))
 
 // メールアドレスの頭文字のみ表示（例: i）
 function getFirstChar(email: string): string {
@@ -19,8 +24,11 @@ export function Header({ className }: { className?: string }) {
     const { isDarkMode, toggleDarkMode } = useThemeStore()
     const { user, logOut } = useAuthStore()
     const { trashedCards, loadTrash } = useTrashStore()
+    const { boards, addBoard, deleteBoard } = useBoardStore()
+    const { cards, setCards } = useKanbanStore()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false)
+    const [isDevMenuOpen, setIsDevMenuOpen] = useState(false)
 
     // ゴミ箱を読み込む
     useEffect(() => {
@@ -31,6 +39,71 @@ export function Header({ className }: { className?: string }) {
         if (window.confirm('ログアウトしますか？')) {
             await logOut()
             setIsMenuOpen(false)
+        }
+    }
+
+    // サンプルデータ追加
+    const handleAddSeedData = async () => {
+        if (!window.confirm('サンプルデータを追加しますか？\n（ボード2個、カード9個が追加されます）')) {
+            return
+        }
+
+        const seedData = generateSeedData()
+
+        try {
+            // ボードを追加
+            for (const board of seedData.boards) {
+                await addBoard(board.name, board.description, board.color, board.labels)
+            }
+
+            // カードを追加（localStorage用に直接setCards）
+            const newCards = [...cards, ...seedData.cards]
+            setCards(newCards)
+
+            alert('✅ サンプルデータを追加しました！')
+            setIsMenuOpen(false)
+            setIsDevMenuOpen(false)
+        } catch (error) {
+            console.error('Seed data error:', error)
+            alert('❌ サンプルデータの追加に失敗しました')
+        }
+    }
+
+    // サンプルデータ削除
+    const handleRemoveSeedData = async () => {
+        const seedBoards = filterSeedBoards(boards)
+        if (seedBoards.length === 0) {
+            alert('削除するサンプルデータがありません')
+            return
+        }
+
+        if (
+            !window.confirm(
+                `サンプルデータを削除しますか？\n（${seedBoards.length}個のボードと関連カードが削除されます）`
+            )
+        ) {
+            return
+        }
+
+        try {
+            const seedBoardIds = seedBoards.map((b) => b.id)
+
+            // ボードを削除
+            for (const boardId of seedBoardIds) {
+                await deleteBoard(boardId)
+            }
+
+            // カードを削除
+            const remainingCards = filterSeedCards(cards, seedBoardIds)
+            const newCards = cards.filter((card) => !remainingCards.some((sc) => sc.id === card.id))
+            setCards(newCards)
+
+            alert('✅ サンプルデータを削除しました')
+            setIsMenuOpen(false)
+            setIsDevMenuOpen(false)
+        } catch (error) {
+            console.error('Remove seed data error:', error)
+            alert('❌ サンプルデータの削除に失敗しました')
         }
     }
 
@@ -61,6 +134,34 @@ export function Header({ className }: { className?: string }) {
             document.removeEventListener('keydown', handleEsc)
         }
     }, [isMenuOpen])
+
+    // 開発者メニューを閉じるための副作用
+    useEffect(() => {
+        if (!isDevMenuOpen) {
+            return
+        }
+
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            if (!target.closest('[data-dev-menu-container]')) {
+                setIsDevMenuOpen(false)
+            }
+        }
+
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsDevMenuOpen(false)
+            }
+        }
+
+        document.addEventListener('click', handleClickOutside)
+        document.addEventListener('keydown', handleEsc)
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside)
+            document.removeEventListener('keydown', handleEsc)
+        }
+    }, [isDevMenuOpen])
 
     return (
         <Container className={className} $isDarkMode={isDarkMode}>
@@ -99,6 +200,32 @@ export function Header({ className }: { className?: string }) {
                     <TrashIcon />
                     {trashedCards.length > 0 && <TrashBadge>{trashedCards.length}</TrashBadge>}
                 </TrashButton>
+            </DesktopOnly>
+
+            <DesktopOnly>
+                <DevMenuContainer>
+                    <DevMenuButton
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setIsDevMenuOpen(!isDevMenuOpen)
+                        }}
+                        title='開発者メニュー'
+                        aria-label='開発者メニュー'
+                        data-dev-menu-container
+                    >
+                        <SettingsIcon />
+                    </DevMenuButton>
+                    {isDevMenuOpen && (
+                        <DevMenuDropdown
+                            onClick={(e) => e.stopPropagation()}
+                            data-dev-menu-container
+                            $isDarkMode={isDarkMode}
+                        >
+                            <DevMenuItem onClick={handleAddSeedData}>サンプルデータを追加</DevMenuItem>
+                            <DevMenuItem onClick={handleRemoveSeedData}>サンプルデータを削除</DevMenuItem>
+                        </DevMenuDropdown>
+                    )}
+                </DevMenuContainer>
             </DesktopOnly>
 
             {isFirebaseEnabled && user && (
@@ -163,6 +290,14 @@ export function Header({ className }: { className?: string }) {
                             </MenuTrashButton>
                         </MenuSection>
 
+                        <MenuDivider />
+
+                        <MenuSection>
+                            <MenuSectionTitle>開発者向け</MenuSectionTitle>
+                            <MenuButton onClick={handleAddSeedData}>サンプルデータを追加</MenuButton>
+                            <MenuButton onClick={handleRemoveSeedData}>サンプルデータを削除</MenuButton>
+                        </MenuSection>
+
                         {isFirebaseEnabled && user && (
                             <>
                                 <MenuDivider />
@@ -183,7 +318,11 @@ export function Header({ className }: { className?: string }) {
             )}
 
             {/* ゴミ箱モーダル */}
-            {isTrashModalOpen && <TrashModal onClose={() => setIsTrashModalOpen(false)} />}
+            {isTrashModalOpen && (
+                <Suspense fallback={null}>
+                    <TrashModal onClose={() => setIsTrashModalOpen(false)} />
+                </Suspense>
+            )}
         </Container>
     )
 }
@@ -255,8 +394,10 @@ const ThemeToggle = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
     margin-left: 4px;
-    padding: 7px;
+    padding: 0;
     border: none;
     background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
@@ -417,7 +558,7 @@ const MenuDivider = styled.div`
     margin: 4px 0;
 `
 
-const MenuThemeToggle = styled.button`
+const MenuButton = styled.button`
     display: flex;
     align-items: center;
     gap: 12px;
@@ -439,6 +580,10 @@ const MenuThemeToggle = styled.button`
     &:hover {
         background: rgba(255, 255, 255, 0.15);
     }
+`
+
+const MenuThemeToggle = styled(MenuButton)`
+    /* 継承 */
 `
 
 const UserInfoMobile = styled.div`
@@ -471,8 +616,10 @@ const TrashButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
     margin-left: 4px;
-    padding: 7px;
+    padding: 0;
     border: none;
     background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
@@ -508,29 +655,8 @@ const TrashBadge = styled.span`
     justify-content: center;
 `
 
-const MenuTrashButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    padding: 12px;
+const MenuTrashButton = styled(MenuButton)`
     margin-top: 8px;
-    border: none;
-    background: rgba(255, 255, 255, 0.05);
-    cursor: pointer;
-    border-radius: 8px;
-    color: ${color.White};
-    font-size: 14px;
-    transition: all 0.2s;
-
-    svg {
-        width: 20px;
-        height: 20px;
-    }
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.15);
-    }
 `
 
 const MenuTrashBadge = styled.span`
@@ -546,4 +672,72 @@ const MenuTrashBadge = styled.span`
     align-items: center;
     justify-content: center;
     margin-left: auto;
+`
+
+const DevMenuContainer = styled.div`
+    position: relative;
+`
+
+const DevMenuButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-left: 4px;
+    padding: 0;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.75);
+    transition: all 0.2s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.16);
+        color: rgba(255, 255, 255, 1);
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`
+
+const DevMenuDropdown = styled.div<{ $isDarkMode?: boolean }>`
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    background: ${(props) =>
+        props.$isDarkMode
+            ? 'linear-gradient(180deg, #0D1117 0%, #161B22 100%)'
+            : 'linear-gradient(180deg, #1B2638 0%, #243447 100%)'};
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    padding: 8px;
+    z-index: 100;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+`
+
+const DevMenuItem = styled.button`
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 6px;
+    color: ${color.White};
+    font-size: 13px;
+    text-align: left;
+    transition: all 0.2s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    & + & {
+        margin-top: 4px;
+    }
 `

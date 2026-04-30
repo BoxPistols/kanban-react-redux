@@ -8,12 +8,14 @@ import {
     doc,
     onSnapshot,
     query,
+    where,
     orderBy,
     writeBatch,
 } from 'firebase/firestore'
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useTrashStore } from './trashStore'
+import { useAuthStore } from './authStore'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -133,7 +135,12 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             const cardsInColumn = get().cards.filter((c) => c.columnId === columnId && c.boardId === boardId)
             const maxOrder = cardsInColumn.length > 0 ? Math.max(...cardsInColumn.map((c) => c.order)) : -1
 
+            // 現在のユーザーIDを取得
+            const user = useAuthStore.getState().user
+            const userId = user?.uid
+
             const newCardData = {
+                userId, // ユーザーID追加
                 text,
                 columnId,
                 boardId,
@@ -376,8 +383,15 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
         const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
         if (useFirebase) {
-            // Firebase mode
-            const q = query(collection(db!, 'cards'), orderBy('order'))
+            // Firebase mode - ユーザーIDでフィルタリング
+            const user = useAuthStore.getState().user
+            if (!user) {
+                // ユーザーが未認証の場合はローカルモードにフォールバック
+                loadLocal()
+                return () => {}
+            }
+
+            const q = query(collection(db!, 'cards'), where('userId', '==', user.uid), orderBy('order'))
 
             const unsubscribe = onSnapshot(
                 q,
@@ -386,6 +400,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                         const data = doc.data()
                         return {
                             id: doc.id,
+                            userId: data.userId,
                             text: data.text ?? '',
                             columnId: data.columnId ?? 'TODO',
                             boardId: data.boardId ?? '',

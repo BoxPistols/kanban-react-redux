@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 import { v4 as uuidv4 } from 'uuid'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import {
     PrimaryButton,
     SecondaryButton,
     DangerButton as SharedDangerButton,
-    OutlinedPrimaryButton,
     SmallPrimaryButton,
     SmallButton,
     SmallDangerButton,
@@ -33,6 +35,107 @@ interface ImportedLabel {
 
 function isValidLabel(obj: ImportedLabel): obj is { name: string; color: string } {
     return obj && typeof obj.name === 'string' && typeof obj.color === 'string'
+}
+
+// Sortable Label Item Component
+interface SortableLabelItemProps {
+    label: Label
+    editingLabel: Label | null
+    setEditingLabel: (label: Label | null) => void
+    handleUpdateLabel: () => Promise<void>
+    handleDeleteLabel: (labelId: string) => Promise<void>
+    isDarkMode: boolean
+    theme: Theme
+    editingCustomColorInputRef: React.RefObject<HTMLInputElement>
+    setShouldOpenEditingColorPicker: (value: boolean) => void
+}
+
+function SortableLabelItem({
+    label,
+    editingLabel,
+    setEditingLabel,
+    handleUpdateLabel,
+    handleDeleteLabel,
+    isDarkMode,
+    theme,
+    editingCustomColorInputRef,
+    setShouldOpenEditingColorPicker,
+}: SortableLabelItemProps) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: label.id,
+        disabled: editingLabel?.id === label.id, // 編集中はドラッグ無効化
+    })
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+        <LabelItem ref={setNodeRef} style={style} $theme={theme} {...attributes} {...listeners}>
+            {editingLabel?.id === label.id ? (
+                <>
+                    <LabelInput
+                        type='text'
+                        value={editingLabel.name}
+                        onChange={(e) => setEditingLabel({ ...editingLabel, name: e.target.value })}
+                        $theme={theme}
+                    />
+                    <LabelColorPicker>
+                        {LABEL_COLORS.map((c) => (
+                            <LabelColorOption
+                                key={c}
+                                type='button'
+                                $color={c}
+                                $selected={editingLabel.color === c}
+                                $isDarkMode={isDarkMode}
+                                onClick={() => setEditingLabel({ ...editingLabel, color: c })}
+                            />
+                        ))}
+                        <CustomColorButton
+                            type='button'
+                            $selected={!LABEL_COLORS.includes(editingLabel.color)}
+                            $isDarkMode={isDarkMode}
+                            $currentColor={!LABEL_COLORS.includes(editingLabel.color) ? editingLabel.color : undefined}
+                            onClick={() => setShouldOpenEditingColorPicker(true)}
+                            title='カスタムカラー'
+                        >
+                            +
+                        </CustomColorButton>
+                        <HiddenColorInput
+                            ref={editingCustomColorInputRef}
+                            type='color'
+                            value={editingLabel.color}
+                            onChange={(e) =>
+                                setEditingLabel({
+                                    ...editingLabel,
+                                    color: e.target.value,
+                                })
+                            }
+                        />
+                    </LabelColorPicker>
+                    <SaveLabelButton type='button' onClick={handleUpdateLabel}>
+                        保存
+                    </SaveLabelButton>
+                    <CancelLabelButton type='button' onClick={() => setEditingLabel(null)} $theme={theme}>
+                        キャンセル
+                    </CancelLabelButton>
+                </>
+            ) : (
+                <>
+                    <DragHandle title='ドラッグして並び替え'>⋮⋮</DragHandle>
+                    <LabelPreview $color={label.color}>{label.name}</LabelPreview>
+                    <EditLabelButton type='button' onClick={() => setEditingLabel(label)} $theme={theme}>
+                        編集
+                    </EditLabelButton>
+                    <DeleteLabelButton type='button' onClick={() => handleDeleteLabel(label.id)}>
+                        削除
+                    </DeleteLabelButton>
+                </>
+            )}
+        </LabelItem>
+    )
 }
 
 export function BoardModal({ boardId, onClose }: BoardModalProps) {
@@ -114,6 +217,31 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
             await removeLabelFromBoard(boardId, labelId)
         }
     }
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event
+        if (!over || !boardId || !board?.labels || active.id === over.id) return
+
+        const oldIndex = board.labels.findIndex((l) => l.id === active.id)
+        const newIndex = board.labels.findIndex((l) => l.id === over.id)
+
+        if (oldIndex === -1 || newIndex === -1) return
+
+        // 配列を並び替える
+        const reorderedLabels = [...board.labels]
+        const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
+        reorderedLabels.splice(newIndex, 0, movedLabel)
+
+        await updateBoard(boardId, { labels: reorderedLabels })
+    }
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5, // 5px移動するまでドラッグ開始しない
+            },
+        })
+    )
 
     const handleExportLabels = () => {
         if (!board?.labels || board.labels.length === 0) {
@@ -361,94 +489,33 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
 
                         <LabelsSection>
                             <SectionTitle $theme={theme}>既存のラベル</SectionTitle>
-                            <LabelsList $theme={theme}>
-                                {board?.labels && board.labels.length > 0 ? (
-                                    board.labels.map((label) => (
-                                        <LabelItem key={label.id} $theme={theme}>
-                                            {editingLabel?.id === label.id ? (
-                                                <>
-                                                    <LabelInput
-                                                        type='text'
-                                                        value={editingLabel.name}
-                                                        onChange={(e) =>
-                                                            setEditingLabel({ ...editingLabel, name: e.target.value })
-                                                        }
-                                                        $theme={theme}
-                                                    />
-                                                    <LabelColorPicker>
-                                                        {LABEL_COLORS.map((c) => (
-                                                            <LabelColorOption
-                                                                key={c}
-                                                                type='button'
-                                                                $color={c}
-                                                                $selected={editingLabel.color === c}
-                                                                $isDarkMode={isDarkMode}
-                                                                onClick={() =>
-                                                                    setEditingLabel({ ...editingLabel, color: c })
-                                                                }
-                                                            />
-                                                        ))}
-                                                        <CustomColorButton
-                                                            type='button'
-                                                            $selected={!LABEL_COLORS.includes(editingLabel.color)}
-                                                            $isDarkMode={isDarkMode}
-                                                            $currentColor={
-                                                                !LABEL_COLORS.includes(editingLabel.color)
-                                                                    ? editingLabel.color
-                                                                    : undefined
-                                                            }
-                                                            onClick={() => setShouldOpenEditingColorPicker(true)}
-                                                            title='カスタムカラー'
-                                                        >
-                                                            +
-                                                        </CustomColorButton>
-                                                        <HiddenColorInput
-                                                            ref={editingCustomColorInputRef}
-                                                            type='color'
-                                                            value={editingLabel.color}
-                                                            onChange={(e) =>
-                                                                setEditingLabel({
-                                                                    ...editingLabel,
-                                                                    color: e.target.value,
-                                                                })
-                                                            }
-                                                        />
-                                                    </LabelColorPicker>
-                                                    <SaveLabelButton type='button' onClick={handleUpdateLabel}>
-                                                        保存
-                                                    </SaveLabelButton>
-                                                    <CancelLabelButton
-                                                        type='button'
-                                                        onClick={() => setEditingLabel(null)}
-                                                        $theme={theme}
-                                                    >
-                                                        キャンセル
-                                                    </CancelLabelButton>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <LabelPreview $color={label.color}>{label.name}</LabelPreview>
-                                                    <EditLabelButton
-                                                        type='button'
-                                                        onClick={() => setEditingLabel(label)}
-                                                        $theme={theme}
-                                                    >
-                                                        編集
-                                                    </EditLabelButton>
-                                                    <DeleteLabelButton
-                                                        type='button'
-                                                        onClick={() => handleDeleteLabel(label.id)}
-                                                    >
-                                                        削除
-                                                    </DeleteLabelButton>
-                                                </>
-                                            )}
-                                        </LabelItem>
-                                    ))
-                                ) : (
-                                    <EmptyLabels $theme={theme}>ラベルがありません</EmptyLabels>
-                                )}
-                            </LabelsList>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <LabelsList $theme={theme}>
+                                    {board?.labels && board.labels.length > 0 ? (
+                                        <SortableContext
+                                            items={board.labels.map((l) => l.id)}
+                                            strategy={verticalListSortingStrategy}
+                                        >
+                                            {board.labels.map((label) => (
+                                                <SortableLabelItem
+                                                    key={label.id}
+                                                    label={label}
+                                                    editingLabel={editingLabel}
+                                                    setEditingLabel={setEditingLabel}
+                                                    handleUpdateLabel={handleUpdateLabel}
+                                                    handleDeleteLabel={handleDeleteLabel}
+                                                    isDarkMode={isDarkMode}
+                                                    theme={theme}
+                                                    editingCustomColorInputRef={editingCustomColorInputRef}
+                                                    setShouldOpenEditingColorPicker={setShouldOpenEditingColorPicker}
+                                                />
+                                            ))}
+                                        </SortableContext>
+                                    ) : (
+                                        <EmptyLabels $theme={theme}>ラベルがありません</EmptyLabels>
+                                    )}
+                                </LabelsList>
+                            </DndContext>
                         </LabelsSection>
 
                         <LabelsFooter>
@@ -770,7 +837,7 @@ const ExportButton = styled(SecondaryButton)`
     font-size: 13px;
 `
 
-const ImportButton = styled(OutlinedPrimaryButton)`
+const ImportButton = styled(SecondaryButton)`
     padding: 8px 16px;
     font-size: 13px;
 `
@@ -800,8 +867,27 @@ const LabelItem = styled.div<{ $theme: Theme }>`
     padding: 8px;
     border: 1px solid ${(props) => props.$theme.border};
     border-radius: 4px;
-    background-color: ${(props) => props.$theme.surfaceHover};
+    background-color: ${(props) => props.$theme.inputBackground};
     flex-wrap: wrap;
+    cursor: move;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: ${(props) => props.$theme.surfaceHover};
+    }
+`
+
+const DragHandle = styled.div`
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+    line-height: 1;
+    cursor: grab;
+    user-select: none;
+    padding: 0 4px;
+
+    &:active {
+        cursor: grabbing;
+    }
 `
 
 const LabelPreview = styled.div<{ $color: string }>`

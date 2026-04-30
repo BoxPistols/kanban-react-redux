@@ -1,11 +1,11 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, memo } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { PrimaryButton, SecondaryButton } from './Button'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
 
-export function InputForm({
+export const InputForm = memo(function InputForm({
     value,
     onChange,
     onConfirm,
@@ -49,7 +49,7 @@ export function InputForm({
             </ButtonRow>
         </Container>
     )
-}
+})
 
 /**
  * テキストエリアの高さを内容に合わせて自動調整する
