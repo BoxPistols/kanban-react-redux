@@ -12,7 +12,10 @@ export function Auth({ onSkipAuth }: AuthProps) {
     const [isSignUp, setIsSignUp] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const { signUp, signIn, signInWithGoogle, error, isLoading } = useAuthStore()
+    const [showResetPassword, setShowResetPassword] = useState(false)
+    const [resetEmail, setResetEmail] = useState('')
+    const [resetSuccess, setResetSuccess] = useState(false)
+    const { signUp, signIn, signInWithGoogle, resetPassword, error, isLoading } = useAuthStore()
     const isDarkMode = useThemeStore((state) => state.isDarkMode)
     const theme = getTheme(isDarkMode)
 
@@ -42,86 +45,158 @@ export function Auth({ onSkipAuth }: AuthProps) {
         }
     }
 
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault()
+
+        if (!resetEmail) {
+            return
+        }
+
+        try {
+            await resetPassword(resetEmail)
+            setResetSuccess(true)
+        } catch (error) {
+            // Error handled by store
+        }
+    }
+
     return (
         <Container $theme={theme}>
             <FormCard $theme={theme}>
                 <Title $theme={theme}>Kanban Board</Title>
-                <Subtitle $theme={theme}>{isSignUp ? 'アカウントを作成' : 'ログイン'}</Subtitle>
+                <Subtitle $theme={theme}>
+                    {showResetPassword ? 'パスワードリセット' : isSignUp ? 'アカウントを作成' : 'ログイン'}
+                </Subtitle>
 
-                <Form onSubmit={handleSubmit}>
-                    <InputGroup>
-                        <Label $theme={theme}>メールアドレス</Label>
-                        <Input
-                            type='email'
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder='mail@example.com'
-                            required
-                            $theme={theme}
-                        />
-                    </InputGroup>
+                {showResetPassword ? (
+                    <>
+                        {resetSuccess ? (
+                            <SuccessMessage $theme={theme}>
+                                パスワードリセットメールを送信しました。
+                                <br />
+                                メールのリンクからパスワードを再設定してください。
+                            </SuccessMessage>
+                        ) : (
+                            <Form onSubmit={handleResetPassword}>
+                                <InputGroup>
+                                    <Label $theme={theme}>メールアドレス</Label>
+                                    <Input
+                                        type='email'
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        placeholder='mail@example.com'
+                                        required
+                                        $theme={theme}
+                                    />
+                                </InputGroup>
 
-                    <InputGroup>
-                        <Label $theme={theme}>パスワード</Label>
-                        <Input
-                            type='password'
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder='6文字以上'
-                            required
-                            minLength={6}
-                            $theme={theme}
-                        />
-                    </InputGroup>
+                                {error && <ErrorMessage $theme={theme}>{error}</ErrorMessage>}
 
-                    {error && <ErrorMessage $theme={theme}>{error}</ErrorMessage>}
+                                <SubmitButton type='submit' disabled={isLoading} $theme={theme}>
+                                    {isLoading ? '送信中...' : 'リセットメールを送信'}
+                                </SubmitButton>
+                            </Form>
+                        )}
 
-                    <SubmitButton type='submit' disabled={isLoading} $theme={theme}>
-                        {isLoading ? '処理中...' : isSignUp ? 'アカウント作成' : 'ログイン'}
-                    </SubmitButton>
-                </Form>
+                        <ToggleText $theme={theme}>
+                            <ToggleButton
+                                onClick={() => {
+                                    setShowResetPassword(false)
+                                    setResetSuccess(false)
+                                    setResetEmail('')
+                                }}
+                                $theme={theme}
+                            >
+                                ログインに戻る
+                            </ToggleButton>
+                        </ToggleText>
+                    </>
+                ) : (
+                    <>
+                        <Form onSubmit={handleSubmit}>
+                            <InputGroup>
+                                <Label $theme={theme}>メールアドレス</Label>
+                                <Input
+                                    type='email'
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder='mail@example.com'
+                                    required
+                                    $theme={theme}
+                                />
+                            </InputGroup>
 
-                <Divider $theme={theme}>
-                    <DividerLine $theme={theme} />
-                    <DividerText $theme={theme}>または</DividerText>
-                    <DividerLine $theme={theme} />
-                </Divider>
+                            <InputGroup>
+                                <Label $theme={theme}>パスワード</Label>
+                                <Input
+                                    type='password'
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder='6文字以上'
+                                    required
+                                    minLength={6}
+                                    $theme={theme}
+                                />
+                            </InputGroup>
 
-                <GoogleButton onClick={handleGoogleSignIn} disabled={isLoading} $theme={theme}>
-                    <GoogleIcon>
-                        <svg viewBox='0 0 24 24' width='18' height='18'>
-                            <path
-                                fill='#4285F4'
-                                d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
-                            />
-                            <path
-                                fill='#34A853'
-                                d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'
-                            />
-                            <path
-                                fill='#FBBC05'
-                                d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'
-                            />
-                            <path
-                                fill='#EA4335'
-                                d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'
-                            />
-                        </svg>
-                    </GoogleIcon>
-                    Googleでログイン
-                </GoogleButton>
+                            {error && <ErrorMessage $theme={theme}>{error}</ErrorMessage>}
 
-                <ToggleText $theme={theme}>
-                    {isSignUp ? 'アカウントをお持ちですか？' : 'アカウントをお持ちでないですか？'}
-                    <ToggleButton onClick={() => setIsSignUp(!isSignUp)} $theme={theme}>
-                        {isSignUp ? 'ログイン' : 'アカウント作成'}
-                    </ToggleButton>
-                </ToggleText>
+                            <SubmitButton type='submit' disabled={isLoading} $theme={theme}>
+                                {isLoading ? '処理中...' : isSignUp ? 'アカウント作成' : 'ログイン'}
+                            </SubmitButton>
+                        </Form>
 
-                {onSkipAuth && (
-                    <OfflineButton onClick={onSkipAuth} $theme={theme}>
-                        ログインせずにオフラインで使用
-                    </OfflineButton>
+                        {!isSignUp && (
+                            <ForgotPasswordLink $theme={theme}>
+                                <ForgotPasswordButton onClick={() => setShowResetPassword(true)} $theme={theme}>
+                                    パスワードをお忘れですか？
+                                </ForgotPasswordButton>
+                            </ForgotPasswordLink>
+                        )}
+
+                        <Divider $theme={theme}>
+                            <DividerLine $theme={theme} />
+                            <DividerText $theme={theme}>または</DividerText>
+                            <DividerLine $theme={theme} />
+                        </Divider>
+
+                        <GoogleButton onClick={handleGoogleSignIn} disabled={isLoading} $theme={theme}>
+                            <GoogleIcon>
+                                <svg viewBox='0 0 24 24' width='18' height='18'>
+                                    <path
+                                        fill='#4285F4'
+                                        d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
+                                    />
+                                    <path
+                                        fill='#34A853'
+                                        d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'
+                                    />
+                                    <path
+                                        fill='#FBBC05'
+                                        d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'
+                                    />
+                                    <path
+                                        fill='#EA4335'
+                                        d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'
+                                    />
+                                </svg>
+                            </GoogleIcon>
+                            Googleでログイン
+                        </GoogleButton>
+
+                        <ToggleText $theme={theme}>
+                            {isSignUp ? 'アカウントをお持ちですか？' : 'アカウントをお持ちでないですか？'}
+                            <ToggleButton onClick={() => setIsSignUp(!isSignUp)} $theme={theme}>
+                                {isSignUp ? 'ログイン' : 'アカウント作成'}
+                            </ToggleButton>
+                        </ToggleText>
+
+                        {onSkipAuth && (
+                            <OfflineButton onClick={onSkipAuth} $theme={theme}>
+                                ログインせずにオフラインで使用
+                            </OfflineButton>
+                        )}
+                    </>
                 )}
             </FormCard>
         </Container>
@@ -319,4 +394,35 @@ const OfflineButton = styled.button<{ $theme: Theme }>`
         background: ${(props) => props.$theme.surfaceHover};
         color: ${(props) => props.$theme.text};
     }
+`
+
+const ForgotPasswordLink = styled.div<{ $theme: Theme }>`
+    text-align: center;
+    margin-top: 12px;
+`
+
+const ForgotPasswordButton = styled.button<{ $theme: Theme }>`
+    background: none;
+    border: none;
+    color: ${(props) => props.$theme.textSecondary};
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    text-decoration: underline;
+    transition: color 0.2s;
+
+    &:hover {
+        color: ${(props) => props.$theme.text};
+    }
+`
+
+const SuccessMessage = styled.div<{ $theme: Theme }>`
+    background-color: #e3fcef;
+    border: 1px solid #00875a;
+    border-radius: 4px;
+    color: #006644;
+    padding: 16px;
+    font-size: 14px;
+    text-align: center;
+    line-height: 1.6;
 `

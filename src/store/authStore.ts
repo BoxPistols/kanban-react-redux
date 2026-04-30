@@ -7,6 +7,7 @@ import {
     GoogleAuthProvider,
     signOut,
     onAuthStateChanged,
+    sendPasswordResetEmail,
     User,
 } from 'firebase/auth'
 import { getAuth } from 'firebase/auth'
@@ -30,6 +31,7 @@ interface AuthState {
     signUp: (email: string, password: string) => Promise<void>
     signIn: (email: string, password: string) => Promise<void>
     signInWithGoogle: () => Promise<void>
+    resetPassword: (email: string) => Promise<void>
     logOut: () => Promise<void>
     initAuth: () => void
 }
@@ -116,6 +118,33 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error: unknown) {
             console.error('Error signing in with Google:', error)
             const errorMessage = 'Googleログインに失敗しました'
+            set({ error: errorMessage, isLoading: false })
+            throw error
+        }
+    },
+
+    resetPassword: async (email: string) => {
+        if (!isFirebaseEnabled || !app) {
+            set({ error: 'Firebase is not configured. Authentication is not available.' })
+            return
+        }
+
+        try {
+            set({ isLoading: true, error: null })
+            const auth = getAuth(app)
+            await sendPasswordResetEmail(auth, email)
+            set({ isLoading: false })
+        } catch (error: unknown) {
+            console.error('Error sending password reset email:', error)
+            let errorMessage = 'パスワードリセットメールの送信に失敗しました'
+            const code = getErrorCode(error)
+
+            if (code === 'auth/user-not-found') {
+                errorMessage = 'このメールアドレスは登録されていません'
+            } else if (code === 'auth/invalid-email') {
+                errorMessage = 'メールアドレスの形式が正しくありません'
+            }
+
             set({ error: errorMessage, isLoading: false })
             throw error
         }
