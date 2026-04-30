@@ -7,10 +7,7 @@ import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon, SettingsIcon } from 
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { useTrashStore } from './store/trashStore'
-import { useBoardStore } from './store/boardStore'
-import { useKanbanStore } from './store/kanbanStore'
 import { isFirebaseEnabled } from './lib/firebase'
-import { generateSeedData, filterSeedBoards, filterSeedCards } from './utils/seedData'
 
 // 遅延ロード: TrashModal
 const TrashModal = lazy(() => import('./TrashModal').then((m) => ({ default: m.TrashModal })))
@@ -24,8 +21,6 @@ export function Header({ className }: { className?: string }) {
     const { isDarkMode, toggleDarkMode } = useThemeStore()
     const { user, logOut } = useAuthStore()
     const { trashedCards, loadTrash } = useTrashStore()
-    const { boards, addBoard, deleteBoard } = useBoardStore()
-    const { cards, setCards } = useKanbanStore()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false)
     const [isDevMenuOpen, setIsDevMenuOpen] = useState(false)
@@ -39,71 +34,6 @@ export function Header({ className }: { className?: string }) {
         if (window.confirm('ログアウトしますか？')) {
             await logOut()
             setIsMenuOpen(false)
-        }
-    }
-
-    // サンプルデータ追加
-    const handleAddSeedData = async () => {
-        if (!window.confirm('サンプルデータを追加しますか？\n（ボード2個、カード9個が追加されます）')) {
-            return
-        }
-
-        const seedData = generateSeedData()
-
-        try {
-            // ボードを追加
-            for (const board of seedData.boards) {
-                await addBoard(board.name, board.description, board.color, board.labels)
-            }
-
-            // カードを追加（localStorage用に直接setCards）
-            const newCards = [...cards, ...seedData.cards]
-            setCards(newCards)
-
-            alert('✅ サンプルデータを追加しました！')
-            setIsMenuOpen(false)
-            setIsDevMenuOpen(false)
-        } catch (error) {
-            console.error('Seed data error:', error)
-            alert('❌ サンプルデータの追加に失敗しました')
-        }
-    }
-
-    // サンプルデータ削除
-    const handleRemoveSeedData = async () => {
-        const seedBoards = filterSeedBoards(boards)
-        if (seedBoards.length === 0) {
-            alert('削除するサンプルデータがありません')
-            return
-        }
-
-        if (
-            !window.confirm(
-                `サンプルデータを削除しますか？\n（${seedBoards.length}個のボードと関連カードが削除されます）`
-            )
-        ) {
-            return
-        }
-
-        try {
-            const seedBoardIds = seedBoards.map((b) => b.id)
-
-            // ボードを削除
-            for (const boardId of seedBoardIds) {
-                await deleteBoard(boardId)
-            }
-
-            // カードを削除
-            const remainingCards = filterSeedCards(cards, seedBoardIds)
-            const newCards = cards.filter((card) => !remainingCards.some((sc) => sc.id === card.id))
-            setCards(newCards)
-
-            alert('✅ サンプルデータを削除しました')
-            setIsMenuOpen(false)
-            setIsDevMenuOpen(false)
-        } catch (error) {
-            console.error('Remove seed data error:', error)
-            alert('❌ サンプルデータの削除に失敗しました')
         }
     }
 
@@ -221,8 +151,7 @@ export function Header({ className }: { className?: string }) {
                             data-dev-menu-container
                             $isDarkMode={isDarkMode}
                         >
-                            <DevMenuItem onClick={handleAddSeedData}>サンプルデータを追加</DevMenuItem>
-                            <DevMenuItem onClick={handleRemoveSeedData}>サンプルデータを削除</DevMenuItem>
+                            {/* 開発者向けメニュー項目 */}
                         </DevMenuDropdown>
                     )}
                 </DevMenuContainer>
@@ -288,14 +217,6 @@ export function Header({ className }: { className?: string }) {
                                 <span>ゴミ箱</span>
                                 {trashedCards.length > 0 && <MenuTrashBadge>{trashedCards.length}</MenuTrashBadge>}
                             </MenuTrashButton>
-                        </MenuSection>
-
-                        <MenuDivider />
-
-                        <MenuSection>
-                            <MenuSectionTitle>開発者向け</MenuSectionTitle>
-                            <MenuButton onClick={handleAddSeedData}>サンプルデータを追加</MenuButton>
-                            <MenuButton onClick={handleRemoveSeedData}>サンプルデータを削除</MenuButton>
                         </MenuSection>
 
                         {isFirebaseEnabled && user && (
@@ -718,26 +639,4 @@ const DevMenuDropdown = styled.div<{ $isDarkMode?: boolean }>`
     padding: 8px;
     z-index: 100;
     border: 1px solid rgba(255, 255, 255, 0.1);
-`
-
-const DevMenuItem = styled.button`
-    display: block;
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    border-radius: 6px;
-    color: ${color.White};
-    font-size: 13px;
-    text-align: left;
-    transition: all 0.2s;
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.12);
-    }
-
-    & + & {
-        margin-top: 4px;
-    }
 `

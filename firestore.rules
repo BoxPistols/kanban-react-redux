@@ -1,49 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // カード: 自分が作成したカードのみ読み書き可能
-    match /cards/{cardId} {
-      // 読み取り: userIdが一致 OR userIdが未設定（移行用）
-      allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
-
-      // 更新: userIdが一致 OR userIdが未設定で移行中（userIdを追加する場合のみ）
-      allow update: if request.auth != null
-        && (resource.data.userId == request.auth.uid
-            || (!('userId' in resource.data) && request.resource.data.userId == request.auth.uid));
-
-      // 削除: userIdが一致する場合のみ
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-
-      // 新規作成: userIdが認証ユーザーと一致する場合のみ
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
-
-    // ボード: 自分が作成したボードのみ読み書き可能
-    match /boards/{boardId} {
-      // 読み取り: userIdが一致 OR userIdが未設定（移行用）
-      allow read: if request.auth != null
-        && (resource.data.userId == request.auth.uid || !('userId' in resource.data));
-
-      // 更新: userIdが一致 OR userIdが未設定で移行中（userIdを追加する場合のみ）
-      allow update: if request.auth != null
-        && (resource.data.userId == request.auth.uid
-            || (!('userId' in resource.data) && request.resource.data.userId == request.auth.uid));
-
-      // 削除: userIdが一致する場合のみ
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-
-      // 新規作成: userIdが認証ユーザーと一致する場合のみ
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-    }
-
-    // ユーザー自身のデータのみアクセス可能
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // 認証されたユーザーは全てのドキュメントにアクセス可能
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
