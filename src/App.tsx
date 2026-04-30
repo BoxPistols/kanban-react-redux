@@ -23,6 +23,7 @@ import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import type { Card as CardType, ColumnType } from './types'
+import './utils/migrateUserData' // 移行関数をグローバルに公開
 
 // 遅延ロード: モーダル系コンポーネント
 const ColumnManager = lazy(() => import('./ColumnManager').then((m) => ({ default: m.ColumnManager })))
