@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import * as color from './color'
 import { CardFilter } from './CardFilter'
 import { BoardSelector } from './BoardSelector'
-import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon, SettingsIcon } from './icon'
+import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon } from './icon'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { useTrashStore } from './store/trashStore'
@@ -23,7 +23,6 @@ export function Header({ className }: { className?: string }) {
     const { trashedCards, loadTrash } = useTrashStore()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false)
-    const [isDevMenuOpen, setIsDevMenuOpen] = useState(false)
 
     // ゴミ箱を読み込む
     useEffect(() => {
@@ -65,34 +64,6 @@ export function Header({ className }: { className?: string }) {
         }
     }, [isMenuOpen])
 
-    // 開発者メニューを閉じるための副作用
-    useEffect(() => {
-        if (!isDevMenuOpen) {
-            return
-        }
-
-        const handleClickOutside = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            if (!target.closest('[data-dev-menu-container]')) {
-                setIsDevMenuOpen(false)
-            }
-        }
-
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                setIsDevMenuOpen(false)
-            }
-        }
-
-        document.addEventListener('click', handleClickOutside)
-        document.addEventListener('keydown', handleEsc)
-
-        return () => {
-            document.removeEventListener('click', handleClickOutside)
-            document.removeEventListener('keydown', handleEsc)
-        }
-    }, [isDevMenuOpen])
-
     return (
         <Container className={className} $isDarkMode={isDarkMode}>
             {/* 左グループ: ロゴ + ボード */}
@@ -130,31 +101,6 @@ export function Header({ className }: { className?: string }) {
                     <TrashIcon />
                     {trashedCards.length > 0 && <TrashBadge>{trashedCards.length}</TrashBadge>}
                 </TrashButton>
-            </DesktopOnly>
-
-            <DesktopOnly>
-                <DevMenuContainer>
-                    <DevMenuButton
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            setIsDevMenuOpen(!isDevMenuOpen)
-                        }}
-                        title='開発者メニュー'
-                        aria-label='開発者メニュー'
-                        data-dev-menu-container
-                    >
-                        <SettingsIcon />
-                    </DevMenuButton>
-                    {isDevMenuOpen && (
-                        <DevMenuDropdown
-                            onClick={(e) => e.stopPropagation()}
-                            data-dev-menu-container
-                            $isDarkMode={isDarkMode}
-                        >
-                            {/* 開発者向けメニュー項目 */}
-                        </DevMenuDropdown>
-                    )}
-                </DevMenuContainer>
             </DesktopOnly>
 
             {isFirebaseEnabled && user && (
@@ -593,50 +539,4 @@ const MenuTrashBadge = styled.span`
     align-items: center;
     justify-content: center;
     margin-left: auto;
-`
-
-const DevMenuContainer = styled.div`
-    position: relative;
-`
-
-const DevMenuButton = styled.button`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    margin-left: 4px;
-    padding: 0;
-    border: none;
-    background: rgba(255, 255, 255, 0.08);
-    cursor: pointer;
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.75);
-    transition: all 0.2s;
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.16);
-        color: rgba(255, 255, 255, 1);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-`
-
-const DevMenuDropdown = styled.div<{ $isDarkMode?: boolean }>`
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 220px;
-    background: ${(props) =>
-        props.$isDarkMode
-            ? 'linear-gradient(180deg, #0D1117 0%, #161B22 100%)'
-            : 'linear-gradient(180deg, #1B2638 0%, #243447 100%)'};
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    padding: 8px;
-    z-index: 100;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 `
