@@ -17,7 +17,7 @@ export function TrashModal({ onClose }: TrashModalProps) {
     const { trashedCards, restoreFromTrash, permanentlyDelete, emptyTrash, loadTrash, getDaysUntilPermanentDeletion } =
         useTrashStore()
     const { restoreCard } = useKanbanStore()
-    const { boards, currentBoardId } = useBoardStore()
+    const { boards, currentBoardId, setCurrentBoardId } = useBoardStore()
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
 
@@ -26,10 +26,24 @@ export function TrashModal({ onClose }: TrashModalProps) {
     }, [loadTrash])
 
     const handleRestore = async (card: TrashedCard) => {
+        console.log('[TrashModal] Starting restore:', {
+            cardId: card.id,
+            cardText: card.text,
+            originalBoardId: card.originalBoardId,
+            originalColumnId: card.originalColumnId,
+            currentBoardId,
+        })
+
         // 元のボードが存在するか確認
         const originalBoard = boards.find((b) => b.id === card.originalBoardId)
         const targetBoardId = originalBoard ? card.originalBoardId : currentBoardId
         const targetColumnId = card.originalColumnId as ColumnType
+
+        console.log('[TrashModal] Target:', {
+            targetBoardId,
+            targetColumnId,
+            hasOriginalBoard: !!originalBoard,
+        })
 
         if (!targetBoardId) {
             alert('復元先のボードを選択してください')
@@ -38,10 +52,27 @@ export function TrashModal({ onClose }: TrashModalProps) {
 
         // ゴミ箱から削除
         const restoredCard = restoreFromTrash(card.id)
+        console.log('[TrashModal] Restored from trash:', restoredCard)
+
         if (restoredCard) {
             // カードを復元
-            await restoreCard(restoredCard, targetBoardId, targetColumnId)
-            alert(`カードを${originalBoard ? '元の位置に' : '現在のボードに'}復元しました`)
+            try {
+                await restoreCard(restoredCard, targetBoardId, targetColumnId)
+                console.log('[TrashModal] Card restored successfully')
+
+                // 復元先のボードに切り替える（カードが表示されるようにする）
+                if (targetBoardId !== currentBoardId) {
+                    console.log('[TrashModal] Switching to target board:', targetBoardId)
+                    setCurrentBoardId(targetBoardId)
+                }
+
+                alert(`カードを${originalBoard ? '元の位置に' : '現在のボードに'}復元しました`)
+            } catch (error) {
+                console.error('[TrashModal] Failed to restore card:', error)
+                alert('カードの復元に失敗しました')
+            }
+        } else {
+            console.error('[TrashModal] Could not restore card from trash')
         }
     }
 
