@@ -15,6 +15,7 @@ import { Header as _Header } from './Header'
 import { Column } from './Column'
 import { Card as CardComponent } from './Card'
 import { Auth } from './Auth'
+import { ReloadPrompt } from './ReloadPrompt'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
@@ -43,6 +44,7 @@ export function App() {
     const [offlineMode, setOfflineMode] = useState(false)
     const [showColumnManager, setShowColumnManager] = useState(false)
     const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set())
+    const [showReloadPrompt, setShowReloadPrompt] = useState(false)
 
     // オフラインモードをストアに同期
     useEffect(() => {
@@ -144,6 +146,22 @@ export function App() {
             setCollapsedColumns(new Set())
         }
     }, [currentBoardId])
+
+    // データ取得の問題を検出してリロードを促す
+    useEffect(() => {
+        if (!isFirebaseEnabled || offlineMode || !isInitialized || !user) {
+            return
+        }
+
+        // 認証完了後10秒経過してもボードが空の場合、リロードプロンプトを表示
+        const timer = setTimeout(() => {
+            if (boards.length === 0) {
+                setShowReloadPrompt(true)
+            }
+        }, 10000)
+
+        return () => clearTimeout(timer)
+    }, [isInitialized, user, boards.length, offlineMode])
 
     // Show loading while checking auth
     if (isFirebaseEnabled && !isInitialized && !offlineMode) {
@@ -272,6 +290,11 @@ export function App() {
         })
     }
 
+    const handleHardReload = () => {
+        // ハードリロード（キャッシュをクリア）
+        window.location.reload()
+    }
+
     const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
 
     return (
@@ -325,6 +348,8 @@ export function App() {
                 </MainArea>
 
                 <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
+
+                <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
 
                 {showColumnManager && currentBoardId && (
                     <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
