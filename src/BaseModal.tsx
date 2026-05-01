@@ -112,7 +112,7 @@ const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
     padding-bottom: env(safe-area-inset-bottom, 0);
     pointer-events: auto;
     isolation: isolate;
-    animation: overlayIn 0.2s ease-out;
+    animation: overlayIn 0.1s ease-out;
 
     @keyframes overlayIn {
         from {
@@ -145,12 +145,12 @@ const Modal = styled.div<{ $theme: Theme; $maxWidth: string }>`
     pointer-events: auto;
     isolation: isolate;
     overflow: hidden;
-    animation: modalIn 0.25s ease-out;
+    animation: modalIn 0.12s ease-out;
 
     @keyframes modalIn {
         from {
             opacity: 0;
-            transform: translateY(8px) scale(0.98);
+            transform: translateY(6px) scale(0.99);
         }
         to {
             opacity: 1;

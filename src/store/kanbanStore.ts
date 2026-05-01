@@ -142,12 +142,17 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                 updatedAt: Date.now(),
             }
 
+            console.log('[addCard] Creating card:', { text, columnId, boardId, order: maxOrder + 1 })
+
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
                 // Firebase mode
-                await addDoc(collection(db!, 'cards'), newCardData)
+                console.log('[addCard] Using Firebase mode')
+                const docRef = await addDoc(collection(db!, 'cards'), newCardData)
+                console.log('[addCard] Card created with ID:', docRef.id)
             } else {
                 // LocalStorage mode
+                console.log('[addCard] Using LocalStorage mode')
                 const newCard: Card = {
                     id: uuidv4(),
                     ...newCardData,
@@ -159,7 +164,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error adding card:', error)
+            console.error('[addCard] Error adding card:', error)
             set({ error: 'カードの追加に失敗しました', isLoading: false })
             throw error
         }
@@ -213,19 +218,25 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         try {
             set({ isLoading: true, error: null })
 
+            console.log('[deleteCard] Deleting card:', id)
+
             // カードをゴミ箱に移動
             const cardToDelete = get().cards.find((card) => card.id === id)
             if (cardToDelete) {
+                console.log('[deleteCard] Moving to trash:', cardToDelete.text)
                 useTrashStore.getState().addToTrash(cardToDelete)
             }
 
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
                 // Firebase mode
+                console.log('[deleteCard] Using Firebase mode')
                 const cardRef = doc(db!, 'cards', id)
                 await deleteDoc(cardRef)
+                console.log('[deleteCard] Card deleted successfully')
             } else {
                 // LocalStorage mode
+                console.log('[deleteCard] Using LocalStorage mode')
                 const currentCards = get().cards
                 const updatedCards = currentCards.filter((card) => card.id !== id)
                 set({ cards: updatedCards })
@@ -233,7 +244,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error deleting card:', error)
+            console.error('[deleteCard] Error deleting card:', error)
             set({ error: 'カードの削除に失敗しました', isLoading: false })
         }
     },
