@@ -253,12 +253,22 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         try {
             set({ isLoading: true, error: null })
 
+            console.log('[restoreCard] Restoring card:', { cardId: card.id, boardId, columnId })
+
             // 復元先カラムのカード数を取得してorderを設定
             const cardsInColumn = get().cards.filter((c) => c.columnId === columnId && c.boardId === boardId)
             const maxOrder = cardsInColumn.length > 0 ? Math.max(...cardsInColumn.map((c) => c.order)) : -1
 
+            // TrashedCard特有のフィールド（deletedAt, originalBoardId, originalColumnId）を除外
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { deletedAt, originalBoardId, originalColumnId, ...cardWithoutTrashFields } = card as Card & {
+                deletedAt?: number
+                originalBoardId?: string
+                originalColumnId?: string
+            }
+
             const restoredCard: Card = {
-                ...card,
+                ...cardWithoutTrashFields,
                 boardId,
                 columnId,
                 order: maxOrder + 1,
@@ -268,11 +278,14 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
                 // Firebase mode - 新しいドキュメントとして追加（idを除外して保存）
+                console.log('[restoreCard] Using Firebase mode')
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { id: _id, ...cardData } = restoredCard
-                await addDoc(collection(db!, 'cards'), cardData)
+                const docRef = await addDoc(collection(db!, 'cards'), cardData)
+                console.log('[restoreCard] Card restored with new ID:', docRef.id)
             } else {
                 // LocalStorage mode - preserve original ID
+                console.log('[restoreCard] Using LocalStorage mode')
                 const currentCards = get().cards
                 const updatedCards = [...currentCards, restoredCard]
                 set({ cards: updatedCards })
@@ -280,7 +293,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error restoring card:', error)
+            console.error('[restoreCard] Error restoring card:', error)
             set({ error: 'カードの復元に失敗しました', isLoading: false })
         }
     },

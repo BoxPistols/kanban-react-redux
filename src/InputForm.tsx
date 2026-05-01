@@ -4,6 +4,7 @@ import * as color from './color'
 import { PrimaryButton, SecondaryButton } from './Button'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
+import { isComposing, isModifierKey, getModifierKeySymbol } from './utils/keyboard'
 
 export const InputForm = memo(function InputForm({
     value,
@@ -28,17 +29,26 @@ export const InputForm = memo(function InputForm({
 
     const ref = useAutoFitToContentHeight(value)
 
+    const modifierKey = getModifierKeySymbol()
+
     return (
         <Container className={className}>
             <Input
                 ref={ref}
                 autoFocus
-                placeholder='Enter a note'
+                placeholder={`Enter a note (${modifierKey}+Enter to submit)`}
                 value={value}
                 onChange={(ev) => onChange?.(ev.currentTarget.value)}
                 onKeyDown={(ev) => {
-                    if (!((ev.metaKey || ev.ctrlKey) && ev.key === 'Enter')) return
-                    handleConfirm()
+                    // IME入力中はEnterキーを無視
+                    if (isComposing(ev)) return
+
+                    // Cmd+Enter / Ctrl+Enter でsubmit
+                    if (isModifierKey(ev) && ev.key === 'Enter') {
+                        ev.preventDefault()
+                        handleConfirm()
+                    }
+                    // 通常のEnterキーは改行（デフォルト動作）
                 }}
                 $theme={theme}
             />

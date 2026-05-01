@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, memo, useRef, useImperativeHandle, forwardRef } from 'react'
 import styled from 'styled-components'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
@@ -54,89 +54,104 @@ function SortableLabelChip({ label, isSelected, toggleLabelFilter }: SortableLab
     )
 }
 
-export const CardFilter = memo(function CardFilter() {
-    const { searchQuery, selectedLabelIds, setSearchQuery, toggleLabelFilter } = useKanbanStore()
-    const { boards, currentBoardId, updateBoard } = useBoardStore()
-    const { isDarkMode } = useThemeStore()
-    const theme = getTheme(isDarkMode)
+export interface CardFilterRef {
+    focus: () => void
+}
 
-    // ローカル入力値（即座に更新）
-    const [inputValue, setInputValue] = useState(searchQuery)
-    // デバウンス後の値（300ms遅延）
-    const debouncedValue = useDebounce(inputValue, 300)
+export const CardFilter = memo(
+    forwardRef<CardFilterRef>(function CardFilter(_props, ref) {
+        const { searchQuery, selectedLabelIds, setSearchQuery, toggleLabelFilter } = useKanbanStore()
+        const { boards, currentBoardId, updateBoard } = useBoardStore()
+        const { isDarkMode } = useThemeStore()
+        const theme = getTheme(isDarkMode)
+        const inputRef = useRef<HTMLInputElement>(null)
 
-    // デバウンス後の値をストアに反映
-    useEffect(() => {
-        setSearchQuery(debouncedValue)
-    }, [debouncedValue, setSearchQuery])
-
-    // ストアの値が外部から変更された場合に同期
-    useEffect(() => {
-        setInputValue(searchQuery)
-    }, [searchQuery])
-
-    const currentBoard = boards.find((b) => b.id === currentBoardId)
-    const labels = currentBoard?.labels || []
-
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event
-        if (!over || !currentBoardId || !currentBoard?.labels || active.id === over.id) return
-
-        const oldIndex = currentBoard.labels.findIndex((l) => l.id === active.id)
-        const newIndex = currentBoard.labels.findIndex((l) => l.id === over.id)
-
-        if (oldIndex === -1 || newIndex === -1) return
-
-        // 配列を並び替える
-        const reorderedLabels = [...currentBoard.labels]
-        const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
-        reorderedLabels.splice(newIndex, 0, movedLabel)
-
-        await updateBoard(currentBoardId, { labels: reorderedLabels })
-    }
-
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 5, // 5px移動するまでドラッグ開始しない
+        // 外部からフォーカスできるようにする
+        useImperativeHandle(ref, () => ({
+            focus: () => {
+                inputRef.current?.focus()
             },
-        })
-    )
+        }))
 
-    return (
-        <FilterContainer>
-            <SearchContainer $theme={theme}>
-                <SearchIcon />
-                <Input
-                    placeholder='Filter cards'
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    aria-label='カード検索'
-                />
-            </SearchContainer>
+        // ローカル入力値（即座に更新）
+        const [inputValue, setInputValue] = useState(searchQuery)
+        // デバウンス後の値（300ms遅延）
+        const debouncedValue = useDebounce(inputValue, 300)
 
-            {labels.length > 0 && (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={labels.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
-                        <LabelsContainer>
-                            {labels.map((label) => {
-                                const isSelected = selectedLabelIds.includes(label.id)
-                                return (
-                                    <SortableLabelChip
-                                        key={label.id}
-                                        label={label}
-                                        isSelected={isSelected}
-                                        toggleLabelFilter={toggleLabelFilter}
-                                    />
-                                )
-                            })}
-                        </LabelsContainer>
-                    </SortableContext>
-                </DndContext>
-            )}
-        </FilterContainer>
-    )
-})
+        // デバウンス後の値をストアに反映
+        useEffect(() => {
+            setSearchQuery(debouncedValue)
+        }, [debouncedValue, setSearchQuery])
+
+        // ストアの値が外部から変更された場合に同期
+        useEffect(() => {
+            setInputValue(searchQuery)
+        }, [searchQuery])
+
+        const currentBoard = boards.find((b) => b.id === currentBoardId)
+        const labels = currentBoard?.labels || []
+
+        const handleDragEnd = async (event: DragEndEvent) => {
+            const { active, over } = event
+            if (!over || !currentBoardId || !currentBoard?.labels || active.id === over.id) return
+
+            const oldIndex = currentBoard.labels.findIndex((l) => l.id === active.id)
+            const newIndex = currentBoard.labels.findIndex((l) => l.id === over.id)
+
+            if (oldIndex === -1 || newIndex === -1) return
+
+            // 配列を並び替える
+            const reorderedLabels = [...currentBoard.labels]
+            const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
+            reorderedLabels.splice(newIndex, 0, movedLabel)
+
+            await updateBoard(currentBoardId, { labels: reorderedLabels })
+        }
+
+        const sensors = useSensors(
+            useSensor(PointerSensor, {
+                activationConstraint: {
+                    distance: 5, // 5px移動するまでドラッグ開始しない
+                },
+            })
+        )
+
+        return (
+            <FilterContainer>
+                <SearchContainer $theme={theme}>
+                    <SearchIcon />
+                    <Input
+                        ref={inputRef}
+                        placeholder='Filter cards'
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        aria-label='カード検索'
+                    />
+                </SearchContainer>
+
+                {labels.length > 0 && (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={labels.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
+                            <LabelsContainer>
+                                {labels.map((label) => {
+                                    const isSelected = selectedLabelIds.includes(label.id)
+                                    return (
+                                        <SortableLabelChip
+                                            key={label.id}
+                                            label={label}
+                                            isSelected={isSelected}
+                                            toggleLabelFilter={toggleLabelFilter}
+                                        />
+                                    )
+                                })}
+                            </LabelsContainer>
+                        </SortableContext>
+                    </DndContext>
+                )}
+            </FilterContainer>
+        )
+    })
+)
 
 const FilterContainer = styled.div`
     display: flex;

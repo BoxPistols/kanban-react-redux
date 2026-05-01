@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import { getTheme } from './theme'
 import { useThemeStore } from './store/themeStore'
+import { isMac } from './utils/keyboard'
 
 interface ReloadPromptProps {
     isVisible: boolean
@@ -21,8 +22,7 @@ export function ReloadPrompt({ isVisible, onReload }: ReloadPromptProps) {
 
     if (!isVisible && !isAnimating) return null
 
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
-    const shortcut = isMac ? 'Cmd + Shift + R' : 'Ctrl + Shift + R'
+    const shortcut = isMac() ? 'Cmd + Shift + R' : 'Ctrl + Shift + R'
 
     return (
         <Overlay $theme={theme} $isVisible={isVisible}>

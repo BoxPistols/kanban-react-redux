@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useState, lazy, Suspense, useRef } from 'react'
 import styled from 'styled-components'
 import {
     DndContext,
@@ -23,6 +23,7 @@ import { useAuthStore } from './store/authStore'
 import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
+import { isShortcutKey } from './utils/keyboard'
 import type { Card as CardType, ColumnType } from './types'
 
 // 遅延ロード: モーダル系コンポーネント
@@ -162,6 +163,21 @@ export function App() {
 
         return () => clearTimeout(timer)
     }, [isInitialized, user, boards.length, offlineMode])
+
+    // グローバルショートカットキー（Cmd+K / Ctrl+K で検索欄にフォーカス）
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Cmd+K / Ctrl+K で検索欄にフォーカス
+            if (isShortcutKey(e, 'k', { requireModifier: true })) {
+                e.preventDefault()
+                const searchInput = document.querySelector<HTMLInputElement>('input[aria-label="カード検索"]')
+                searchInput?.focus()
+            }
+        }
+
+        document.addEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [])
 
     // Show loading while checking auth
     if (isFirebaseEnabled && !isInitialized && !offlineMode) {
