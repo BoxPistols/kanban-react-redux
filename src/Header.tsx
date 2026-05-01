@@ -197,6 +197,8 @@ export function Header({ className }: { className?: string }) {
 const Container = styled.div<{ $isDarkMode?: boolean }>`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     /* iPhoneのノッチ/ダイナミックアイランド対応 */
     padding-top: max(10px, env(safe-area-inset-top, 0));
     padding-right: max(16px, env(safe-area-inset-right, 0));
@@ -208,11 +210,22 @@ const Container = styled.div<{ $isDarkMode?: boolean }>`
     position: relative;
     z-index: 10;
 
+    @media (max-width: 1200px) {
+        padding-right: max(12px, env(safe-area-inset-right, 0));
+        padding-left: max(12px, env(safe-area-inset-left, 0));
+        gap: 6px;
+    }
+
+    @media (max-width: 900px) {
+        gap: 4px;
+    }
+
     @media (max-width: 768px) {
         padding-top: max(8px, env(safe-area-inset-top, 0));
-        padding-right: max(12px, env(safe-area-inset-right, 0));
+        padding-right: max(8px, env(safe-area-inset-right, 0));
         padding-bottom: 8px;
-        padding-left: max(12px, env(safe-area-inset-left, 0));
+        padding-left: max(8px, env(safe-area-inset-left, 0));
+        gap: 6px;
     }
 `
 
@@ -223,8 +236,18 @@ const Logo = styled.div`
     flex-shrink: 0;
     letter-spacing: -0.01em;
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+        font-size: 13px;
+        &::after {
+            content: 'KB';
+        }
+        & {
+            font-size: 0;
+        }
     }
 `
 
@@ -233,6 +256,10 @@ const LeftGroup = styled.div`
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+
+    @media (max-width: 1024px) {
+        gap: 2px;
+    }
 `
 
 const DesktopOnly = styled.div`
@@ -247,6 +274,13 @@ const DesktopOnly = styled.div`
 const Spacer = styled.div`
     flex: 1;
     min-width: 8px;
+
+    @media (max-width: 900px) {
+        min-width: 4px;
+        flex: 0 0 auto;
+        width: 100%;
+        height: 0;
+    }
 `
 
 const HeaderDivider = styled.div`
@@ -255,6 +289,14 @@ const HeaderDivider = styled.div`
     background: rgba(255, 255, 255, 0.12);
     margin: 0 8px;
     flex-shrink: 0;
+
+    @media (max-width: 1024px) {
+        margin: 0 4px;
+    }
+
+    @media (max-width: 900px) {
+        display: none;
+    }
 `
 
 const ThemeToggle = styled.button`
@@ -263,7 +305,6 @@ const ThemeToggle = styled.button`
     justify-content: center;
     width: 32px;
     height: 32px;
-    margin-left: 4px;
     padding: 0;
     border: none;
     background: rgba(255, 255, 255, 0.08);
@@ -287,7 +328,10 @@ const UserInfo = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: 8px;
+
+    @media (max-width: 1024px) {
+        gap: 4px;
+    }
 `
 
 const UserInitial = styled.div`
@@ -324,6 +368,10 @@ const LogoutButton = styled.button`
 
     &:hover {
         background: rgba(255, 255, 255, 0.2);
+    }
+
+    @media (max-width: 1200px) {
+        display: none;
     }
 `
 
@@ -485,7 +533,6 @@ const TrashButton = styled.button`
     justify-content: center;
     width: 32px;
     height: 32px;
-    margin-left: 4px;
     padding: 0;
     border: none;
     background: rgba(255, 255, 255, 0.08);
