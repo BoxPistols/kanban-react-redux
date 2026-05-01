@@ -163,9 +163,23 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                 saveCardsToLocalStorage(updatedCards)
             }
             set({ isLoading: false })
-        } catch (error) {
+        } catch (error: any) {
             console.error('[addCard] Error adding card:', error)
-            set({ error: 'カードの追加に失敗しました', isLoading: false })
+            let errorMessage = 'カードの追加に失敗しました'
+
+            // Firebaseエラーの詳細を取得
+            if (error?.code === 'permission-denied') {
+                errorMessage = '権限がありません。ログインしているか確認してください。'
+                console.error('[addCard] Permission denied. User auth state:', {
+                    isFirebaseEnabled,
+                    hasDb: !!db,
+                    forceOfflineMode: get().forceOfflineMode,
+                })
+            } else if (error?.message) {
+                errorMessage = `エラー: ${error.message}`
+            }
+
+            set({ error: errorMessage, isLoading: false })
             throw error
         }
     },

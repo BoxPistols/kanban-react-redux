@@ -198,7 +198,26 @@ export const useAuthStore = create<AuthState>((set) => ({
         // Listen for auth state changes
         onAuthStateChanged(auth, (user) => {
             // 認証状態変更を反映
+            console.log('[authStore] Auth state changed:', {
+                isAuthenticated: !!user,
+                email: user?.email,
+                uid: user?.uid,
+            })
             set({ user, isInitialized: true, isLoading: false })
         })
     },
 }))
+
+// Export helper to check auth state in console
+if (typeof window !== 'undefined') {
+    ;(window as any).checkAuth = () => {
+        const state = useAuthStore.getState()
+        console.log('Auth State:', {
+            user: state.user,
+            isInitialized: state.isInitialized,
+            isLoading: state.isLoading,
+            error: state.error,
+        })
+        return state.user
+    }
+}
