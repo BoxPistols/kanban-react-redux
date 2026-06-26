@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import {
     DndContext,
@@ -201,115 +201,121 @@ export function App() {
         )
     }
 
-    const handleDragStart = (event: DragStartEvent) => {
+    const handleDragStart = useCallback((event: DragStartEvent) => {
         setActiveId(event.active.id as string)
-    }
+    }, [])
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event
-        setActiveId(null)
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over } = event
+            setActiveId(null)
 
-        if (!over) return
+            if (!over) return
 
-        const activeId = active.id as string
-        const overId = over.id as string
+            const activeId = active.id as string
+            const overId = over.id as string
 
-        const activeCard = cards.find((c) => c.id === activeId)
-        if (!activeCard) return
+            const activeCard = cards.find((c) => c.id === activeId)
+            if (!activeCard) return
 
-        // Check if dropping on a column or a card
-        const overColumn = columns.find((col) => col.id === overId)
-        const overCard = cards.find((c) => c.id === overId)
+            // Check if dropping on a column or a card
+            const overColumn = columns.find((col) => col.id === overId)
+            const overCard = cards.find((c) => c.id === overId)
 
-        if (overCard) {
-            // Dropping on a card - handle sorting within same or different column
-            const activeColumnId = activeCard.columnId
-            const overColumnId = overCard.columnId
+            if (overCard) {
+                // Dropping on a card - handle sorting within same or different column
+                const activeColumnId = activeCard.columnId
+                const overColumnId = overCard.columnId
 
-            if (activeColumnId === overColumnId) {
-                // Same column - reorder within column
-                const columnCards = cardsByColumn[activeColumnId] || []
-                const oldIndex = columnCards.findIndex((c) => c.id === activeId)
-                const newIndex = columnCards.findIndex((c) => c.id === overId)
+                if (activeColumnId === overColumnId) {
+                    // Same column - reorder within column
+                    const columnCards = cardsByColumn[activeColumnId] || []
+                    const oldIndex = columnCards.findIndex((c) => c.id === activeId)
+                    const newIndex = columnCards.findIndex((c) => c.id === overId)
 
-                if (oldIndex !== newIndex) {
-                    const reorderedCards = arrayMove(columnCards, oldIndex, newIndex)
-                    const updates = reorderedCards.map((card, index) => ({
-                        id: card.id,
-                        order: index,
-                    }))
+                    if (oldIndex !== newIndex) {
+                        const reorderedCards = arrayMove(columnCards, oldIndex, newIndex)
+                        const updates = reorderedCards.map((card, index) => ({
+                            id: card.id,
+                            order: index,
+                        }))
+                        reorderCards(updates)
+                    }
+                } else {
+                    // Different column - move card to new column at specific position
+                    const targetColumnCards = cardsByColumn[overColumnId] || []
+                    const targetIndex = targetColumnCards.findIndex((c) => c.id === overId)
+
+                    // Create new order for the moved card and update all cards in target column
+                    const updates: { id: string; order: number; columnId?: ColumnType }[] = []
+
+                    // Update the moved card
+                    updates.push({
+                        id: activeId,
+                        order: targetIndex,
+                        columnId: overColumnId,
+                    })
+
+                    // Update cards in the target column that come after the insertion point
+                    targetColumnCards.forEach((card, index) => {
+                        if (index >= targetIndex) {
+                            updates.push({
+                                id: card.id,
+                                order: index + 1,
+                            })
+                        }
+                    })
+
                     reorderCards(updates)
                 }
-            } else {
-                // Different column - move card to new column at specific position
-                const targetColumnCards = cardsByColumn[overColumnId] || []
-                const targetIndex = targetColumnCards.findIndex((c) => c.id === overId)
+            } else if (overColumn) {
+                // Dropping on a column - add to end of column
+                if (activeCard.columnId !== overColumn.id) {
+                    const targetColumnCards = cardsByColumn[overColumn.id] || []
+                    const newOrder = targetColumnCards.length
 
-                // Create new order for the moved card and update all cards in target column
-                const updates: { id: string; order: number; columnId?: ColumnType }[] = []
-
-                // Update the moved card
-                updates.push({
-                    id: activeId,
-                    order: targetIndex,
-                    columnId: overColumnId,
-                })
-
-                // Update cards in the target column that come after the insertion point
-                targetColumnCards.forEach((card, index) => {
-                    if (index >= targetIndex) {
-                        updates.push({
-                            id: card.id,
-                            order: index + 1,
-                        })
-                    }
-                })
-
-                reorderCards(updates)
-            }
-        } else if (overColumn) {
-            // Dropping on a column - add to end of column
-            if (activeCard.columnId !== overColumn.id) {
-                const targetColumnCards = cardsByColumn[overColumn.id] || []
-                const newOrder = targetColumnCards.length
-
-                reorderCards([
-                    {
-                        id: activeId,
-                        order: newOrder,
-                        columnId: overColumn.id,
-                    },
-                ])
-            }
-        }
-    }
-
-    const toggleColumnCollapse = (columnId: string) => {
-        setCollapsedColumns((prev) => {
-            const next = new Set(prev)
-            if (next.has(columnId)) {
-                next.delete(columnId)
-            } else {
-                next.add(columnId)
-            }
-            if (currentBoardId) {
-                try {
-                    const stored = localStorage.getItem('kanban-collapsed-columns')
-                    const data = stored ? JSON.parse(stored) : {}
-                    data[currentBoardId] = [...next]
-                    localStorage.setItem('kanban-collapsed-columns', JSON.stringify(data))
-                } catch {
-                    /* localStorage書き込み失敗時は無視 */
+                    reorderCards([
+                        {
+                            id: activeId,
+                            order: newOrder,
+                            columnId: overColumn.id,
+                        },
+                    ])
                 }
             }
-            return next
-        })
-    }
+        },
+        [cards, columns, cardsByColumn, reorderCards]
+    )
 
-    const handleHardReload = () => {
+    const toggleColumnCollapse = useCallback(
+        (columnId: string) => {
+            setCollapsedColumns((prev) => {
+                const next = new Set(prev)
+                if (next.has(columnId)) {
+                    next.delete(columnId)
+                } else {
+                    next.add(columnId)
+                }
+                if (currentBoardId) {
+                    try {
+                        const stored = localStorage.getItem('kanban-collapsed-columns')
+                        const data = stored ? JSON.parse(stored) : {}
+                        data[currentBoardId] = [...next]
+                        localStorage.setItem('kanban-collapsed-columns', JSON.stringify(data))
+                    } catch {
+                        /* localStorage書き込み失敗時は無視 */
+                    }
+                }
+                return next
+            })
+        },
+        [currentBoardId]
+    )
+
+    const handleHardReload = useCallback(() => {
         // ハードリロード（キャッシュをクリア）
         window.location.reload()
-    }
+    }, [])
 
     const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
 
