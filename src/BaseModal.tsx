@@ -1,4 +1,4 @@
-import { useEffect, ReactNode, useRef } from 'react'
+import { useEffect, ReactNode, useRef, memo } from 'react'
 import { createPortal } from 'react-dom'
 import styled from 'styled-components'
 import { useThemeStore } from './store/themeStore'
@@ -21,7 +21,12 @@ function isIOS(): boolean {
     )
 }
 
-export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTop = false }: BaseModalProps) {
+export const BaseModal = memo(function BaseModal({
+    onClose,
+    children,
+    maxWidth = '600px',
+    mobileAlignTop = false,
+}: BaseModalProps) {
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
     const modalRef = useRef<HTMLDivElement>(null)
@@ -89,7 +94,7 @@ export function BaseModal({ onClose, children, maxWidth = '600px', mobileAlignTo
     )
 
     return createPortal(modalContent, document.body)
-}
+})
 
 const Overlay = styled.div<{ $mobileAlignTop: boolean }>`
     position: fixed;

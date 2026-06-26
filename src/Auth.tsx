@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, memo } from 'react'
 import styled from 'styled-components'
 import { useAuthStore } from './store/authStore'
 import { useThemeStore } from './store/themeStore'
@@ -8,7 +8,7 @@ interface AuthProps {
     onSkipAuth?: () => void
 }
 
-export function Auth({ onSkipAuth }: AuthProps) {
+export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
     const [isSignUp, setIsSignUp] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -207,7 +207,7 @@ export function Auth({ onSkipAuth }: AuthProps) {
             </FormCard>
         </Container>
     )
-}
+})
 
 const Container = styled.div<{ $theme: Theme }>`
     display: flex;
