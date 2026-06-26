@@ -1,4 +1,4 @@
-import { useState, memo, useMemo } from 'react'
+import { useState, memo, useMemo, useCallback } from 'react'
 import styled from 'styled-components'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -36,20 +36,20 @@ export const Column = memo(function Column({
     const [text, setText] = useState('')
     const [inputMode, setInputMode] = useState(false)
 
-    const toggleInput = () => setInputMode((v) => !v)
+    const toggleInput = useCallback(() => setInputMode((v) => !v), [])
 
-    const confirmInput = async () => {
+    const confirmInput = useCallback(async () => {
         if (text.trim() && boardId) {
             await addCard(text.trim(), id, boardId)
             setText('')
             setInputMode(false)
         }
-    }
+    }, [text, boardId, addCard, id])
 
-    const cancelInput = () => {
+    const cancelInput = useCallback(() => {
         setText('')
         setInputMode(false)
-    }
+    }, [])
 
     const cardIds = useMemo(() => cards.map((card) => card.id), [cards])
 

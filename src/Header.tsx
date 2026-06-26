@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, memo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { CardFilter } from './CardFilter'
@@ -17,7 +17,7 @@ function getFirstChar(email: string): string {
     return email[0]?.toLowerCase() || ''
 }
 
-export function Header({ className }: { className?: string }) {
+export const Header = memo(function Header({ className }: { className?: string }) {
     const { isDarkMode, toggleDarkMode } = useThemeStore()
     const { user, logOut } = useAuthStore()
     const { trashedCards, loadTrash } = useTrashStore()
@@ -29,12 +29,12 @@ export function Header({ className }: { className?: string }) {
         loadTrash()
     }, [loadTrash])
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
         if (window.confirm('ログアウトしますか？')) {
             await logOut()
             setIsMenuOpen(false)
         }
-    }
+    }, [logOut])
 
     // メニューを閉じるための副作用（クリック外・ESCキー）
     useEffect(() => {
@@ -192,7 +192,7 @@ export function Header({ className }: { className?: string }) {
             )}
         </Container>
     )
-}
+})
 
 const Container = styled.div<{ $isDarkMode?: boolean }>`
     display: flex;
