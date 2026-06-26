@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, memo, useMemo, useCallback } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { useBoardStore } from './store/boardStore'
@@ -10,22 +10,26 @@ export const BoardSelector = memo(function BoardSelector() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingBoard, setEditingBoard] = useState<string | null>(null)
 
-    const currentBoard = boards.find((b) => b.id === currentBoardId)
+    // currentBoardの検索を最適化
+    const currentBoard = useMemo(() => boards.find((b) => b.id === currentBoardId), [boards, currentBoardId])
 
-    const handleBoardChange = (boardId: string) => {
-        setCurrentBoardId(boardId)
-    }
+    const handleBoardChange = useCallback(
+        (boardId: string) => {
+            setCurrentBoardId(boardId)
+        },
+        [setCurrentBoardId]
+    )
 
-    const handleEditBoard = (e: React.MouseEvent, boardId: string) => {
+    const handleEditBoard = useCallback((e: React.MouseEvent, boardId: string) => {
         e.stopPropagation()
         setEditingBoard(boardId)
         setIsModalOpen(true)
-    }
+    }, [])
 
-    const handleCloseModal = () => {
+    const handleCloseModal = useCallback(() => {
         setIsModalOpen(false)
         setEditingBoard(null)
-    }
+    }, [])
 
     return (
         <>
