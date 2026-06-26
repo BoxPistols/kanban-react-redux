@@ -16,6 +16,7 @@ import { Column } from './Column'
 import { Card as CardComponent } from './Card'
 import { Auth } from './Auth'
 import { ReloadPrompt } from './ReloadPrompt'
+import { ErrorBoundary } from './ErrorBoundary'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
@@ -320,66 +321,68 @@ export function App() {
     const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
 
     return (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <GlobalStyle $theme={theme} />
-            <Container $theme={theme} data-app-container>
-                <Header />
+        <ErrorBoundary>
+            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <GlobalStyle $theme={theme} />
+                <Container $theme={theme} data-app-container>
+                    <Header />
 
-                <MainArea $theme={theme}>
-                    <HorizontalScroll data-horizontal-scroll>
-                        {!currentBoardId ? (
-                            <EmptyState>
-                                <EmptyIcon>
-                                    <BoardIcon />
-                                </EmptyIcon>
-                                <EmptyTitle $theme={theme}>ボードを選択してください</EmptyTitle>
-                                <EmptyText $theme={theme}>
-                                    ヘッダーの「+ ボード」ボタンから新しいボードを作成できます
-                                </EmptyText>
-                            </EmptyState>
-                        ) : (
-                            <>
-                                {columns.map((column) => {
-                                    const columnCards = cardsByColumn[column.id] || []
+                    <MainArea $theme={theme}>
+                        <HorizontalScroll data-horizontal-scroll>
+                            {!currentBoardId ? (
+                                <EmptyState>
+                                    <EmptyIcon>
+                                        <BoardIcon />
+                                    </EmptyIcon>
+                                    <EmptyTitle $theme={theme}>ボードを選択してください</EmptyTitle>
+                                    <EmptyText $theme={theme}>
+                                        ヘッダーの「+ ボード」ボタンから新しいボードを作成できます
+                                    </EmptyText>
+                                </EmptyState>
+                            ) : (
+                                <>
+                                    {columns.map((column) => {
+                                        const columnCards = cardsByColumn[column.id] || []
 
-                                    return (
-                                        <Column
-                                            key={column.id}
-                                            id={column.id}
-                                            title={column.title}
-                                            cards={columnCards}
-                                            boardId={currentBoardId}
-                                            columnColor={column.color}
-                                            isCollapsed={collapsedColumns.has(column.id)}
-                                            onToggleCollapse={() => toggleColumnCollapse(column.id)}
-                                        />
-                                    )
-                                })}
-                                <AddColumnButton
-                                    $theme={theme}
-                                    onClick={() => setShowColumnManager(true)}
-                                    title='レーンを管理'
-                                    aria-label='レーンを管理'
-                                >
-                                    <AddColumnIcon>+</AddColumnIcon>
-                                    <AddColumnText>レーン管理</AddColumnText>
-                                </AddColumnButton>
-                            </>
-                        )}
-                    </HorizontalScroll>
-                </MainArea>
+                                        return (
+                                            <Column
+                                                key={column.id}
+                                                id={column.id}
+                                                title={column.title}
+                                                cards={columnCards}
+                                                boardId={currentBoardId}
+                                                columnColor={column.color}
+                                                isCollapsed={collapsedColumns.has(column.id)}
+                                                onToggleCollapse={() => toggleColumnCollapse(column.id)}
+                                            />
+                                        )
+                                    })}
+                                    <AddColumnButton
+                                        $theme={theme}
+                                        onClick={() => setShowColumnManager(true)}
+                                        title='レーンを管理'
+                                        aria-label='レーンを管理'
+                                    >
+                                        <AddColumnIcon>+</AddColumnIcon>
+                                        <AddColumnText>レーン管理</AddColumnText>
+                                    </AddColumnButton>
+                                </>
+                            )}
+                        </HorizontalScroll>
+                    </MainArea>
 
-                <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
+                    <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
 
-                <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
+                    <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
 
-                {showColumnManager && currentBoardId && (
-                    <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
-                        <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
-                    </Suspense>
-                )}
-            </Container>
-        </DndContext>
+                    {showColumnManager && currentBoardId && (
+                        <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
+                            <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
+                        </Suspense>
+                    )}
+                </Container>
+            </DndContext>
+        </ErrorBoundary>
     )
 }
 
