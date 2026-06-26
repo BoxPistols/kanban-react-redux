@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import styled from 'styled-components'
 import { parseUrls } from './utils/urlUtils'
 import type { UrlMetadata } from './types'
@@ -22,44 +22,52 @@ type Segment = {
  * テキスト内のURLを検出し、ハイパーリンクとして表示するコンポーネント
  */
 export const LinkedText = React.memo(function LinkedText({ text, metadata = [], theme, className }: LinkedTextProps) {
-    const urls = parseUrls(text)
+    const urls = useMemo(() => parseUrls(text), [text])
 
-    if (urls.length === 0) {
-        return <span className={className}>{text}</span>
-    }
+    const segments = useMemo(() => {
+        if (urls.length === 0) {
+            return null
+        }
 
-    // テキストをプレーンテキストとリンクのセグメントに分割
-    const segments: Segment[] = []
-    let lastIndex = 0
+        // テキストをプレーンテキストとリンクのセグメントに分割
+        const segs: Segment[] = []
+        let lastIndex = 0
 
-    urls.forEach(({ url, startIndex, endIndex }) => {
-        // URL前のプレーンテキスト
-        if (startIndex > lastIndex) {
-            segments.push({
+        urls.forEach(({ url, startIndex, endIndex }) => {
+            // URL前のプレーンテキスト
+            if (startIndex > lastIndex) {
+                segs.push({
+                    type: 'text',
+                    content: text.slice(lastIndex, startIndex),
+                })
+            }
+
+            // リンクセグメント
+            const meta = metadata.find((m) => m.url === url)
+            const displayText = meta?.title || url
+
+            segs.push({
+                type: 'link',
+                url,
+                displayText,
+            })
+
+            lastIndex = endIndex
+        })
+
+        // 残りのテキスト
+        if (lastIndex < text.length) {
+            segs.push({
                 type: 'text',
-                content: text.slice(lastIndex, startIndex),
+                content: text.slice(lastIndex),
             })
         }
 
-        // リンクセグメント
-        const meta = metadata.find((m) => m.url === url)
-        const displayText = meta?.title || url
+        return segs
+    }, [urls, text, metadata])
 
-        segments.push({
-            type: 'link',
-            url,
-            displayText,
-        })
-
-        lastIndex = endIndex
-    })
-
-    // 残りのテキスト
-    if (lastIndex < text.length) {
-        segments.push({
-            type: 'text',
-            content: text.slice(lastIndex),
-        })
+    if (!segments) {
+        return <span className={className}>{text}</span>
     }
 
     return (
