@@ -43,11 +43,12 @@ function SortableLabelChip({ label, isSelected, toggleLabelFilter }: SortableLab
                     toggleLabelFilter(label.id)
                 }
             }}
+            {...attributes}
+            {...listeners}
+            role='checkbox'
             aria-checked={isSelected}
             title={`${label.name} でフィルター`}
             aria-label={`${label.name} でフィルター`}
-            {...attributes}
-            {...listeners}
         >
             {label.name}
         </LabelChip>
