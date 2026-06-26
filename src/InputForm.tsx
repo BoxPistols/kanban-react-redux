@@ -1,4 +1,4 @@
-import { useRef, useEffect, memo } from 'react'
+import { useRef, useEffect, memo, useCallback } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { PrimaryButton, SecondaryButton } from './Button'
@@ -22,10 +22,10 @@ export const InputForm = memo(function InputForm({
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
     const disabled = !value?.trim()
-    const handleConfirm = () => {
+    const handleConfirm = useCallback(() => {
         if (disabled) return
         onConfirm?.()
-    }
+    }, [disabled, onConfirm])
 
     const ref = useAutoFitToContentHeight(value)
 
