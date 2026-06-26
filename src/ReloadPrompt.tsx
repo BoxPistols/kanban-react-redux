@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import styled from 'styled-components'
 import { getTheme, type Theme } from './theme'
 import { useThemeStore } from './store/themeStore'
@@ -9,7 +9,7 @@ interface ReloadPromptProps {
     onReload: () => void
 }
 
-export function ReloadPrompt({ isVisible, onReload }: ReloadPromptProps) {
+export const ReloadPrompt = memo(function ReloadPrompt({ isVisible, onReload }: ReloadPromptProps) {
     const isDarkMode = useThemeStore((state) => state.isDarkMode)
     const theme = getTheme(isDarkMode)
     const [isAnimating, setIsAnimating] = useState(false)
@@ -43,7 +43,7 @@ export function ReloadPrompt({ isVisible, onReload }: ReloadPromptProps) {
             </Modal>
         </Overlay>
     )
-}
+})
 
 const Overlay = styled.div<{ $theme: Theme; $isVisible: boolean }>`
     position: fixed;
