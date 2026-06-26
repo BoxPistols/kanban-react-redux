@@ -27,17 +27,8 @@ export const LABEL_COLORS = [
     '#D53F8C', // Rose (Fun用)
 ]
 
-// Card color palette (ラベルと完全一致)
-export const CARD_COLORS = [
-    '#D69E2E', // Gold
-    '#38A169', // Emerald
-    '#E53E3E', // Ruby
-    '#3182CE', // Sapphire
-    '#805AD5', // Amethyst
-    '#DD6B20', // Amber
-    '#718096', // Slate
-    '#D53F8C', // Rose
-]
+// Card color palette (ラベルと完全一致のため、LABEL_COLORSを参照)
+export const CARD_COLORS = LABEL_COLORS
 
 // Card color labels (各色の意味づけ)
 export const CARD_COLOR_LABELS = [
