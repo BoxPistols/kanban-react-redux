@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import styled from 'styled-components'
 import { v4 as uuidv4 } from 'uuid'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
@@ -184,56 +184,68 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
         }
     }, [shouldOpenEditingColorPicker])
 
-    const handleAddLabel = async (e?: React.MouseEvent) => {
-        if (e) e.preventDefault()
-        if (!boardId || !newLabelName.trim()) return
-        await addLabelToBoard(boardId, {
-            name: newLabelName,
-            color: newLabelColor,
-        })
-        setNewLabelName('')
-        setNewLabelColor(LABEL_COLORS[0])
-    }
+    const handleAddLabel = useCallback(
+        async (e?: React.MouseEvent) => {
+            if (e) e.preventDefault()
+            if (!boardId || !newLabelName.trim()) return
+            await addLabelToBoard(boardId, {
+                name: newLabelName,
+                color: newLabelColor,
+            })
+            setNewLabelName('')
+            setNewLabelColor(LABEL_COLORS[0])
+        },
+        [boardId, newLabelName, newLabelColor, addLabelToBoard]
+    )
 
-    const handleLabelKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            e.preventDefault()
-            handleAddLabel()
-        }
-    }
+    const handleLabelKeyPress = useCallback(
+        (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddLabel()
+            }
+        },
+        [handleAddLabel]
+    )
 
-    const handleUpdateLabel = async () => {
+    const handleUpdateLabel = useCallback(async () => {
         if (!boardId || !editingLabel) return
         await updateLabel(boardId, editingLabel.id, {
             name: editingLabel.name,
             color: editingLabel.color,
         })
         setEditingLabel(null)
-    }
+    }, [boardId, editingLabel, updateLabel])
 
-    const handleDeleteLabel = async (labelId: string) => {
-        if (!boardId) return
-        if (window.confirm('このラベルを削除しますか？')) {
-            await removeLabelFromBoard(boardId, labelId)
-        }
-    }
+    const handleDeleteLabel = useCallback(
+        async (labelId: string) => {
+            if (!boardId) return
+            if (window.confirm('このラベルを削除しますか？')) {
+                await removeLabelFromBoard(boardId, labelId)
+            }
+        },
+        [boardId, removeLabelFromBoard]
+    )
 
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event
-        if (!over || !boardId || !board?.labels || active.id === over.id) return
+    const handleDragEnd = useCallback(
+        async (event: DragEndEvent) => {
+            const { active, over } = event
+            if (!over || !boardId || !board?.labels || active.id === over.id) return
 
-        const oldIndex = board.labels.findIndex((l) => l.id === active.id)
-        const newIndex = board.labels.findIndex((l) => l.id === over.id)
+            const oldIndex = board.labels.findIndex((l) => l.id === active.id)
+            const newIndex = board.labels.findIndex((l) => l.id === over.id)
 
-        if (oldIndex === -1 || newIndex === -1) return
+            if (oldIndex === -1 || newIndex === -1) return
 
-        // 配列を並び替える
-        const reorderedLabels = [...board.labels]
-        const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
-        reorderedLabels.splice(newIndex, 0, movedLabel)
+            // 配列を並び替える
+            const reorderedLabels = [...board.labels]
+            const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
+            reorderedLabels.splice(newIndex, 0, movedLabel)
 
-        await updateBoard(boardId, { labels: reorderedLabels })
-    }
+            await updateBoard(boardId, { labels: reorderedLabels })
+        },
+        [boardId, board?.labels, updateBoard]
+    )
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -243,7 +255,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
         })
     )
 
-    const handleExportLabels = () => {
+    const handleExportLabels = useCallback(() => {
         if (!board?.labels || board.labels.length === 0) {
             alert('エクスポートするラベルがありません')
             return
@@ -266,82 +278,88 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
-    }
+    }, [board])
 
-    const handleImportLabels = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file || !boardId) return
+    const handleImportLabels = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0]
+            if (!file || !boardId) return
 
-        try {
-            const text = await file.text()
-            const data = JSON.parse(text)
+            try {
+                const text = await file.text()
+                const data = JSON.parse(text)
 
-            if (!data.labels || !Array.isArray(data.labels)) {
-                alert('無効なファイル形式です')
-                return
-            }
-
-            // Use type guard to filter valid labels
-            const validLabels = (data.labels as ImportedLabel[]).filter(isValidLabel)
-
-            if (validLabels.length === 0) {
-                alert('有効なラベルが見つかりませんでした')
-                return
-            }
-
-            const existingNames = new Set(board?.labels?.map((l) => l.name.toLowerCase()) || [])
-            const labelsToAdd: { name: string; color: string }[] = []
-            let skippedCount = 0
-
-            for (const label of validLabels) {
-                if (existingNames.has(label.name.toLowerCase())) {
-                    skippedCount++
-                    continue
+                if (!data.labels || !Array.isArray(data.labels)) {
+                    alert('無効なファイル形式です')
+                    return
                 }
-                labelsToAdd.push({ name: label.name, color: label.color })
-                existingNames.add(label.name.toLowerCase())
+
+                // Use type guard to filter valid labels
+                const validLabels = (data.labels as ImportedLabel[]).filter(isValidLabel)
+
+                if (validLabels.length === 0) {
+                    alert('有効なラベルが見つかりませんでした')
+                    return
+                }
+
+                const existingNames = new Set(board?.labels?.map((l) => l.name.toLowerCase()) || [])
+                const labelsToAdd: { name: string; color: string }[] = []
+                let skippedCount = 0
+
+                for (const label of validLabels) {
+                    if (existingNames.has(label.name.toLowerCase())) {
+                        skippedCount++
+                        continue
+                    }
+                    labelsToAdd.push({ name: label.name, color: label.color })
+                    existingNames.add(label.name.toLowerCase())
+                }
+
+                // Batch update: add all labels at once
+                if (labelsToAdd.length > 0) {
+                    const newLabels = labelsToAdd.map((l) => ({ ...l, id: uuidv4() }))
+                    const updatedLabels = [...(board?.labels || []), ...newLabels]
+                    await updateBoard(boardId, { labels: updatedLabels })
+                }
+
+                const importedCount = labelsToAdd.length
+                alert(
+                    `${importedCount}個のラベルをインポートしました${skippedCount > 0 ? `\n（${skippedCount}個は既に存在するためスキップしました）` : ''}`
+                )
+            } catch (error) {
+                alert('ファイルの読み込みに失敗しました')
             }
 
-            // Batch update: add all labels at once
-            if (labelsToAdd.length > 0) {
-                const newLabels = labelsToAdd.map((l) => ({ ...l, id: uuidv4() }))
-                const updatedLabels = [...(board?.labels || []), ...newLabels]
-                await updateBoard(boardId, { labels: updatedLabels })
+            // Reset file input
+            if (importFileInputRef.current) {
+                importFileInputRef.current.value = ''
             }
+        },
+        [boardId, board?.labels, updateBoard]
+    )
 
-            const importedCount = labelsToAdd.length
-            alert(
-                `${importedCount}個のラベルをインポートしました${skippedCount > 0 ? `\n（${skippedCount}個は既に存在するためスキップしました）` : ''}`
-            )
-        } catch (error) {
-            alert('ファイルの読み込みに失敗しました')
-        }
+    const handleSubmit = useCallback(
+        async (e: React.FormEvent) => {
+            e.preventDefault()
+            if (!name.trim()) return
 
-        // Reset file input
-        if (importFileInputRef.current) {
-            importFileInputRef.current.value = ''
-        }
-    }
+            if (boardId) {
+                await updateBoard(boardId, { name, description, color: selectedColor })
+            } else {
+                await addBoard(name, description, selectedColor)
+            }
+            onClose()
+        },
+        [boardId, name, description, selectedColor, updateBoard, addBoard, onClose]
+    )
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!name.trim()) return
-
-        if (boardId) {
-            await updateBoard(boardId, { name, description, color: selectedColor })
-        } else {
-            await addBoard(name, description, selectedColor)
-        }
-        onClose()
-    }
-
-    const handleDelete = async () => {
+    const handleDelete = useCallback(async () => {
         if (!boardId) return
         if (window.confirm('このボードを削除しますか？ボード内のカードも全て削除されます。')) {
             await deleteBoard(boardId)
             onClose()
         }
-    }
+    }, [boardId, deleteBoard, onClose])
 
     return (
         <BaseModal onClose={onClose} maxWidth='500px'>
