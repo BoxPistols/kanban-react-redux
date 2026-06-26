@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import styled from 'styled-components'
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -32,7 +32,14 @@ interface SortableColumnItemProps {
     canDelete: boolean
 }
 
-function SortableColumnItem({ column, onEdit, onDelete, onColorChange, theme, canDelete }: SortableColumnItemProps) {
+const SortableColumnItem = memo(function SortableColumnItem({
+    column,
+    onEdit,
+    onDelete,
+    onColorChange,
+    theme,
+    canDelete,
+}: SortableColumnItemProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [editTitle, setEditTitle] = useState(column.title)
     const [showColors, setShowColors] = useState(false)
@@ -45,12 +52,12 @@ function SortableColumnItem({ column, onEdit, onDelete, onColorChange, theme, ca
         opacity: isDragging ? 0.5 : 1,
     }
 
-    const handleSaveEdit = () => {
+    const handleSaveEdit = useCallback(() => {
         if (editTitle.trim()) {
             onEdit(column.id, editTitle.trim())
         }
         setIsEditing(false)
-    }
+    }, [editTitle, onEdit, column.id])
 
     return (
         <ColumnItemRow ref={setNodeRef} style={style} $theme={theme}>
@@ -136,7 +143,7 @@ function SortableColumnItem({ column, onEdit, onDelete, onColorChange, theme, ca
             )}
         </ColumnItemRow>
     )
-}
+})
 
 interface ColumnManagerProps {
     boardId: string
@@ -148,38 +155,50 @@ export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
 
-    const columns = getColumns(boardId)
+    const columns = useMemo(() => getColumns(boardId), [getColumns, boardId])
     const [newColumnTitle, setNewColumnTitle] = useState('')
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event
-        if (!over || active.id === over.id) return
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over } = event
+            if (!over || active.id === over.id) return
 
-        const oldIndex = columns.findIndex((c) => c.id === active.id)
-        const newIndex = columns.findIndex((c) => c.id === over.id)
-        const reordered = arrayMove(columns, oldIndex, newIndex)
-        reorderColumns(boardId, reordered)
-    }
+            const oldIndex = columns.findIndex((c) => c.id === active.id)
+            const newIndex = columns.findIndex((c) => c.id === over.id)
+            const reordered = arrayMove(columns, oldIndex, newIndex)
+            reorderColumns(boardId, reordered)
+        },
+        [columns, boardId, reorderColumns]
+    )
 
-    const handleAddColumn = () => {
+    const handleAddColumn = useCallback(() => {
         if (!newColumnTitle.trim()) return
         addColumn(boardId, newColumnTitle.trim())
         setNewColumnTitle('')
-    }
+    }, [newColumnTitle, boardId, addColumn])
 
-    const handleEditColumn = (columnId: string, title: string) => {
-        updateColumn(boardId, columnId, { title })
-    }
+    const handleEditColumn = useCallback(
+        (columnId: string, title: string) => {
+            updateColumn(boardId, columnId, { title })
+        },
+        [boardId, updateColumn]
+    )
 
-    const handleDeleteColumn = (columnId: string) => {
-        removeColumn(boardId, columnId)
-    }
+    const handleDeleteColumn = useCallback(
+        (columnId: string) => {
+            removeColumn(boardId, columnId)
+        },
+        [boardId, removeColumn]
+    )
 
-    const handleColorChange = (columnId: string, newColor: string) => {
-        updateColumn(boardId, columnId, { color: newColor || undefined })
-    }
+    const handleColorChange = useCallback(
+        (columnId: string, newColor: string) => {
+            updateColumn(boardId, columnId, { color: newColor || undefined })
+        },
+        [boardId, updateColumn]
+    )
 
     return (
         <BaseModal onClose={onClose} maxWidth='500px'>
