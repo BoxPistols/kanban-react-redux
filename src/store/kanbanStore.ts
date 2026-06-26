@@ -142,17 +142,12 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                 updatedAt: Date.now(),
             }
 
-            console.log('[addCard] Creating card:', { text, columnId, boardId, order: maxOrder + 1 })
-
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
                 // Firebase mode
-                console.log('[addCard] Using Firebase mode')
-                const docRef = await addDoc(collection(db!, 'cards'), newCardData)
-                console.log('[addCard] Card created with ID:', docRef.id)
+                await addDoc(collection(db!, 'cards'), newCardData)
             } else {
                 // LocalStorage mode
-                console.log('[addCard] Using LocalStorage mode')
                 const newCard: Card = {
                     id: uuidv4(),
                     ...newCardData,
@@ -163,19 +158,13 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                 saveCardsToLocalStorage(updatedCards)
             }
             set({ isLoading: false })
-        } catch (error: any) {
-            console.error('[addCard] Error adding card:', error)
+        } catch (error: unknown) {
             let errorMessage = 'カードの追加に失敗しました'
 
             // Firebaseエラーの詳細を取得
-            if (error?.code === 'permission-denied') {
+            if (error && typeof error === 'object' && 'code' in error && error.code === 'permission-denied') {
                 errorMessage = '権限がありません。ログインしているか確認してください。'
-                console.error('[addCard] Permission denied. User auth state:', {
-                    isFirebaseEnabled,
-                    hasDb: !!db,
-                    forceOfflineMode: get().forceOfflineMode,
-                })
-            } else if (error?.message) {
+            } else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
                 errorMessage = `エラー: ${error.message}`
             }
 
@@ -200,7 +189,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                     },
                     true
                 ) // forFirestore = true
-                await updateDoc(cardRef, cleanedUpdates)
+                await updateDoc(cardRef, cleanedUpdates as Record<string, unknown>)
             } else {
                 // LocalStorage mode - nullの場合はフィールドを削除
                 const currentCards = get().cards
@@ -223,7 +212,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error updating card:', error)
             set({ error: 'カードの更新に失敗しました', isLoading: false })
         }
     },
@@ -232,25 +220,19 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         try {
             set({ isLoading: true, error: null })
 
-            console.log('[deleteCard] Deleting card:', id)
-
             // カードをゴミ箱に移動
             const cardToDelete = get().cards.find((card) => card.id === id)
             if (cardToDelete) {
-                console.log('[deleteCard] Moving to trash:', cardToDelete.text)
                 useTrashStore.getState().addToTrash(cardToDelete)
             }
 
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
                 // Firebase mode
-                console.log('[deleteCard] Using Firebase mode')
                 const cardRef = doc(db!, 'cards', id)
                 await deleteDoc(cardRef)
-                console.log('[deleteCard] Card deleted successfully')
             } else {
                 // LocalStorage mode
-                console.log('[deleteCard] Using LocalStorage mode')
                 const currentCards = get().cards
                 const updatedCards = currentCards.filter((card) => card.id !== id)
                 set({ cards: updatedCards })
@@ -258,7 +240,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('[deleteCard] Error deleting card:', error)
             set({ error: 'カードの削除に失敗しました', isLoading: false })
         }
     },
@@ -266,8 +247,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     restoreCard: async (card, boardId, columnId) => {
         try {
             set({ isLoading: true, error: null })
-
-            console.log('[restoreCard] Restoring card:', { cardId: card.id, boardId, columnId })
 
             // 復元先カラムのカード数を取得してorderを設定
             const cardsInColumn = get().cards.filter((c) => c.columnId === columnId && c.boardId === boardId)
@@ -292,14 +271,11 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
             if (useFirebase) {
                 // Firebase mode - 新しいドキュメントとして追加（idを除外して保存）
-                console.log('[restoreCard] Using Firebase mode')
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { id: _id, ...cardData } = restoredCard
-                const docRef = await addDoc(collection(db!, 'cards'), cardData)
-                console.log('[restoreCard] Card restored with new ID:', docRef.id)
+                await addDoc(collection(db!, 'cards'), cardData)
             } else {
                 // LocalStorage mode - preserve original ID
-                console.log('[restoreCard] Using LocalStorage mode')
                 const currentCards = get().cards
                 const updatedCards = [...currentCards, restoredCard]
                 set({ cards: updatedCards })
@@ -307,7 +283,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('[restoreCard] Error restoring card:', error)
             set({ error: 'カードの復元に失敗しました', isLoading: false })
         }
     },
@@ -338,7 +313,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error moving card:', error)
             set({ error: 'カードの移動に失敗しました', isLoading: false })
         }
     },
@@ -386,7 +360,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error reordering cards:', error)
             set({ error: 'カードの並べ替えに失敗しました', isLoading: false })
         }
     },
@@ -445,8 +418,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                     const cards = boardId ? allCards.filter((c) => c.boardId === boardId) : allCards
                     set({ cards, isLoading: false, error: null })
                 },
-                (error) => {
-                    console.error('Error subscribing to cards:', error)
+                () => {
                     // Firebase permission error - fall back to offline mode
                     // Firebaseエラー時はオフラインモードにフォールバック
                     loadLocal()

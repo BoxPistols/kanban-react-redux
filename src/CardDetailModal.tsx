@@ -268,7 +268,6 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             // 元のチェックリストアイテムを削除
             setChecklist(checklist.filter((i) => i.id !== item.id))
         } catch (error) {
-            console.error('Failed to convert checklist item to card:', error)
             alert('カードへの変換に失敗しました。')
         } finally {
             setConvertingItemId(null)

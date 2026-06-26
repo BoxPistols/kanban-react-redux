@@ -76,7 +76,6 @@ async function fetchYouTubeMetadata(url: string): Promise<{ title?: string; erro
         const data = await response.json()
         return { title: data.title || undefined }
     } catch (error) {
-        console.warn('Failed to fetch YouTube metadata:', error)
         return { error: true }
     }
 }
@@ -129,7 +128,6 @@ export async function fetchUrlMetadata(url: string): Promise<{ title?: string; e
 
         return { error: true }
     } catch (error) {
-        console.warn('Failed to fetch URL metadata:', error)
         return { error: true }
     }
 }

@@ -42,7 +42,7 @@ function loadTrashFromLocalStorage(): TrashedCard[] {
             return JSON.parse(stored)
         }
     } catch (error) {
-        console.error('Error loading trash from localStorage:', error)
+        // Failed to load trash
     }
     return []
 }
@@ -56,7 +56,6 @@ function saveTrashToLocalStorage(cards: TrashedCard[]): void {
     try {
         localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(cards))
     } catch (error) {
-        console.error('Error saving trash to localStorage:', error)
         inMemoryTrashedCards = cards
     }
 }

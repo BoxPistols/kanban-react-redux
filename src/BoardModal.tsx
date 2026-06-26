@@ -314,7 +314,6 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
                 `${importedCount}個のラベルをインポートしました${skippedCount > 0 ? `\n（${skippedCount}個は既に存在するためスキップしました）` : ''}`
             )
         } catch (error) {
-            console.error('Import error:', error)
             alert('ファイルの読み込みに失敗しました')
         }
 

@@ -37,7 +37,7 @@ function loadBoardsFromLocalStorage(): Board[] {
             return JSON.parse(stored)
         }
     } catch (error) {
-        console.error('Error loading boards from localStorage:', error)
+        // Failed to load boards
     }
     return []
 }
@@ -50,7 +50,6 @@ function saveBoardsToLocalStorage(boards: Board[]): void {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(boards))
     } catch (error) {
-        console.error('Error saving boards to localStorage:', error)
         // Fallback to in-memory
         inMemoryBoards = boards
     }
@@ -63,7 +62,6 @@ function loadCurrentBoardId(): string | null {
     try {
         return localStorage.getItem(CURRENT_BOARD_KEY)
     } catch (error) {
-        console.error('Error loading current board id:', error)
         return inMemoryCurrentBoardId
     }
 }
@@ -80,7 +78,6 @@ function saveCurrentBoardId(boardId: string | null): void {
             localStorage.removeItem(CURRENT_BOARD_KEY)
         }
     } catch (error) {
-        console.error('Error saving current board id:', error)
         // Fallback to in-memory
         inMemoryCurrentBoardId = boardId
     }
@@ -228,7 +225,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error adding board:', error)
             set({ error: 'ボードの追加に失敗しました', isLoading: false })
         }
     },
@@ -255,7 +251,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             }
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error updating board:', error)
             set({ error: 'ボードの更新に失敗しました', isLoading: false })
         }
     },
@@ -283,7 +278,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
             set({ isLoading: false })
         } catch (error) {
-            console.error('Error deleting board:', error)
             set({ error: 'ボードの削除に失敗しました', isLoading: false })
         }
     },
@@ -301,7 +295,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             const updatedLabels = [...(board.labels || []), newLabel]
             await get().updateBoard(boardId, { labels: updatedLabels })
         } catch (error) {
-            console.error('Error adding label to board:', error)
             set({ error: 'ラベルの追加に失敗しました' })
         }
     },
@@ -314,7 +307,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             const updatedLabels = (board.labels || []).filter((l) => l.id !== labelId)
             await get().updateBoard(boardId, { labels: updatedLabels })
         } catch (error) {
-            console.error('Error removing label from board:', error)
             set({ error: 'ラベルの削除に失敗しました' })
         }
     },
@@ -329,7 +321,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             )
             await get().updateBoard(boardId, { labels: updatedLabels })
         } catch (error) {
-            console.error('Error updating label:', error)
             set({ error: 'ラベルの更新に失敗しました' })
         }
     },
@@ -351,7 +342,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             const updatedColumns = [...columns, newColumn]
             await get().updateBoard(boardId, { columns: updatedColumns })
         } catch (error) {
-            console.error('Error adding column:', error)
             set({ error: 'カラムの追加に失敗しました' })
         }
     },
@@ -367,7 +357,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             const updatedColumns = columns.filter((c) => c.id !== columnId).map((c, index) => ({ ...c, order: index }))
             await get().updateBoard(boardId, { columns: updatedColumns })
         } catch (error) {
-            console.error('Error removing column:', error)
             set({ error: 'カラムの削除に失敗しました' })
         }
     },
@@ -381,7 +370,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             const updatedColumns = columns.map((col) => (col.id === columnId ? { ...col, ...updates } : col))
             await get().updateBoard(boardId, { columns: updatedColumns })
         } catch (error) {
-            console.error('Error updating column:', error)
             set({ error: 'カラムの更新に失敗しました' })
         }
     },
@@ -394,7 +382,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             }))
             await get().updateBoard(boardId, { columns: reorderedColumns })
         } catch (error) {
-            console.error('Error reordering columns:', error)
             set({ error: 'カラムの並べ替えに失敗しました' })
         }
     },
@@ -447,8 +434,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                         get().setCurrentBoardId(boards[0].id)
                     }
                 },
-                (error) => {
-                    console.error('Error subscribing to boards:', error)
+                () => {
                     // Firebaseエラー時はオフラインモードにフォールバック
                     get().initializeOfflineMode()
                 }

@@ -55,7 +55,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             // User will be set by onAuthStateChanged listener
             set({ isLoading: false })
         } catch (error: unknown) {
-            console.error('Error signing up:', error)
             let errorMessage = 'アカウント作成に失敗しました'
             const code = getErrorCode(error)
 
@@ -85,7 +84,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             // User will be set by onAuthStateChanged listener
             set({ isLoading: false })
         } catch (error: unknown) {
-            console.error('Error signing in:', error)
             let errorMessage = 'ログインに失敗しました'
             const code = getErrorCode(error)
 
@@ -116,7 +114,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             await signInWithRedirect(auth, provider)
             // User will be set by onAuthStateChanged listener after redirect
         } catch (error: unknown) {
-            console.error('Error signing in with Google:', error)
             const errorMessage = 'Googleログインに失敗しました'
             set({ error: errorMessage, isLoading: false })
             throw error
@@ -135,7 +132,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             await sendPasswordResetEmail(auth, email)
             set({ isLoading: false })
         } catch (error: unknown) {
-            console.error('Error sending password reset email:', error)
             let errorMessage = 'パスワードリセットメールの送信に失敗しました'
             const code = getErrorCode(error)
 
@@ -161,7 +157,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             await signOut(auth)
             set({ user: null, isLoading: false })
         } catch (error) {
-            console.error('Error signing out:', error)
             set({ error: 'ログアウトに失敗しました', isLoading: false })
         }
     },
@@ -184,7 +179,6 @@ export const useAuthStore = create<AuthState>((set) => ({
                 }
             })
             .catch((error) => {
-                console.error('Error handling redirect result:', error)
                 let errorMessage = 'ログインに失敗しました'
                 const code = getErrorCode(error)
 
@@ -197,12 +191,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
         // Listen for auth state changes
         onAuthStateChanged(auth, (user) => {
-            // 認証状態変更を反映
-            console.log('[authStore] Auth state changed:', {
-                isAuthenticated: !!user,
-                email: user?.email,
-                uid: user?.uid,
-            })
             set({ user, isInitialized: true, isLoading: false })
         })
     },
@@ -210,14 +198,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 // Export helper to check auth state in console
 if (typeof window !== 'undefined') {
-    ;(window as any).checkAuth = () => {
+    interface ExtendedWindow extends Window {
+        checkAuth?: () => User | null
+    }
+    ;(window as ExtendedWindow).checkAuth = () => {
         const state = useAuthStore.getState()
-        console.log('Auth State:', {
-            user: state.user,
-            isInitialized: state.isInitialized,
-            isLoading: state.isLoading,
-            error: state.error,
-        })
         return state.user
     }
 }
