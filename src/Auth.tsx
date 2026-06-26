@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import styled from 'styled-components'
 import { useAuthStore } from './store/authStore'
 import { useThemeStore } from './store/themeStore'
@@ -19,46 +19,52 @@ export function Auth({ onSkipAuth }: AuthProps) {
     const isDarkMode = useThemeStore((state) => state.isDarkMode)
     const theme = getTheme(isDarkMode)
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSubmit = useCallback(
+        async (e: React.FormEvent) => {
+            e.preventDefault()
 
-        if (!email || !password) {
-            return
-        }
-
-        try {
-            if (isSignUp) {
-                await signUp(email, password)
-            } else {
-                await signIn(email, password)
+            if (!email || !password) {
+                return
             }
-        } catch (error) {
-            // Error handled by store
-        }
-    }
 
-    const handleGoogleSignIn = async () => {
+            try {
+                if (isSignUp) {
+                    await signUp(email, password)
+                } else {
+                    await signIn(email, password)
+                }
+            } catch (error) {
+                // Error handled by store
+            }
+        },
+        [email, password, isSignUp, signUp, signIn]
+    )
+
+    const handleGoogleSignIn = useCallback(async () => {
         try {
             await signInWithGoogle()
         } catch (error) {
             // Error handled by store
         }
-    }
+    }, [signInWithGoogle])
 
-    const handleResetPassword = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleResetPassword = useCallback(
+        async (e: React.FormEvent) => {
+            e.preventDefault()
 
-        if (!resetEmail) {
-            return
-        }
+            if (!resetEmail) {
+                return
+            }
 
-        try {
-            await resetPassword(resetEmail)
-            setResetSuccess(true)
-        } catch (error) {
-            // Error handled by store
-        }
-    }
+            try {
+                await resetPassword(resetEmail)
+                setResetSuccess(true)
+            } catch (error) {
+                // Error handled by store
+            }
+        },
+        [resetEmail, resetPassword]
+    )
 
     return (
         <Container $theme={theme}>
