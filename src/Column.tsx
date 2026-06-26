@@ -58,10 +58,18 @@ export const Column = memo(function Column({
             <CollapsedColumn
                 ref={setNodeRef}
                 onClick={onToggleCollapse}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onToggleCollapse?.()
+                    }
+                }}
+                role='button'
+                tabIndex={0}
                 $theme={theme}
                 $columnColor={columnColor}
-                title={`${title} (${cards.length}) - クリックで展開`}
-                aria-label={`${title} (${cards.length}) - クリックで展開`}
+                title={`${title} (${cards.length}) - クリックまたはEnterキーで展開`}
+                aria-label={`${title} (${cards.length}) - クリックまたはEnterキーで展開`}
             >
                 <CollapsedCount $theme={theme} $columnColor={columnColor}>
                     {cards.length}
