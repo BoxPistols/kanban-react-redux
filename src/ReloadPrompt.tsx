@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { getTheme } from './theme'
+import { getTheme, type Theme } from './theme'
 import { useThemeStore } from './store/themeStore'
 import { isMac } from './utils/keyboard'
 
@@ -45,7 +45,7 @@ export function ReloadPrompt({ isVisible, onReload }: ReloadPromptProps) {
     )
 }
 
-const Overlay = styled.div<{ $theme: any; $isVisible: boolean }>`
+const Overlay = styled.div<{ $theme: Theme; $isVisible: boolean }>`
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
@@ -59,7 +59,7 @@ const Overlay = styled.div<{ $theme: any; $isVisible: boolean }>`
     pointer-events: ${(props) => (props.$isVisible ? 'auto' : 'none')};
 `
 
-const Modal = styled.div<{ $theme: any; $isVisible: boolean }>`
+const Modal = styled.div<{ $theme: Theme; $isVisible: boolean }>`
     background: ${(props) => props.$theme.surface};
     border-radius: 12px;
     padding: 32px;
@@ -79,21 +79,21 @@ const Icon = styled.div`
     margin-bottom: 16px;
 `
 
-const Title = styled.h2<{ $theme: any }>`
+const Title = styled.h2<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 12px 0;
 `
 
-const Message = styled.p<{ $theme: any }>`
+const Message = styled.p<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 14px;
     line-height: 1.6;
     margin: 0 0 16px 0;
 `
 
-const ShortcutHint = styled.div<{ $theme: any }>`
+const ShortcutHint = styled.div<{ $theme: Theme }>`
     background: ${(props) => props.$theme.background};
     color: ${(props) => props.$theme.textSecondary};
     font-size: 12px;
@@ -110,7 +110,7 @@ const ButtonGroup = styled.div`
     gap: 12px;
 `
 
-const ReloadButton = styled.button<{ $theme: any }>`
+const ReloadButton = styled.button<{ $theme: Theme }>`
     background: #0079bf;
     color: white;
     border: none;

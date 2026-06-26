@@ -15,9 +15,6 @@ function isFirebaseConfigured(): boolean {
     const missingVars = requiredEnvVars.filter((varName) => !import.meta.env[varName])
 
     if (missingVars.length > 0) {
-        if (import.meta.env.DEV) {
-            console.warn('Firebase not configured. Missing:', missingVars.join(', '))
-        }
         return false
     }
 
@@ -45,6 +42,6 @@ if (isFirebaseEnabled) {
         app = initializeApp(firebaseConfig)
         db = getFirestore(app)
     } catch (error) {
-        console.error('Firebase initialization failed:', error)
+        // Firebase initialization failed
     }
 }
