@@ -206,11 +206,11 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
         }
     }, [])
 
-    const handleRemoveImage = (imageId: string) => {
+    const handleRemoveImage = useCallback((imageId: string) => {
         setImages((prev) => prev.filter((img) => img.id !== imageId))
-    }
+    }, [])
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         await updateCard(card.id, {
             title,
             description,
@@ -223,18 +223,33 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             images: images.length > 0 ? images : undefined,
         })
         onClose()
-    }
+    }, [
+        updateCard,
+        card.id,
+        title,
+        description,
+        selectedLabels,
+        checklist,
+        dueDate,
+        progress,
+        cardColor,
+        images,
+        onClose,
+    ])
 
-    const toggleLabel = (label: Label) => {
-        const isSelected = selectedLabels.some((l) => l.id === label.id)
-        if (isSelected) {
-            setSelectedLabels(selectedLabels.filter((l) => l.id !== label.id))
-        } else {
-            setSelectedLabels([...selectedLabels, label])
-        }
-    }
+    const toggleLabel = useCallback(
+        (label: Label) => {
+            const isSelected = selectedLabels.some((l) => l.id === label.id)
+            if (isSelected) {
+                setSelectedLabels(selectedLabels.filter((l) => l.id !== label.id))
+            } else {
+                setSelectedLabels([...selectedLabels, label])
+            }
+        },
+        [selectedLabels]
+    )
 
-    const addChecklistItem = () => {
+    const addChecklistItem = useCallback(() => {
         if (!newChecklistItem.trim()) return
         const newItem: ChecklistItem = {
             id: uuidv4(),
@@ -244,69 +259,81 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
         }
         setChecklist([...checklist, newItem])
         setNewChecklistItem('')
-    }
+    }, [newChecklistItem, checklist])
 
-    const toggleChecklistItem = (itemId: string) => {
-        setChecklist(checklist.map((item) => (item.id === itemId ? { ...item, completed: !item.completed } : item)))
-    }
+    const toggleChecklistItem = useCallback(
+        (itemId: string) => {
+            setChecklist(checklist.map((item) => (item.id === itemId ? { ...item, completed: !item.completed } : item)))
+        },
+        [checklist]
+    )
 
-    const deleteChecklistItem = (itemId: string) => {
-        setChecklist(checklist.filter((item) => item.id !== itemId))
-    }
+    const deleteChecklistItem = useCallback(
+        (itemId: string) => {
+            setChecklist(checklist.filter((item) => item.id !== itemId))
+        },
+        [checklist]
+    )
 
-    const convertChecklistItemToCard = async (e: React.MouseEvent, item: ChecklistItem) => {
-        e.stopPropagation()
-        e.preventDefault()
+    const convertChecklistItemToCard = useCallback(
+        async (e: React.MouseEvent, item: ChecklistItem) => {
+            e.stopPropagation()
+            e.preventDefault()
 
-        // 処理中なら何もしない
-        if (convertingItemId) return
+            // 処理中なら何もしない
+            if (convertingItemId) return
 
-        setConvertingItemId(item.id)
-        try {
-            // 新しいカードを作成（元のカードと同じカラム・ボードに）
-            await addCard(item.text, card.columnId, card.boardId)
-            // 元のチェックリストアイテムを削除
-            setChecklist(checklist.filter((i) => i.id !== item.id))
-        } catch (error) {
-            alert('カードへの変換に失敗しました。')
-        } finally {
-            setConvertingItemId(null)
-        }
-    }
+            setConvertingItemId(item.id)
+            try {
+                // 新しいカードを作成（元のカードと同じカラム・ボードに）
+                await addCard(item.text, card.columnId, card.boardId)
+                // 元のチェックリストアイテムを削除
+                setChecklist(checklist.filter((i) => i.id !== item.id))
+            } catch (error) {
+                alert('カードへの変換に失敗しました。')
+            } finally {
+                setConvertingItemId(null)
+            }
+        },
+        [convertingItemId, addCard, card.columnId, card.boardId, checklist]
+    )
 
-    const startEditChecklistItem = (item: ChecklistItem) => {
+    const startEditChecklistItem = useCallback((item: ChecklistItem) => {
         setEditingChecklistItem(item.id)
         setEditingChecklistText(item.text)
-    }
+    }, [])
 
-    const saveEditChecklistItem = () => {
+    const saveEditChecklistItem = useCallback(() => {
         if (!editingChecklistItem || !editingChecklistText.trim()) return
         setChecklist(
             checklist.map((item) => (item.id === editingChecklistItem ? { ...item, text: editingChecklistText } : item))
         )
         setEditingChecklistItem(null)
         setEditingChecklistText('')
-    }
+    }, [editingChecklistItem, editingChecklistText, checklist])
 
-    const cancelEditChecklistItem = () => {
+    const cancelEditChecklistItem = useCallback(() => {
         setEditingChecklistItem(null)
         setEditingChecklistText('')
-    }
+    }, [])
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event
-        if (!over || active.id === over.id) return
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over } = event
+            if (!over || active.id === over.id) return
 
-        const oldIndex = checklist.findIndex((item) => item.id === active.id)
-        const newIndex = checklist.findIndex((item) => item.id === over.id)
+            const oldIndex = checklist.findIndex((item) => item.id === active.id)
+            const newIndex = checklist.findIndex((item) => item.id === over.id)
 
-        const reordered = arrayMove(checklist, oldIndex, newIndex)
-        const withUpdatedOrder = reordered.map((item, index) => ({
-            ...item,
-            order: index,
-        }))
-        setChecklist(withUpdatedOrder)
-    }
+            const reordered = arrayMove(checklist, oldIndex, newIndex)
+            const withUpdatedOrder = reordered.map((item, index) => ({
+                ...item,
+                order: index,
+            }))
+            setChecklist(withUpdatedOrder)
+        },
+        [checklist]
+    )
 
     const dueDateTimestamp = dueDate ? new Date(dueDate).getTime() : undefined
     const { isDueSoon, isOverdue } = getDueDateStatus(dueDateTimestamp)
