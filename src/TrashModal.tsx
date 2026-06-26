@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { useTrashStore, TrashedCard } from './store/trashStore'
@@ -25,51 +25,57 @@ export function TrashModal({ onClose }: TrashModalProps) {
         loadTrash()
     }, [loadTrash])
 
-    const handleRestore = async (card: TrashedCard) => {
-        // 元のボードが存在するか確認
-        const originalBoard = boards.find((b) => b.id === card.originalBoardId)
-        const targetBoardId = originalBoard ? card.originalBoardId : currentBoardId
-        const targetColumnId = card.originalColumnId as ColumnType
+    const handleRestore = useCallback(
+        async (card: TrashedCard) => {
+            // 元のボードが存在するか確認
+            const originalBoard = boards.find((b) => b.id === card.originalBoardId)
+            const targetBoardId = originalBoard ? card.originalBoardId : currentBoardId
+            const targetColumnId = card.originalColumnId as ColumnType
 
-        if (!targetBoardId) {
-            alert('復元先のボードを選択してください')
-            return
-        }
-
-        // ゴミ箱から削除
-        const restoredCard = restoreFromTrash(card.id)
-
-        if (restoredCard) {
-            // カードを復元
-            try {
-                await restoreCard(restoredCard, targetBoardId, targetColumnId)
-
-                // 復元先のボードに切り替える（カードが表示されるようにする）
-                if (targetBoardId !== currentBoardId) {
-                    setCurrentBoardId(targetBoardId)
-                }
-
-                alert(`カードを${originalBoard ? '元の位置に' : '現在のボードに'}復元しました`)
-            } catch (error) {
-                alert('カードの復元に失敗しました')
+            if (!targetBoardId) {
+                alert('復元先のボードを選択してください')
+                return
             }
-        }
-    }
 
-    const handlePermanentDelete = (cardId: string) => {
-        if (window.confirm('このカードを完全に削除しますか？この操作は取り消せません。')) {
-            permanentlyDelete(cardId)
-        }
-    }
+            // ゴミ箱から削除
+            const restoredCard = restoreFromTrash(card.id)
 
-    const handleEmptyTrash = () => {
+            if (restoredCard) {
+                // カードを復元
+                try {
+                    await restoreCard(restoredCard, targetBoardId, targetColumnId)
+
+                    // 復元先のボードに切り替える（カードが表示されるようにする）
+                    if (targetBoardId !== currentBoardId) {
+                        setCurrentBoardId(targetBoardId)
+                    }
+
+                    alert(`カードを${originalBoard ? '元の位置に' : '現在のボードに'}復元しました`)
+                } catch (error) {
+                    alert('カードの復元に失敗しました')
+                }
+            }
+        },
+        [boards, currentBoardId, restoreFromTrash, restoreCard, setCurrentBoardId]
+    )
+
+    const handlePermanentDelete = useCallback(
+        (cardId: string) => {
+            if (window.confirm('このカードを完全に削除しますか？この操作は取り消せません。')) {
+                permanentlyDelete(cardId)
+            }
+        },
+        [permanentlyDelete]
+    )
+
+    const handleEmptyTrash = useCallback(() => {
         if (trashedCards.length === 0) return
         if (window.confirm(`ゴミ箱を空にしますか？${trashedCards.length}件のカードが完全に削除されます。`)) {
             emptyTrash()
         }
-    }
+    }, [trashedCards.length, emptyTrash])
 
-    const formatDeletedDate = (timestamp: number) => {
+    const formatDeletedDate = useCallback((timestamp: number) => {
         const date = new Date(timestamp)
         return date.toLocaleDateString('ja-JP', {
             year: 'numeric',
@@ -78,7 +84,7 @@ export function TrashModal({ onClose }: TrashModalProps) {
             hour: '2-digit',
             minute: '2-digit',
         })
-    }
+    }, [])
 
     return (
         <BaseModal onClose={onClose} maxWidth='600px'>
