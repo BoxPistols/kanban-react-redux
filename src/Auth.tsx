@@ -83,10 +83,13 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                                 メールのリンクからパスワードを再設定してください。
                             </SuccessMessage>
                         ) : (
-                            <Form onSubmit={handleResetPassword}>
+                            <Form onSubmit={handleResetPassword} aria-label='パスワードリセットフォーム'>
                                 <InputGroup>
-                                    <Label $theme={theme}>メールアドレス</Label>
+                                    <Label htmlFor='reset-email' $theme={theme}>
+                                        メールアドレス
+                                    </Label>
                                     <Input
+                                        id='reset-email'
                                         type='email'
                                         value={resetEmail}
                                         onChange={(e) => setResetEmail(e.target.value)}
@@ -96,9 +99,18 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                                     />
                                 </InputGroup>
 
-                                {error && <ErrorMessage $theme={theme}>{error}</ErrorMessage>}
+                                {error && (
+                                    <ErrorMessage $theme={theme} role='alert'>
+                                        {error}
+                                    </ErrorMessage>
+                                )}
 
-                                <SubmitButton type='submit' disabled={isLoading} $theme={theme}>
+                                <SubmitButton
+                                    type='submit'
+                                    disabled={isLoading}
+                                    $theme={theme}
+                                    aria-label='リセットメールを送信'
+                                >
                                     {isLoading ? '送信中...' : 'リセットメールを送信'}
                                 </SubmitButton>
                             </Form>
@@ -112,6 +124,7 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                                     setResetEmail('')
                                 }}
                                 $theme={theme}
+                                aria-label='ログイン画面に戻る'
                             >
                                 ログインに戻る
                             </ToggleButton>
@@ -119,10 +132,16 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                     </>
                 ) : (
                     <>
-                        <Form onSubmit={handleSubmit}>
+                        <Form
+                            onSubmit={handleSubmit}
+                            aria-label={isSignUp ? 'アカウント作成フォーム' : 'ログインフォーム'}
+                        >
                             <InputGroup>
-                                <Label $theme={theme}>メールアドレス</Label>
+                                <Label htmlFor='email' $theme={theme}>
+                                    メールアドレス
+                                </Label>
                                 <Input
+                                    id='email'
                                     type='email'
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -133,8 +152,11 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                             </InputGroup>
 
                             <InputGroup>
-                                <Label $theme={theme}>パスワード</Label>
+                                <Label htmlFor='password' $theme={theme}>
+                                    パスワード
+                                </Label>
                                 <Input
+                                    id='password'
                                     type='password'
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -145,16 +167,29 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                                 />
                             </InputGroup>
 
-                            {error && <ErrorMessage $theme={theme}>{error}</ErrorMessage>}
+                            {error && (
+                                <ErrorMessage $theme={theme} role='alert'>
+                                    {error}
+                                </ErrorMessage>
+                            )}
 
-                            <SubmitButton type='submit' disabled={isLoading} $theme={theme}>
+                            <SubmitButton
+                                type='submit'
+                                disabled={isLoading}
+                                $theme={theme}
+                                aria-label={isLoading ? '処理中' : isSignUp ? 'アカウントを作成' : 'ログイン'}
+                            >
                                 {isLoading ? '処理中...' : isSignUp ? 'アカウント作成' : 'ログイン'}
                             </SubmitButton>
                         </Form>
 
                         {!isSignUp && (
                             <ForgotPasswordLink $theme={theme}>
-                                <ForgotPasswordButton onClick={() => setShowResetPassword(true)} $theme={theme}>
+                                <ForgotPasswordButton
+                                    onClick={() => setShowResetPassword(true)}
+                                    $theme={theme}
+                                    aria-label='パスワードリセット画面に移動'
+                                >
                                     パスワードをお忘れですか？
                                 </ForgotPasswordButton>
                             </ForgotPasswordLink>
@@ -166,9 +201,14 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
                             <DividerLine $theme={theme} />
                         </Divider>
 
-                        <GoogleButton onClick={handleGoogleSignIn} disabled={isLoading} $theme={theme}>
+                        <GoogleButton
+                            onClick={handleGoogleSignIn}
+                            disabled={isLoading}
+                            $theme={theme}
+                            aria-label='Googleアカウントでログイン'
+                        >
                             <GoogleIcon>
-                                <svg viewBox='0 0 24 24' width='18' height='18'>
+                                <svg viewBox='0 0 24 24' width='18' height='18' aria-hidden='true'>
                                     <path
                                         fill='#4285F4'
                                         d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
@@ -192,13 +232,21 @@ export const Auth = memo(function Auth({ onSkipAuth }: AuthProps) {
 
                         <ToggleText $theme={theme}>
                             {isSignUp ? 'アカウントをお持ちですか？' : 'アカウントをお持ちでないですか？'}
-                            <ToggleButton onClick={() => setIsSignUp(!isSignUp)} $theme={theme}>
+                            <ToggleButton
+                                onClick={() => setIsSignUp(!isSignUp)}
+                                $theme={theme}
+                                aria-label={isSignUp ? 'ログイン画面に切り替え' : 'アカウント作成画面に切り替え'}
+                            >
                                 {isSignUp ? 'ログイン' : 'アカウント作成'}
                             </ToggleButton>
                         </ToggleText>
 
                         {onSkipAuth && (
-                            <OfflineButton onClick={onSkipAuth} $theme={theme}>
+                            <OfflineButton
+                                onClick={onSkipAuth}
+                                $theme={theme}
+                                aria-label='認証をスキップしてオフラインモードで使用'
+                            >
                                 ログインせずにオフラインで使用
                             </OfflineButton>
                         )}
