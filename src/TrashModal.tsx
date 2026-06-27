@@ -123,8 +123,16 @@ export function TrashModal({ onClose }: TrashModalProps) {
                                                 <span>削除日: {formatDeletedDate(card.deletedAt)}</span>
                                             </CardMeta>
                                             <CardActions>
-                                                <RestoreButton onClick={() => handleRestore(card)}>復元</RestoreButton>
-                                                <DeleteButton onClick={() => handlePermanentDelete(card.id)}>
+                                                <RestoreButton
+                                                    onClick={() => handleRestore(card)}
+                                                    aria-label={`${card.title || card.text}を復元`}
+                                                >
+                                                    復元
+                                                </RestoreButton>
+                                                <DeleteButton
+                                                    onClick={() => handlePermanentDelete(card.id)}
+                                                    aria-label={`${card.title || card.text}を完全に削除`}
+                                                >
                                                     完全に削除
                                                 </DeleteButton>
                                             </CardActions>
@@ -138,9 +146,14 @@ export function TrashModal({ onClose }: TrashModalProps) {
 
                 <Footer $theme={theme}>
                     {trashedCards.length > 0 && (
-                        <EmptyTrashButton onClick={handleEmptyTrash}>ゴミ箱を空にする</EmptyTrashButton>
+                        <EmptyTrashButton
+                            onClick={handleEmptyTrash}
+                            aria-label={`ゴミ箱を空にする（${trashedCards.length}件のカードを完全に削除）`}
+                        >
+                            ゴミ箱を空にする
+                        </EmptyTrashButton>
                     )}
-                    <CloseModalButton onClick={onClose} $theme={theme}>
+                    <CloseModalButton onClick={onClose} $theme={theme} aria-label='ゴミ箱を閉じる'>
                         閉じる
                     </CloseModalButton>
                 </Footer>
