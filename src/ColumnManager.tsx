@@ -89,10 +89,20 @@ const SortableColumnItem = memo(function SortableColumnItem({
             )}
 
             <ActionsRow>
-                <SmallIconButton onClick={() => setShowColors(!showColors)} $theme={theme} title='色を変更'>
+                <SmallIconButton
+                    onClick={() => setShowColors(!showColors)}
+                    $theme={theme}
+                    title='色を変更'
+                    aria-label='レーンの色を変更'
+                >
                     🎨
                 </SmallIconButton>
-                <SmallIconButton onClick={() => setIsEditing(true)} $theme={theme} title='名前を変更'>
+                <SmallIconButton
+                    onClick={() => setIsEditing(true)}
+                    $theme={theme}
+                    title='名前を変更'
+                    aria-label='レーン名を変更'
+                >
                     ✏️
                 </SmallIconButton>
                 {canDelete && (
@@ -109,6 +119,7 @@ const SortableColumnItem = memo(function SortableColumnItem({
                         $theme={theme}
                         $danger
                         title='削除'
+                        aria-label={`レーン「${column.title}」を削除`}
                     >
                         ×
                     </SmallIconButton>
@@ -127,6 +138,7 @@ const SortableColumnItem = memo(function SortableColumnItem({
                                 onColorChange(column.id, c)
                                 setShowColors(false)
                             }}
+                            aria-label={!c ? 'デフォルトカラー（色なし）' : `カラー ${i}`}
                         />
                     ))}
                     <CustomColorLabel $theme={theme} title='カスタムカラー'>
@@ -136,6 +148,7 @@ const SortableColumnItem = memo(function SortableColumnItem({
                             onChange={(e) => {
                                 onColorChange(column.id, e.target.value)
                             }}
+                            aria-label='カスタムカラーを選択'
                         />
                         <CustomColorIcon>⊕</CustomColorIcon>
                     </CustomColorLabel>
@@ -243,8 +256,13 @@ export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
                             onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
                             placeholder='新しいレーン名を入力...'
                             $theme={theme}
+                            aria-label='新しいレーン名を入力'
                         />
-                        <AddButton onClick={handleAddColumn} disabled={!newColumnTitle.trim()}>
+                        <AddButton
+                            onClick={handleAddColumn}
+                            disabled={!newColumnTitle.trim()}
+                            aria-label='レーンを追加'
+                        >
                             追加
                         </AddButton>
                     </AddSection>
