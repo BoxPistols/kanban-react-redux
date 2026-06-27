@@ -81,6 +81,7 @@ export const LinkedText = React.memo(function LinkedText({ text, metadata = [], 
                         rel='noopener noreferrer'
                         $theme={theme}
                         title={segment.url}
+                        aria-label={`${segment.displayText}（新しいタブで開く）`}
                     >
                         {segment.displayText}
                     </StyledLink>
