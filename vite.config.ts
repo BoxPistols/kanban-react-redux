@@ -7,31 +7,21 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'Kanban Board',
-        short_name: 'Kanban',
-        description: 'カンバンボードアプリケーション - React + Firebase',
-        theme_color: '#1a1a2e',
-        background_color: '#1a1a2e',
-        display: 'standalone',
-        icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-        ],
-      },
+      // Web manifest は public/manifest.json を単一ソースとして使う(index.html が参照)。
+      // VitePWA に manifest を生成させると 2 つ目の <link rel="manifest"> が注入されて
+      // 重複し、さらに存在しない icon-192/512.png を参照して 404 になっていた(監査C6)。
+      manifest: false,
+      includeAssets: ['robots.txt', 'apple-touch-icon.png', 'favicon.svg', 'manifest.json'],
       workbox: {
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
+        // NOTE: skipWaiting / clientsClaim を有効にすると、デプロイ中に新SWが
+        // 開いている旧タブを即時奪取し旧ビルドの precache を破棄する。旧タブが
+        // lazy chunk（カード詳細/ゴミ箱/列管理モーダル）を後から import すると
+        // 404 → ChunkLoadError でアプリ全体がクラッシュ（白画面と同クラス）。
+        // 既定（false）に戻し、新SWは全旧タブが閉じるまで待機させる。
+        // → 開いているセッションは旧チャンクを引き続き取得でき、次回フルリロードで更新。
+        skipWaiting: false,
+        clientsClaim: false,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
@@ -72,8 +62,22 @@ export default defineConfig({
       output: {
         manualChunks: {
           firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth'],
-          dndkit: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-          vendor: ['react', 'react-dom', 'zustand', 'styled-components'],
+          // Keep React, ReactDOM and React-internals-dependent libs (@dnd-kit)
+          // in ONE chunk. Splitting @dnd-kit into its own chunk caused a
+          // production-only crash: @dnd-kit reads
+          // ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
+          // (unstable_batchedUpdates) at module-eval time and got `undefined`
+          // when react-dom lived in a separate chunk (init-order/circular),
+          // throwing before render → white screen.
+          vendor: [
+            'react',
+            'react-dom',
+            '@dnd-kit/core',
+            '@dnd-kit/sortable',
+            '@dnd-kit/utilities',
+            'zustand',
+            'styled-components',
+          ],
         }
       }
     }

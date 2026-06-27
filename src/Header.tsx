@@ -8,6 +8,7 @@ import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { useTrashStore } from './store/trashStore'
 import { isFirebaseEnabled } from './lib/firebase'
+import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 
 // 遅延ロード: TrashModal
 const TrashModal = lazy(() => import('./TrashModal').then((m) => ({ default: m.TrashModal })))
@@ -192,9 +193,11 @@ export const Header = memo(function Header({ className }: { className?: string }
 
             {/* ゴミ箱モーダル */}
             {isTrashModalOpen && (
-                <Suspense fallback={null}>
-                    <TrashModal onClose={() => setIsTrashModalOpen(false)} />
-                </Suspense>
+                <ChunkErrorBoundary>
+                    <Suspense fallback={null}>
+                        <TrashModal onClose={() => setIsTrashModalOpen(false)} />
+                    </Suspense>
+                </ChunkErrorBoundary>
             )}
         </Container>
     )

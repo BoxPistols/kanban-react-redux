@@ -22,6 +22,42 @@
       href="https://unpkg.com/ress@5.0.2/dist/ress.min.css"
       crossorigin="anonymous"
     />
+
+    <!--
+      Last-resort fatal-error fallback. React's <ErrorBoundary> only catches
+      errors thrown *during render*, after React mounts. Module-init errors
+      (e.g. a vendor chunk throwing while evaluating — like the @dnd-kit /
+      react-dom chunking crash) happen BEFORE React mounts and would otherwise
+      leave a blank white screen. This shows a recovery UI instead.
+    -->
+    <script>
+      (function () {
+        function el(tag, style, text) {
+          var n = document.createElement(tag);
+          if (style) n.setAttribute('style', style);
+          if (text != null) n.textContent = text;
+          return n;
+        }
+        function showFatalFallback() {
+          var root = document.getElementById('root');
+          if (!root || root.childElementCount > 0) return; // app mounted OK
+          var wrap = el('div', 'min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;background:#1a202c;color:#e2e8f0;padding:24px;text-align:center;box-sizing:border-box');
+          var box = el('div', 'max-width:360px');
+          box.appendChild(el('div', 'font-size:40px;margin-bottom:12px', '⚠️'));
+          box.appendChild(el('h1', 'font-size:18px;font-weight:600;margin:0 0 8px', '読み込みに失敗しました'));
+          box.appendChild(el('p', 'font-size:13px;line-height:1.6;color:#a0aec0;margin:0 0 18px', 'アプリの初期化中に問題が発生しました。お手数ですが再読み込みしてください。解決しない場合は時間をおいてお試しください。'));
+          var btn = el('button', 'background:#2C5282;color:#fff;border:0;border-radius:8px;padding:10px 22px;font-size:14px;font-weight:500;cursor:pointer', '再読み込み');
+          btn.onclick = function () { window.location.reload(); };
+          box.appendChild(btn);
+          wrap.appendChild(box);
+          root.appendChild(wrap);
+        }
+        window.addEventListener('error', function () { setTimeout(showFatalFallback, 0); });
+        window.addEventListener('unhandledrejection', function () { setTimeout(showFatalFallback, 0); });
+        // Safety net: if the app never mounts within 10s for any reason.
+        window.addEventListener('load', function () { setTimeout(showFatalFallback, 10000); });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
