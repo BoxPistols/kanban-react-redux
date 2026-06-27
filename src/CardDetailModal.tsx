@@ -83,10 +83,15 @@ function SortableChecklistItem({
                         autoFocus
                         $theme={theme}
                     />
-                    <SmallButton onClick={onSaveEdit} title='保存' $theme={theme}>
+                    <SmallButton onClick={onSaveEdit} title='保存' $theme={theme} aria-label='チェックリスト項目を保存'>
                         ✓
                     </SmallButton>
-                    <SmallButton onClick={onCancelEdit} title='キャンセル' $theme={theme}>
+                    <SmallButton
+                        onClick={onCancelEdit}
+                        title='キャンセル'
+                        $theme={theme}
+                        aria-label='チェックリスト項目の編集をキャンセル'
+                    >
                         ✕
                     </SmallButton>
                 </>
@@ -101,7 +106,7 @@ function SortableChecklistItem({
                     >
                         <LinkedText text={item.text} metadata={metadata} theme={theme} />
                     </ChecklistItemText>
-                    <SmallButton onClick={onEdit} title='編集' $theme={theme}>
+                    <SmallButton onClick={onEdit} title='編集' $theme={theme} aria-label='チェックリスト項目を編集'>
                         &#9998;
                     </SmallButton>
                     <ConvertToCardButton
@@ -109,10 +114,11 @@ function SortableChecklistItem({
                         title='カードに変換'
                         $theme={theme}
                         disabled={isConverting}
+                        aria-label='チェックリスト項目をカードに変換'
                     >
                         {isConverting ? '...' : '↗'}
                     </ConvertToCardButton>
-                    <DeleteItemButton onClick={onDelete} $theme={theme}>
+                    <DeleteItemButton onClick={onDelete} $theme={theme} aria-label='チェックリスト項目を削除'>
                         ×
                     </DeleteItemButton>
                 </>
@@ -484,7 +490,11 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                                             alt={img.name || '画像'}
                                             loading={index > 2 ? 'lazy' : 'eager'}
                                         />
-                                        <ImageRemoveButton onClick={() => handleRemoveImage(img.id)} title='画像を削除'>
+                                        <ImageRemoveButton
+                                            onClick={() => handleRemoveImage(img.id)}
+                                            title='画像を削除'
+                                            aria-label={`画像「${img.name || '画像'}」を削除`}
+                                        >
                                             ×
                                         </ImageRemoveButton>
                                     </ImageContainer>
@@ -549,7 +559,9 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
                                 placeholder='新しい項目を追加...'
                                 $theme={theme}
                             />
-                            <AddChecklistButton onClick={addChecklistItem}>追加</AddChecklistButton>
+                            <AddChecklistButton onClick={addChecklistItem} aria-label='チェックリスト項目を追加'>
+                                追加
+                            </AddChecklistButton>
                         </AddChecklistItemRow>
                     </Section>
                 </Content>
