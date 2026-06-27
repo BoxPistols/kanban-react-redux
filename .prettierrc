@@ -10,7 +10,7 @@
   "quoteProps": "as-needed",
   "jsxSingleQuote": true,
   "bracketSpacing": true,
-  "jsxBracketSameLine": false,
+  "bracketSameLine": false,
   "requirePragma": false,
   "insertPragma": false,
   "proseWrap": "preserve",
