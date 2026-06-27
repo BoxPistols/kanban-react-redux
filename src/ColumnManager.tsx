@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -43,8 +43,16 @@ const SortableColumnItem = memo(function SortableColumnItem({
     const [isEditing, setIsEditing] = useState(false)
     const [editTitle, setEditTitle] = useState(column.title)
     const [showColors, setShowColors] = useState(false)
+    const editInputRef = useRef<HTMLInputElement>(null)
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id })
+
+    // 編集モード開始時に入力欄にフォーカス
+    useEffect(() => {
+        if (isEditing) {
+            editInputRef.current?.focus()
+        }
+    }, [isEditing])
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -69,6 +77,7 @@ const SortableColumnItem = memo(function SortableColumnItem({
 
             {isEditing ? (
                 <EditInput
+                    ref={editInputRef}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     onBlur={handleSaveEdit}
@@ -79,7 +88,6 @@ const SortableColumnItem = memo(function SortableColumnItem({
                             setIsEditing(false)
                         }
                     }}
-                    autoFocus
                     $theme={theme}
                 />
             ) : (
