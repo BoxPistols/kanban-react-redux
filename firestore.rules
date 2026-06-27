@@ -3,28 +3,34 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // カードコレクション: 自分が作成したカードのみアクセス可能
     match /cards/{cardId} {
-      allow read: if request.auth != null &&
-                     (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      // read は所有者のみ。以前は `!('userId' in resource.data)` を OR で許可しており
+      // userId 欠落ドキュメントを任意の認証ユーザーが読める fail-open だった(監査C5)。
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null &&
                        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null &&
-                              resource.data.userId == request.auth.uid;
+      // update は所有者のみ。さらに userId の付け替え(所有権移転)を禁止する。
+      allow update: if request.auth != null &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null &&
+                       resource.data.userId == request.auth.uid;
     }
 
     // ボードコレクション: 自分が作成したボードのみアクセス可能
     match /boards/{boardId} {
-      allow read: if request.auth != null &&
-                     (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null &&
                        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null &&
-                              resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null &&
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null &&
+                       resource.data.userId == request.auth.uid;
     }
 
     // ゴミ箱コレクション: 自分が削除したカードのみアクセス可能
     match /trash/{trashId} {
-      allow read: if request.auth != null &&
-                     (resource.data.userId == request.auth.uid || !('userId' in resource.data));
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null &&
                        request.resource.data.userId == request.auth.uid;
       allow delete: if request.auth != null &&
