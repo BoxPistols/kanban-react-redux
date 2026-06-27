@@ -15,12 +15,12 @@ export function BlockerWarning() {
         const testFirestoreAccess = async () => {
             try {
                 const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 3000)
+                const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-                // Firestoreのルートエンドポイントに接続テスト（404でなく正常なレスポンスを返す）
-                // no-corsモードなので実際のレスポンスは読めないが、ブロックされているかは検出可能
-                await fetch('https://firestore.googleapis.com/', {
-                    method: 'HEAD',
+                // GETリクエストで接続確認（HEADは404を返すため）
+                // Firebase Hostingのwell-knownエンドポイントを使用
+                await fetch('https://firestore.googleapis.com/robots.txt', {
+                    method: 'GET',
                     mode: 'no-cors',
                     signal: controller.signal,
                 })
@@ -35,8 +35,8 @@ export function BlockerWarning() {
             }
         }
 
-        // 2秒後にテスト（初期ロード後）
-        const timer = setTimeout(testFirestoreAccess, 2000)
+        // 3秒後にテスト（初期ロード後、Firestore初期化を待つ）
+        const timer = setTimeout(testFirestoreAccess, 3000)
         return () => clearTimeout(timer)
     }, [])
 

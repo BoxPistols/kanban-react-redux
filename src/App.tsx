@@ -26,6 +26,7 @@ import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import { isShortcutKey } from './utils/keyboard'
+import './utils/debugFirestore' // デバッグユーティリティ（コンソールで window.debugFirestore() を実行）
 import type { Card as CardType, ColumnType } from './types'
 
 // 遅延ロード: モーダル系コンポーネント
