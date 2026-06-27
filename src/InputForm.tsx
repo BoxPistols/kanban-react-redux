@@ -29,13 +29,17 @@ export const InputForm = memo(function InputForm({
 
     const ref = useAutoFitToContentHeight(value)
 
+    // フォーカス管理: フォーム表示時に入力欄にフォーカス
+    useEffect(() => {
+        ref.current?.focus()
+    }, [])
+
     const modifierKey = getModifierKeySymbol()
 
     return (
         <Container className={className}>
             <Input
                 ref={ref}
-                autoFocus
                 placeholder={`Enter a note (${modifierKey}+Enter to submit)`}
                 value={value}
                 onChange={(ev) => onChange?.(ev.currentTarget.value)}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, memo } from 'react'
+import { useState, useCallback, useRef, memo, useEffect } from 'react'
 import styled from 'styled-components'
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -54,12 +54,20 @@ function SortableChecklistItem({
     metadata,
 }: SortableChecklistItemProps) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+    const editInputRef = useRef<HTMLInputElement>(null)
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
     }
+
+    // 編集モード開始時に入力欄にフォーカス
+    useEffect(() => {
+        if (isEditing) {
+            editInputRef.current?.focus()
+        }
+    }, [isEditing])
 
     return (
         <ChecklistItemRow ref={setNodeRef} style={style} $theme={theme}>
@@ -70,6 +78,7 @@ function SortableChecklistItem({
             {isEditing ? (
                 <>
                     <EditChecklistInput
+                        ref={editInputRef}
                         type='text'
                         value={editingText}
                         onChange={(e) => onEditTextChange(e.target.value)}
@@ -80,7 +89,6 @@ function SortableChecklistItem({
                                 onCancelEdit()
                             }
                         }}
-                        autoFocus
                         $theme={theme}
                     />
                     <SmallButton onClick={onSaveEdit} title='保存' $theme={theme} aria-label='チェックリスト項目を保存'>

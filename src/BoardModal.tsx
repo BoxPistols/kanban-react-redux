@@ -167,6 +167,14 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
     const [name, setName] = useState(board?.name || '')
     const [description, setDescription] = useState(board?.description || '')
     const [selectedColor, setSelectedColor] = useState(board?.color || BOARD_COLORS[0])
+    const nameInputRef = useRef<HTMLInputElement>(null)
+
+    // モーダル表示時にボード名入力欄にフォーカス
+    useEffect(() => {
+        if (activeTab === 'basic') {
+            nameInputRef.current?.focus()
+        }
+    }, [activeTab])
 
     // Label management state
     const [newLabelName, setNewLabelName] = useState('')
@@ -416,11 +424,11 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
                         <FormGroup>
                             <FormLabel $theme={theme}>ボード名</FormLabel>
                             <Input
+                                ref={nameInputRef}
                                 type='text'
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder='例: プロジェクト管理'
-                                autoFocus
                                 required
                                 $theme={theme}
                             />
