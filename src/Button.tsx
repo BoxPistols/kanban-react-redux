@@ -159,9 +159,3 @@ export const FullWidthPrimaryButton = styled(PrimaryButton)`
 export const FullWidthSecondaryButton = styled(SecondaryButton)`
     width: 100%;
 `
-
-// 後方互換性のためのエイリアス（非推奨: 将来的に削除予定）
-/** @deprecated SecondaryButton を使用してください */
-export const Button = SecondaryButton
-/** @deprecated PrimaryButton を使用してください */
-export const ConfirmButton = PrimaryButton
