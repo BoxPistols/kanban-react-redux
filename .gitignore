@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Lock files (pnpmプロジェクトのため、npm/yarnのロックファイルは無視)
+package-lock.json
+yarn.lock
+
 # Build
 /.cache/
 /dist/
