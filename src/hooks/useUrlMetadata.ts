@@ -40,10 +40,8 @@ export function useUrlMetadata(
             const urls = parseUrls(text)
             if (urls.length === 0) {
                 // URLがない場合は既存のメタデータをクリア
-                if (metadata.length > 0) {
-                    setMetadata([])
-                    onMetadataUpdate?.([])
-                }
+                setMetadata([])
+                onMetadataUpdate?.([])
                 return
             }
 

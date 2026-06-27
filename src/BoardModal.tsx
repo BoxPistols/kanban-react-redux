@@ -178,6 +178,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
     const editingCustomColorInputRef = useRef<HTMLInputElement>(null)
     const importFileInputRef = useRef<HTMLInputElement>(null)
 
+    // boardデータの読み込み時にフォームを初期化（外部データとの同期）
     useEffect(() => {
         if (board) {
             setName(board.name)
@@ -186,7 +187,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
         }
     }, [board])
 
-    // useEffect for opening color picker
+    // カラーピッカーの制御（DOM操作との同期）
     useEffect(() => {
         if (shouldOpenColorPicker) {
             customColorInputRef.current?.click()
@@ -194,7 +195,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
         }
     }, [shouldOpenColorPicker])
 
-    // useEffect for opening editing color picker
+    // 編集中カラーピッカーの制御（DOM操作との同期）
     useEffect(() => {
         if (shouldOpenEditingColorPicker) {
             editingCustomColorInputRef.current?.click()

@@ -61,7 +61,7 @@ export function App() {
     const boards = useBoardStore((state) => state.boards)
     const columns = useMemo(() => {
         return getColumns(currentBoardId || undefined)
-    }, [getColumns, currentBoardId, boards])
+    }, [getColumns, currentBoardId]) // boards は getColumns 内で参照されるため不要
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -132,6 +132,7 @@ export function App() {
     }, [subscribeToCards, currentBoardId])
 
     // 折りたたみ状態の復元
+    // localStorageとの同期は外部システムとの連携なので、useEffect内のsetStateは適切
     useEffect(() => {
         if (!currentBoardId) {
             setCollapsedColumns(new Set())
