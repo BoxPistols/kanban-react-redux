@@ -429,9 +429,20 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                     const cards = boardId ? allCards.filter((c) => c.boardId === boardId) : allCards
                     set({ cards, isLoading: false, error: null })
                 },
-                () => {
+                (error) => {
                     // Firebase permission error - fall back to offline mode
                     // Firebaseエラー時はオフラインモードにフォールバック
+                    console.error('Firestore subscription error:', error)
+
+                    // エラーメッセージを設定（BlockerWarning用）
+                    let errorMessage = 'Firestoreへの接続に失敗しました'
+                    if (error instanceof Error) {
+                        if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+                            errorMessage = 'ERR_BLOCKED: Firestoreへの接続がブロックされています'
+                        }
+                    }
+
+                    set({ error: errorMessage })
                     loadLocal()
                 }
             )

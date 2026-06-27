@@ -1,4 +1,4 @@
-name: Deploy Firebase Rules
+name: Deploy Firestore Rules & Indexes
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       - '.github/workflows/firebase-deploy.yml'
 
 jobs:
-  deploy-firestore-rules:
+  deploy-firestore:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -24,7 +24,10 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: Deploy Firestore Rules
+      - name: Deploy Firestore Rules & Indexes
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only firestore:rules --token "$FIREBASE_TOKEN"
+        # rules だけでなく indexes も deploy。アプリの本番クエリ
+        # (boards: userId+createdAt / cards: userId+order) は複合インデックス必須で、
+        # 未デプロイだと onSnapshot がインデックスエラーを投げオフラインに落ちる(監査C4)。
+        run: firebase deploy --only firestore:rules,firestore:indexes --token "$FIREBASE_TOKEN"
