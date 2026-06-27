@@ -180,28 +180,7 @@ export function App() {
         return () => document.removeEventListener('keydown', handleKeyDown)
     }, [])
 
-    // Show loading while checking auth
-    if (isFirebaseEnabled && !isInitialized && !offlineMode) {
-        return (
-            <>
-                <GlobalStyle $theme={theme} />
-                <LoadingContainer $theme={theme}>
-                    <LoadingText $theme={theme}>読み込み中...</LoadingText>
-                </LoadingContainer>
-            </>
-        )
-    }
-
-    // Show auth screen if Firebase is enabled and user is not authenticated and not in offline mode
-    if (isFirebaseEnabled && !user && !offlineMode) {
-        return (
-            <>
-                <GlobalStyle $theme={theme} />
-                <Auth onSkipAuth={() => setOfflineMode(true)} />
-            </>
-        )
-    }
-
+    // All useCallback hooks must be called before conditional returns
     const handleDragStart = useCallback((event: DragStartEvent) => {
         setActiveId(event.active.id as string)
     }, [])
@@ -319,6 +298,28 @@ export function App() {
     }, [])
 
     const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
+
+    // Show loading while checking auth
+    if (isFirebaseEnabled && !isInitialized && !offlineMode) {
+        return (
+            <>
+                <GlobalStyle $theme={theme} />
+                <LoadingContainer $theme={theme}>
+                    <LoadingText $theme={theme}>読み込み中...</LoadingText>
+                </LoadingContainer>
+            </>
+        )
+    }
+
+    // Show auth screen if Firebase is enabled and user is not authenticated and not in offline mode
+    if (isFirebaseEnabled && !user && !offlineMode) {
+        return (
+            <>
+                <GlobalStyle $theme={theme} />
+                <Auth onSkipAuth={() => setOfflineMode(true)} />
+            </>
+        )
+    }
 
     return (
         <ErrorBoundary>
