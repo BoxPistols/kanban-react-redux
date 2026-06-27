@@ -7,27 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'Kanban Board',
-        short_name: 'Kanban',
-        description: 'カンバンボードアプリケーション - React + Firebase',
-        theme_color: '#1a1a2e',
-        background_color: '#1a1a2e',
-        display: 'standalone',
-        icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-        ],
-      },
+      // Web manifest は public/manifest.json を単一ソースとして使う(index.html が参照)。
+      // VitePWA に manifest を生成させると 2 つ目の <link rel="manifest"> が注入されて
+      // 重複し、さらに存在しない icon-192/512.png を参照して 404 になっていた(監査C6)。
+      manifest: false,
+      includeAssets: ['robots.txt', 'apple-touch-icon.png', 'favicon.svg', 'manifest.json'],
       workbox: {
         cleanupOutdatedCaches: true,
         // NOTE: skipWaiting / clientsClaim を有効にすると、デプロイ中に新SWが
