@@ -25,10 +25,18 @@ export const ReloadPrompt = memo(function ReloadPrompt({ isVisible, onReload }: 
     const shortcut = isMac() ? 'Cmd + Shift + R' : 'Ctrl + Shift + R'
 
     return (
-        <Overlay $theme={theme} $isVisible={isVisible}>
-            <Modal $theme={theme} $isVisible={isVisible}>
-                <Icon>⚠️</Icon>
-                <Title $theme={theme}>データの読み込みに問題があります</Title>
+        <Overlay $theme={theme} $isVisible={isVisible} role='presentation'>
+            <Modal
+                $theme={theme}
+                $isVisible={isVisible}
+                role='dialog'
+                aria-modal='true'
+                aria-labelledby='reload-prompt-title'
+            >
+                <Icon aria-hidden='true'>⚠️</Icon>
+                <Title $theme={theme} id='reload-prompt-title'>
+                    データの読み込みに問題があります
+                </Title>
                 <Message $theme={theme}>
                     データが正しく読み込まれていない可能性があります。
                     <br />
@@ -36,7 +44,7 @@ export const ReloadPrompt = memo(function ReloadPrompt({ isVisible, onReload }: 
                 </Message>
                 <ShortcutHint $theme={theme}>ショートカット: {shortcut}</ShortcutHint>
                 <ButtonGroup>
-                    <ReloadButton onClick={onReload} $theme={theme}>
+                    <ReloadButton onClick={onReload} $theme={theme} aria-label='ページをリロード'>
                         今すぐリロード
                     </ReloadButton>
                 </ButtonGroup>
