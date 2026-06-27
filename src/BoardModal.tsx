@@ -115,10 +115,19 @@ function SortableLabelItem({
                             }
                         />
                     </LabelColorPicker>
-                    <SaveLabelButton type='button' onClick={handleUpdateLabel}>
+                    <SaveLabelButton
+                        type='button'
+                        onClick={handleUpdateLabel}
+                        aria-label={`ラベル「${editingLabel.name}」を保存`}
+                    >
                         保存
                     </SaveLabelButton>
-                    <CancelLabelButton type='button' onClick={() => setEditingLabel(null)} $theme={theme}>
+                    <CancelLabelButton
+                        type='button'
+                        onClick={() => setEditingLabel(null)}
+                        $theme={theme}
+                        aria-label='ラベルの編集をキャンセル'
+                    >
                         キャンセル
                     </CancelLabelButton>
                 </>
@@ -126,10 +135,19 @@ function SortableLabelItem({
                 <>
                     <DragHandle title='ドラッグして並び替え'>⋮⋮</DragHandle>
                     <LabelPreview $color={label.color}>{label.name}</LabelPreview>
-                    <EditLabelButton type='button' onClick={() => setEditingLabel(label)} $theme={theme}>
+                    <EditLabelButton
+                        type='button'
+                        onClick={() => setEditingLabel(label)}
+                        $theme={theme}
+                        aria-label={`ラベル「${label.name}」を編集`}
+                    >
                         編集
                     </EditLabelButton>
-                    <DeleteLabelButton type='button' onClick={() => handleDeleteLabel(label.id)}>
+                    <DeleteLabelButton
+                        type='button'
+                        onClick={() => handleDeleteLabel(label.id)}
+                        aria-label={`ラベル「${label.name}」を削除`}
+                    >
                         削除
                     </DeleteLabelButton>
                 </>
@@ -373,10 +391,20 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
 
                 {boardId && (
                     <TabBar $theme={theme}>
-                        <Tab $active={activeTab === 'basic'} $theme={theme} onClick={() => setActiveTab('basic')}>
+                        <Tab
+                            $active={activeTab === 'basic'}
+                            $theme={theme}
+                            onClick={() => setActiveTab('basic')}
+                            aria-label='基本情報タブ'
+                        >
                             基本情報
                         </Tab>
-                        <Tab $active={activeTab === 'labels'} $theme={theme} onClick={() => setActiveTab('labels')}>
+                        <Tab
+                            $active={activeTab === 'labels'}
+                            $theme={theme}
+                            onClick={() => setActiveTab('labels')}
+                            aria-label='ラベル管理タブ'
+                        >
                             ラベル管理
                         </Tab>
                     </TabBar>
