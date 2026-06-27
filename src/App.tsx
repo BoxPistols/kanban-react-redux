@@ -27,8 +27,14 @@ import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import { isShortcutKey } from './utils/keyboard'
-import './utils/debugFirestore' // デバッグユーティリティ（コンソールで window.debugFirestore() を実行）
 import type { Card as CardType, ColumnType } from './types'
+
+// Firestore デバッグユーティリティ(window.debugFirestore)は開発時のみロードする。
+// 本番に同梱すると全ユーザーのカードをコンソールにダンプし得るため(監査C8)。
+// import.meta.env.DEV は本番ビルドで false に畳まれ、この動的importごと除去される。
+if (import.meta.env.DEV) {
+    void import('./utils/debugFirestore')
+}
 
 // 遅延ロード: モーダル系コンポーネント
 const ColumnManager = lazy(() => import('./ColumnManager').then((m) => ({ default: m.ColumnManager })))
@@ -99,6 +105,9 @@ export function App() {
 
         return filtered
     }, [cards, searchQuery, selectedLabelIds])
+
+    // 検索/ラベルでフィルタ中か。フィルタ中はドラッグ並べ替えを抑止する(C7)。
+    const isFiltered = searchQuery.trim() !== '' || selectedLabelIds.length > 0
 
     const cardsByColumn = useMemo(() => {
         const grouped = filteredCards.reduce<Record<ColumnType, CardType[]>>(
@@ -203,6 +212,10 @@ export function App() {
             const { active, over } = event
             setActiveId(null)
 
+            // フィルタ適用中の並べ替えは表示中カードだけで order を再採番し、
+            // 非表示カードの order を破壊する(監査C7)。フィルタ中は抑止する。
+            if (isFiltered) return
+
             if (!over) return
 
             const activeId = active.id as string
@@ -277,7 +290,7 @@ export function App() {
                 }
             }
         },
-        [cards, columns, cardsByColumn, reorderCards]
+        [cards, columns, cardsByColumn, reorderCards, isFiltered]
     )
 
     const toggleColumnCollapse = useCallback(

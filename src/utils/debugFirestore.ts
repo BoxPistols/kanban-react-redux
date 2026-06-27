@@ -85,7 +85,7 @@ export async function debugFirestore() {
     console.groupEnd()
 }
 
-// グローバルに登録
-if (typeof window !== 'undefined') {
+// グローバルに登録（開発時のみ。本番では全カードをダンプし得るため公開しない: 監査C8）
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
     ;(window as { debugFirestore?: () => Promise<void> }).debugFirestore = debugFirestore
 }
