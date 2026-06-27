@@ -2,9 +2,19 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(async () => ({
   plugins: [
     react(),
+    ...(process.env.ANALYZE
+      ? [
+          (await import('rollup-plugin-visualizer')).visualizer({
+            filename: './dist/stats.html',
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]
+      : []),
     VitePWA({
       registerType: 'autoUpdate',
       // Web manifest は public/manifest.json を単一ソースとして使う(index.html が参照)。
@@ -82,4 +92,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
