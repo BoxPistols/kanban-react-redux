@@ -262,7 +262,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
 
             await updateBoard(boardId, { labels: reorderedLabels })
         },
-        [boardId, board?.labels, updateBoard]
+        [boardId, board, updateBoard] // board全体を依存配列に含める（board.labelsを複数箇所で参照）
     )
 
     const sensors = useSensors(
@@ -353,7 +353,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
                 importFileInputRef.current.value = ''
             }
         },
-        [boardId, board?.labels, updateBoard]
+        [boardId, board, updateBoard] // board全体を依存配列に含める（board.labelsを複数箇所で参照）
     )
 
     const handleSubmit = useCallback(
