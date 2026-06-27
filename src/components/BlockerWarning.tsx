@@ -3,42 +3,46 @@ import styled from 'styled-components'
 import * as color from '../color'
 import { useThemeStore } from '../store/themeStore'
 import { getTheme, Theme } from '../theme'
+import { useKanbanStore } from '../store/kanbanStore'
 
 export function BlockerWarning() {
     const [isBlocked, setIsBlocked] = useState(false)
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
     const isDark = isDarkMode
+    const error = useKanbanStore((state) => state.error)
 
     useEffect(() => {
-        // Firestoreへの接続テスト
-        const testFirestoreAccess = async () => {
-            try {
-                const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 5000)
+        // Firestoreのエラーメッセージから接続ブロックを検出
+        if (error && (error.includes('ERR_BLOCKED') || error.includes('Failed to fetch'))) {
+            setIsBlocked(true)
+        }
 
-                // GETリクエストで接続確認（HEADは404を返すため）
-                // Firebase Hostingのwell-knownエンドポイントを使用
-                await fetch('https://firestore.googleapis.com/robots.txt', {
-                    method: 'GET',
-                    mode: 'no-cors',
-                    signal: controller.signal,
-                })
+        // 10秒後に自動チェック（初期読み込み完了を待つ）
+        const timer = setTimeout(() => {
+            // エラーがなく、かつカードが0件の場合は接続問題の可能性
+            const cards = useKanbanStore.getState().cards
+            const isLoading = useKanbanStore.getState().isLoading
+            const hasError = useKanbanStore.getState().error
 
-                clearTimeout(timeoutId)
-                // 成功したら（エラーがスローされなければ）ブロックされていない
-            } catch (error) {
-                // ネットワークエラーまたはブロックされた場合
-                if (error instanceof Error && error.name !== 'AbortError') {
+            // Firebase接続に失敗している兆候を検出
+            if (!isLoading && cards.length === 0 && !hasError) {
+                // コンソールでネットワークエラーをチェック
+                const performanceEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+                const blockedRequests = performanceEntries.filter(
+                    (entry) =>
+                        entry.name.includes('firestore.googleapis.com') &&
+                        (entry.transferSize === 0 || entry.duration === 0)
+                )
+
+                if (blockedRequests.length > 0) {
                     setIsBlocked(true)
                 }
             }
-        }
+        }, 10000)
 
-        // 3秒後にテスト（初期ロード後、Firestore初期化を待つ）
-        const timer = setTimeout(testFirestoreAccess, 3000)
         return () => clearTimeout(timer)
-    }, [])
+    }, [error])
 
     if (!isBlocked) return null
 
