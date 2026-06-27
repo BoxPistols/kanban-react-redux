@@ -31,13 +31,55 @@ export const BaseModal = memo(function BaseModal({
     const theme = getTheme(isDarkMode)
     const modalRef = useRef<HTMLDivElement>(null)
 
-    // フォーカス管理: モーダル内の最初のフォーカス可能要素にフォーカス
+    // フォーカス管理: モーダル内の最初のフォーカス可能要素にフォーカス + フォーカストラップ
     useEffect(() => {
-        const focusableElements = modalRef.current?.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-        const firstElement = focusableElements?.[0] as HTMLElement
+        const modal = modalRef.current
+        if (!modal) return
+
+        const getFocusableElements = () => {
+            return Array.from(
+                modal.querySelectorAll<HTMLElement>(
+                    'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+                )
+            )
+        }
+
+        // 最初の要素にフォーカス
+        const focusableElements = getFocusableElements()
+        const firstElement = focusableElements[0]
         firstElement?.focus()
+
+        // フォーカストラップ: Tabキーでモーダル内をループ
+        const handleTab = (e: KeyboardEvent) => {
+            if (e.key !== 'Tab') return
+
+            const focusableElements = getFocusableElements()
+            if (focusableElements.length === 0) return
+
+            const firstElement = focusableElements[0]
+            const lastElement = focusableElements[focusableElements.length - 1]
+            const activeElement = document.activeElement as HTMLElement
+
+            if (e.shiftKey) {
+                // Shift+Tab: 逆方向
+                if (activeElement === firstElement) {
+                    e.preventDefault()
+                    lastElement?.focus()
+                }
+            } else {
+                // Tab: 順方向
+                if (activeElement === lastElement) {
+                    e.preventDefault()
+                    firstElement?.focus()
+                }
+            }
+        }
+
+        document.addEventListener('keydown', handleTab)
+
+        return () => {
+            document.removeEventListener('keydown', handleTab)
+        }
     }, [])
 
     // Escapeキーでモーダルを閉じる & bodyクラスでスクロールを無効化
