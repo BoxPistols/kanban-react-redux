@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import styled from 'styled-components'
 import { v4 as uuidv4 } from 'uuid'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
@@ -156,7 +156,7 @@ function SortableLabelItem({
     )
 }
 
-export function BoardModal({ boardId, onClose }: BoardModalProps) {
+export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardModalProps) {
     const { boards, updateBoard, addBoard, deleteBoard, addLabelToBoard, removeLabelFromBoard, updateLabel } =
         useBoardStore()
     const { isDarkMode } = useThemeStore()
@@ -573,7 +573,7 @@ export function BoardModal({ boardId, onClose }: BoardModalProps) {
             </ModalContent>
         </BaseModal>
     )
-}
+}) // memo
 
 const ModalContent = styled.div<{ $theme: Theme }>`
     display: flex;
