@@ -17,6 +17,7 @@ import { Card as CardComponent } from './Card'
 import { Auth } from './Auth'
 import { ReloadPrompt } from './ReloadPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import { BlockerWarning } from './components/BlockerWarning'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -27,6 +28,13 @@ import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import { isShortcutKey } from './utils/keyboard'
 import type { Card as CardType, ColumnType } from './types'
+
+// Firestore デバッグユーティリティ(window.debugFirestore)は開発時のみロードする。
+// 本番に同梱すると全ユーザーのカードをコンソールにダンプし得るため(監査C8)。
+// import.meta.env.DEV は本番ビルドで false に畳まれ、この動的importごと除去される。
+if (import.meta.env.DEV) {
+    void import('./utils/debugFirestore')
+}
 
 // 遅延ロード: モーダル系コンポーネント
 const ColumnManager = lazy(() => import('./ColumnManager').then((m) => ({ default: m.ColumnManager })))
@@ -98,6 +106,9 @@ export function App() {
         return filtered
     }, [cards, searchQuery, selectedLabelIds])
 
+    // 検索/ラベルでフィルタ中か。フィルタ中はドラッグ並べ替えを抑止する(C7)。
+    const isFiltered = searchQuery.trim() !== '' || selectedLabelIds.length > 0
+
     const cardsByColumn = useMemo(() => {
         const grouped = filteredCards.reduce<Record<ColumnType, CardType[]>>(
             (acc, card) => {
@@ -120,16 +131,25 @@ export function App() {
         initAuth()
     }, [initAuth])
 
+    // Firebase有効時は認証が解決(isInitialized && user)するまで購読を待つ。
+    // 解決前に購読すると userId 未確定のクエリがセキュリティルールで拒否され、
+    // 以降 deps が変化せず再購読されないためクラウドデータが永久に空になる(監査C3)。
+    // userId を deps に含め、サインイン/ユーザー切替時に正しく再購読させる。
+    const userId = user?.uid
+    const firebaseAuthPending = isFirebaseEnabled && !offlineMode && (!isInitialized || !userId)
+
     useEffect(() => {
+        if (firebaseAuthPending) return
         const unsubscribeBoards = subscribeToBoards()
         return () => unsubscribeBoards()
-    }, [subscribeToBoards])
+    }, [subscribeToBoards, firebaseAuthPending, userId])
 
     useEffect(() => {
         if (!currentBoardId) return
+        if (firebaseAuthPending) return
         const unsubscribeCards = subscribeToCards(currentBoardId)
         return () => unsubscribeCards()
-    }, [subscribeToCards, currentBoardId])
+    }, [subscribeToCards, currentBoardId, firebaseAuthPending, userId])
 
     // 折りたたみ状態の復元
     // localStorageとの同期は外部システムとの連携なので、useEffect内のsetStateは適切
@@ -191,6 +211,10 @@ export function App() {
         (event: DragEndEvent) => {
             const { active, over } = event
             setActiveId(null)
+
+            // フィルタ適用中の並べ替えは表示中カードだけで order を再採番し、
+            // 非表示カードの order を破壊する(監査C7)。フィルタ中は抑止する。
+            if (isFiltered) return
 
             if (!over) return
 
@@ -266,7 +290,7 @@ export function App() {
                 }
             }
         },
-        [cards, columns, cardsByColumn, reorderCards]
+        [cards, columns, cardsByColumn, reorderCards, isFiltered]
     )
 
     const toggleColumnCollapse = useCallback(
@@ -381,9 +405,11 @@ export function App() {
                     <BlockerWarning />
 
                     {showColumnManager && currentBoardId && (
-                        <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
-                            <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
-                        </Suspense>
+                        <ChunkErrorBoundary>
+                            <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
+                                <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
+                            </Suspense>
+                        </ChunkErrorBoundary>
                     )}
                 </Container>
             </DndContext>
