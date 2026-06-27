@@ -17,6 +17,7 @@ import { Card as CardComponent } from './Card'
 import { Auth } from './Auth'
 import { ReloadPrompt } from './ReloadPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
+import { BlockerWarning } from './components/BlockerWarning'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
@@ -375,6 +376,8 @@ export function App() {
                     <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
 
                     <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
+
+                    <BlockerWarning />
 
                     {showColumnManager && currentBoardId && (
                         <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
