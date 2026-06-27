@@ -122,16 +122,25 @@ export function App() {
         initAuth()
     }, [initAuth])
 
+    // Firebase有効時は認証が解決(isInitialized && user)するまで購読を待つ。
+    // 解決前に購読すると userId 未確定のクエリがセキュリティルールで拒否され、
+    // 以降 deps が変化せず再購読されないためクラウドデータが永久に空になる(監査C3)。
+    // userId を deps に含め、サインイン/ユーザー切替時に正しく再購読させる。
+    const userId = user?.uid
+    const firebaseAuthPending = isFirebaseEnabled && !offlineMode && (!isInitialized || !userId)
+
     useEffect(() => {
+        if (firebaseAuthPending) return
         const unsubscribeBoards = subscribeToBoards()
         return () => unsubscribeBoards()
-    }, [subscribeToBoards])
+    }, [subscribeToBoards, firebaseAuthPending, userId])
 
     useEffect(() => {
         if (!currentBoardId) return
+        if (firebaseAuthPending) return
         const unsubscribeCards = subscribeToCards(currentBoardId)
         return () => unsubscribeCards()
-    }, [subscribeToCards, currentBoardId])
+    }, [subscribeToCards, currentBoardId, firebaseAuthPending, userId])
 
     // 折りたたみ状態の復元
     // localStorageとの同期は外部システムとの連携なので、useEffect内のsetStateは適切
