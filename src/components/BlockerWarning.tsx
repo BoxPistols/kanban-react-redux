@@ -17,13 +17,16 @@ export function BlockerWarning() {
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), 3000)
 
-                await fetch('https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen', {
+                // Firestoreのルートエンドポイントに接続テスト（404でなく正常なレスポンスを返す）
+                // no-corsモードなので実際のレスポンスは読めないが、ブロックされているかは検出可能
+                await fetch('https://firestore.googleapis.com/', {
                     method: 'HEAD',
                     mode: 'no-cors',
                     signal: controller.signal,
                 })
 
                 clearTimeout(timeoutId)
+                // 成功したら（エラーがスローされなければ）ブロックされていない
             } catch (error) {
                 // ネットワークエラーまたはブロックされた場合
                 if (error instanceof Error && error.name !== 'AbortError') {
