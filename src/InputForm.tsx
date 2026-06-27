@@ -51,11 +51,12 @@ export const InputForm = memo(function InputForm({
                     // 通常のEnterキーは改行（デフォルト動作）
                 }}
                 $theme={theme}
+                aria-label='カード内容を入力'
             />
 
             <ButtonRow>
-                <AddButton disabled={disabled} onClick={handleConfirm} />
-                <CancelButton onClick={onCancel} />
+                <AddButton disabled={disabled} onClick={handleConfirm} aria-label='カードを追加' />
+                <CancelButton onClick={onCancel} aria-label='入力をキャンセル' />
             </ButtonRow>
         </Container>
     )
