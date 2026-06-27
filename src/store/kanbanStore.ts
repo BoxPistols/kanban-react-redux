@@ -8,12 +8,14 @@ import {
     doc,
     onSnapshot,
     query,
+    where,
     orderBy,
     writeBatch,
 } from 'firebase/firestore'
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useTrashStore } from './trashStore'
+import { useAuthStore } from './authStore'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -133,6 +135,9 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             const cardsInColumn = get().cards.filter((c) => c.columnId === columnId && c.boardId === boardId)
             const maxOrder = cardsInColumn.length > 0 ? Math.max(...cardsInColumn.map((c) => c.order)) : -1
 
+            // Get current user ID for Firestore security
+            const userId = useAuthStore.getState().user?.uid
+
             const newCardData = {
                 text,
                 columnId,
@@ -140,6 +145,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                 order: maxOrder + 1,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
+                ...(userId && { userId }), // Add userId only if user is authenticated
             }
 
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
@@ -388,7 +394,12 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
         if (useFirebase) {
             // Firebase mode
-            const q = query(collection(db!, 'cards'), orderBy('order'))
+            const userId = useAuthStore.getState().user?.uid
+
+            // Build query with userId filter for security
+            const q = userId
+                ? query(collection(db!, 'cards'), where('userId', '==', userId), orderBy('order'))
+                : query(collection(db!, 'cards'), orderBy('order'))
 
             const unsubscribe = onSnapshot(
                 q,

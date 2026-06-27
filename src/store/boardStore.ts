@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, orderBy } from 'firebase/firestore'
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
+import { useAuthStore } from './authStore'
 import { BOARD_COLORS } from '../constants'
 import type { Board, Label, ColumnDefinition } from '../types'
 import { DEFAULT_COLUMNS } from '../types'
@@ -193,6 +194,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         try {
             set({ isLoading: true, error: null })
 
+            // Get current user ID for Firestore security
+            const userId = useAuthStore.getState().user?.uid
+
             const newBoardData = {
                 name,
                 description: description || '',
@@ -201,6 +205,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                 columns: DEFAULT_COLUMNS,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
+                ...(userId && { userId }), // Add userId only if user is authenticated
             }
 
             const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
@@ -401,7 +406,12 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
         const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
         if (useFirebase) {
-            const q = query(collection(db!, 'boards'), orderBy('createdAt'))
+            const userId = useAuthStore.getState().user?.uid
+
+            // Build query with userId filter for security
+            const q = userId
+                ? query(collection(db!, 'boards'), where('userId', '==', userId), orderBy('createdAt'))
+                : query(collection(db!, 'boards'), orderBy('createdAt'))
 
             const unsubscribe = onSnapshot(
                 q,
