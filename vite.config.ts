@@ -72,8 +72,22 @@ export default defineConfig({
       output: {
         manualChunks: {
           firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth'],
-          dndkit: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-          vendor: ['react', 'react-dom', 'zustand', 'styled-components'],
+          // Keep React, ReactDOM and React-internals-dependent libs (@dnd-kit)
+          // in ONE chunk. Splitting @dnd-kit into its own chunk caused a
+          // production-only crash: @dnd-kit reads
+          // ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
+          // (unstable_batchedUpdates) at module-eval time and got `undefined`
+          // when react-dom lived in a separate chunk (init-order/circular),
+          // throwing before render → white screen.
+          vendor: [
+            'react',
+            'react-dom',
+            '@dnd-kit/core',
+            '@dnd-kit/sortable',
+            '@dnd-kit/utilities',
+            'zustand',
+            'styled-components',
+          ],
         }
       }
     }
