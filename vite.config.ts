@@ -2,9 +2,19 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(async ({ mode }) => ({
   plugins: [
     react(),
+    ...(process.env.ANALYZE
+      ? [
+          (await import('rollup-plugin-visualizer')).visualizer({
+            filename: './dist/stats.html',
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]
+      : []),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
@@ -78,4 +88,4 @@ export default defineConfig({
       }
     }
   }
-})
+}))
