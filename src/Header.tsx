@@ -149,7 +149,10 @@ export const Header = memo(function Header({ className }: { className?: string }
 
                         <MenuSection>
                             <MenuSectionTitle>設定</MenuSectionTitle>
-                            <MenuThemeToggle onClick={toggleDarkMode}>
+                            <MenuThemeToggle
+                                onClick={toggleDarkMode}
+                                aria-label={isDarkMode ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+                            >
                                 {isDarkMode ? <SunIcon /> : <MoonIcon />}
                                 <span>{isDarkMode ? 'ライトモード' : 'ダークモード'}</span>
                             </MenuThemeToggle>
@@ -158,6 +161,7 @@ export const Header = memo(function Header({ className }: { className?: string }
                                     setIsTrashModalOpen(true)
                                     setIsMenuOpen(false)
                                 }}
+                                aria-label={`ゴミ箱${trashedCards.length > 0 ? ` (${trashedCards.length}件)` : ''}`}
                             >
                                 <TrashIcon />
                                 <span>ゴミ箱</span>
@@ -176,7 +180,9 @@ export const Header = memo(function Header({ className }: { className?: string }
                                         </UserInitial>
                                         <UserEmail>{user.email}</UserEmail>
                                     </UserInfoMobile>
-                                    <MenuLogoutButton onClick={handleLogout}>ログアウト</MenuLogoutButton>
+                                    <MenuLogoutButton onClick={handleLogout} aria-label='ログアウト'>
+                                        ログアウト
+                                    </MenuLogoutButton>
                                 </MenuSection>
                             </>
                         )}
