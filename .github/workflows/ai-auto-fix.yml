@@ -16,7 +16,8 @@ jobs:
     uses: BoxPistols/ai-auto-fix-template/.github/workflows/reusable-ai-auto-fix.yml@main
     with:
       node_version: '20'
-      package_manager: 'pnpm'  # pnpm@10.14.0を使用（package.json参照）
+      package_manager: 'pnpm'
+      pnpm_version: '10.14.0'  # package.jsonと一致させる
       tech_stack: 'React, TypeScript, Vite'
       language: 'ja'
     secrets:
