@@ -17,6 +17,7 @@ import { Card as CardComponent } from './Card'
 import { Auth } from './Auth'
 import { ReloadPrompt } from './ReloadPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
+import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import { BlockerWarning } from './components/BlockerWarning'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -382,9 +383,11 @@ export function App() {
                     <BlockerWarning />
 
                     {showColumnManager && currentBoardId && (
-                        <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
-                            <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
-                        </Suspense>
+                        <ChunkErrorBoundary>
+                            <Suspense fallback={<LoadingOverlay $theme={theme}>読み込み中...</LoadingOverlay>}>
+                                <ColumnManager boardId={currentBoardId} onClose={() => setShowColumnManager(false)} />
+                            </Suspense>
+                        </ChunkErrorBoundary>
                     )}
                 </Container>
             </DndContext>

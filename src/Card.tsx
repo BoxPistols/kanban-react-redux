@@ -9,6 +9,7 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
 import { LinkedText } from './LinkedText'
+import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import type { Card as CardType } from './types'
 
 // 遅延ロード: CardDetailModal
@@ -152,9 +153,11 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
             </Container>
 
             {showModal && (
-                <Suspense fallback={null}>
-                    <CardDetailModal card={card} onClose={() => setShowModal(false)} />
-                </Suspense>
+                <ChunkErrorBoundary>
+                    <Suspense fallback={null}>
+                        <CardDetailModal card={card} onClose={() => setShowModal(false)} />
+                    </Suspense>
+                </ChunkErrorBoundary>
             )}
         </>
     )
