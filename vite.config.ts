@@ -30,8 +30,14 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
+        // NOTE: skipWaiting / clientsClaim を有効にすると、デプロイ中に新SWが
+        // 開いている旧タブを即時奪取し旧ビルドの precache を破棄する。旧タブが
+        // lazy chunk（カード詳細/ゴミ箱/列管理モーダル）を後から import すると
+        // 404 → ChunkLoadError でアプリ全体がクラッシュ（白画面と同クラス）。
+        // 既定（false）に戻し、新SWは全旧タブが閉じるまで待機させる。
+        // → 開いているセッションは旧チャンクを引き続き取得でき、次回フルリロードで更新。
+        skipWaiting: false,
+        clientsClaim: false,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
