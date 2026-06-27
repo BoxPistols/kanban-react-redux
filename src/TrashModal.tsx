@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, memo } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { useTrashStore, TrashedCard } from './store/trashStore'
@@ -13,7 +13,7 @@ interface TrashModalProps {
     onClose: () => void
 }
 
-export function TrashModal({ onClose }: TrashModalProps) {
+export const TrashModal = memo(function TrashModal({ onClose }: TrashModalProps) {
     const { trashedCards, restoreFromTrash, permanentlyDelete, emptyTrash, loadTrash, getDaysUntilPermanentDeletion } =
         useTrashStore()
     const { restoreCard } = useKanbanStore()
@@ -160,7 +160,7 @@ export function TrashModal({ onClose }: TrashModalProps) {
             </ModalContent>
         </BaseModal>
     )
-}
+}) // memo
 
 const ModalContent = styled.div<{ $theme: Theme }>`
     display: flex;

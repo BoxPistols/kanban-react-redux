@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, memo } from 'react'
 import styled from 'styled-components'
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -127,7 +127,7 @@ function SortableChecklistItem({
     )
 }
 
-export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
+export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: CardDetailModalProps) {
     const { updateCard, addCard } = useKanbanStore()
     const { boards, currentBoardId } = useBoardStore()
     const { isDarkMode } = useThemeStore()
@@ -588,7 +588,7 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
             </ModalContent>
         </BaseModal>
     )
-}
+}) // memo
 
 const ModalContent = styled.div<{ $theme: Theme }>`
     display: flex;

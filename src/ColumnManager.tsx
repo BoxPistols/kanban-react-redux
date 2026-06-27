@@ -163,7 +163,7 @@ interface ColumnManagerProps {
     onClose: () => void
 }
 
-export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
+export const ColumnManager = memo(function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
     const { getColumns, addColumn, removeColumn, updateColumn, reorderColumns } = useBoardStore()
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
@@ -276,7 +276,7 @@ export function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
             </ModalContent>
         </BaseModal>
     )
-}
+}) // memo
 
 const ModalContent = styled.div<{ $theme: Theme }>`
     display: flex;
