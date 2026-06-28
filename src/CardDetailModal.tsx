@@ -486,7 +486,16 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                             <DescriptionDisplay
                                 $theme={theme}
                                 onClick={() => setEditingDescription(true)}
-                                title='クリックして編集'
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        setEditingDescription(true)
+                                    }
+                                }}
+                                role='button'
+                                tabIndex={0}
+                                title='クリックまたはEnterで編集'
+                                aria-label='説明を編集'
                             >
                                 <LinkedText text={description} metadata={metadata} theme={theme} />
                             </DescriptionDisplay>

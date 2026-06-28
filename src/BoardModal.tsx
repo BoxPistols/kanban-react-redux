@@ -401,11 +401,13 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
                 </Header>
 
                 {boardId && (
-                    <TabBar $theme={theme}>
+                    <TabBar $theme={theme} role='tablist' aria-label='ボード設定'>
                         <Tab
                             $active={activeTab === 'basic'}
                             $theme={theme}
                             onClick={() => setActiveTab('basic')}
+                            role='tab'
+                            aria-selected={activeTab === 'basic'}
                             aria-label='基本情報タブ'
                         >
                             基本情報
@@ -414,6 +416,8 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
                             $active={activeTab === 'labels'}
                             $theme={theme}
                             onClick={() => setActiveTab('labels')}
+                            role='tab'
+                            aria-selected={activeTab === 'labels'}
                             aria-label='ラベル管理タブ'
                         >
                             ラベル管理
@@ -458,6 +462,9 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
                                         $isDarkMode={isDarkMode}
                                         onClick={() => setSelectedColor(boardColor)}
                                         type='button'
+                                        aria-label={`ボードカラー ${boardColor}`}
+                                        aria-pressed={selectedColor === boardColor}
+                                        title={boardColor}
                                     />
                                 ))}
                             </ColorGrid>
