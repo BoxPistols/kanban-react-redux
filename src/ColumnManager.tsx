@@ -9,6 +9,7 @@ import { PrimaryButton, SecondaryButton } from './Button'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
+import { isComposing } from './utils/keyboard'
 import type { ColumnDefinition } from './types'
 
 // レーンの色パレット (jewel tones)
@@ -82,6 +83,7 @@ const SortableColumnItem = memo(function SortableColumnItem({
                     onChange={(e) => setEditTitle(e.target.value)}
                     onBlur={handleSaveEdit}
                     onKeyDown={(e) => {
+                        if (isComposing(e)) return
                         if (e.key === 'Enter') handleSaveEdit()
                         if (e.key === 'Escape') {
                             setEditTitle(column.title)
@@ -225,7 +227,7 @@ export const ColumnManager = memo(function ColumnManager({ boardId, onClose }: C
     )
 
     return (
-        <BaseModal onClose={onClose} maxWidth='500px'>
+        <BaseModal onClose={onClose} maxWidth='500px' ariaLabel='レーン管理'>
             <ModalContent $theme={theme}>
                 <Header $theme={theme}>
                     <ModalTitle $theme={theme}>レーン管理</ModalTitle>
@@ -264,7 +266,7 @@ export const ColumnManager = memo(function ColumnManager({ boardId, onClose }: C
                             type='text'
                             value={newColumnTitle}
                             onChange={(e) => setNewColumnTitle(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
+                            onKeyDown={(e) => !isComposing(e) && e.key === 'Enter' && handleAddColumn()}
                             placeholder='新しいレーン名を入力...'
                             $theme={theme}
                             aria-label='新しいレーン名を入力'

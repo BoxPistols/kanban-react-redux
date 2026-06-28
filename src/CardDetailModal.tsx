@@ -12,6 +12,7 @@ import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
 import { CARD_COLOR_LABELS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
+import { isComposing } from './utils/keyboard'
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
 import { useUrlMetadata } from './hooks/useUrlMetadata'
@@ -83,6 +84,7 @@ function SortableChecklistItem({
                         value={editingText}
                         onChange={(e) => onEditTextChange(e.target.value)}
                         onKeyDown={(e) => {
+                            if (isComposing(e)) return
                             if (e.key === 'Enter') {
                                 onSaveEdit()
                             } else if (e.key === 'Escape') {
@@ -577,7 +579,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 type='text'
                                 value={newChecklistItem}
                                 onChange={(e) => setNewChecklistItem(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && addChecklistItem()}
+                                onKeyDown={(e) => !isComposing(e) && e.key === 'Enter' && addChecklistItem()}
                                 placeholder='新しい項目を追加...'
                                 $theme={theme}
                             />
