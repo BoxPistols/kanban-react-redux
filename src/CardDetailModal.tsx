@@ -234,7 +234,9 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
             dueDate: dueDate ? new Date(dueDate).getTime() : null,
             progress,
             color: cardColor,
-            images: images.length > 0 ? images : undefined,
+            // 全画像削除時は null を渡してフィールド削除を明示する。undefined だと
+            // Firestore 更新ペイロードから除外され、古い画像が消えず復活する(監査)。
+            images: images.length > 0 ? images : null,
         })
         onClose()
     }, [

@@ -69,7 +69,9 @@ export function App() {
     const boards = useBoardStore((state) => state.boards)
     const columns = useMemo(() => {
         return getColumns(currentBoardId || undefined)
-    }, [getColumns, currentBoardId]) // boards は getColumns 内で参照されるため不要
+        // getColumns は安定参照なので boards を含めないと、同一 currentBoardId のまま
+        // レーンを追加/改名/並べ替え/削除しても再計算されず画面に反映されない(監査)。
+    }, [getColumns, currentBoardId, boards])
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -278,7 +280,10 @@ export function App() {
                 // Dropping on a column - add to end of column
                 if (activeCard.columnId !== overColumn.id) {
                     const targetColumnCards = cardsByColumn[overColumn.id] || []
-                    const newOrder = targetColumnCards.length
+                    // order が連番でない(移動で穴が空いた)場合 .length が既存 order と衝突し
+                    // カードが重なる/入れ替わるため、addCard と同様 max(order)+1 で末尾を確定(監査)。
+                    const newOrder =
+                        targetColumnCards.length > 0 ? Math.max(...targetColumnCards.map((c) => c.order)) + 1 : 0
 
                     reorderCards([
                         {
