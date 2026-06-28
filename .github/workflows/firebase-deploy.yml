@@ -7,7 +7,9 @@ on:
     paths:
       - 'firestore.rules'
       - 'firestore.indexes.json'
+      - '.firebaserc'
       - '.github/workflows/firebase-deploy.yml'
+  workflow_dispatch:
 
 jobs:
   deploy-firestore:
@@ -16,18 +18,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 認証情報が無い場合はデプロイをスキップして警告のみ（赤バツにしない）。
+      # 旧構成は空の FIREBASE_TOKEN かつ project 未設定で常に失敗し、ルール/
+      # インデックスが一度も本番へ反映されていなかった。
+      - name: Check credentials
+        id: creds
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT secret 未設定のため Firestore ルール/インデックスのデプロイをスキップしました。本番には反映されません。設定手順は FIREBASE_CI_SETUP.md を参照してください。"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node.js
+        if: steps.creds.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install Firebase CLI
+        if: steps.creds.outputs.configured == 'true'
         run: npm install -g firebase-tools
 
+      # サービスアカウント JSON を一時ファイルへ書き出し、GOOGLE_APPLICATION_CREDENTIALS
+      # 経由で認証する（firebase login:ci トークンは Google が非推奨化したため不採用: 監査#22）。
+      # project は .firebaserc の default に加えて明示指定する。
       - name: Deploy Firestore Rules & Indexes
+        if: steps.creds.outputs.configured == 'true'
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        # rules だけでなく indexes も deploy。アプリの本番クエリ
-        # (boards: userId+createdAt / cards: userId+order) は複合インデックス必須で、
-        # 未デプロイだと onSnapshot がインデックスエラーを投げオフラインに落ちる(監査C4)。
-        run: firebase deploy --only firestore:rules,firestore:indexes --token "$FIREBASE_TOKEN"
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          KEY_FILE="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$KEY_FILE"
+          export GOOGLE_APPLICATION_CREDENTIALS="$KEY_FILE"
+          firebase deploy --only firestore:rules,firestore:indexes --project kanban-relax --non-interactive
+          rm -f "$KEY_FILE"
