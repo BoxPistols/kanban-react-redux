@@ -41,7 +41,8 @@ jobs:
 
       - name: Install Firebase CLI
         if: steps.creds.outputs.configured == 'true'
-        run: npm install -g firebase-tools
+        # メジャーをピンして再現性を確保（毎回 latest を引くと deploy 挙動が非決定的: 監査）。
+        run: npm install -g firebase-tools@^13
 
       # サービスアカウント JSON を一時ファイルへ書き出し、GOOGLE_APPLICATION_CREDENTIALS
       # 経由で認証する（firebase login:ci トークンは Google が非推奨化したため不採用: 監査#22）。
