@@ -4,6 +4,11 @@ import type { UrlMetadata } from '../types'
 
 const DEBOUNCE_DELAY_MS = 500 // デバウンス遅延時間（500ms）
 
+// 安定した空配列参照。デフォルト引数 `= []` は呼び出し側が undefined を渡すたびに
+// 新しい配列を生成し、それが effect の依存になって無限再レンダリング
+// （Maximum update depth exceeded）とデバウンスタイマーの永久リセットを引き起こす。
+const EMPTY_METADATA: UrlMetadata[] = []
+
 /**
  * メタデータ配列を比較する
  */
@@ -22,14 +27,15 @@ function areMetadataArraysEqual(a: UrlMetadata[], b: UrlMetadata[]): boolean {
  */
 export function useUrlMetadata(
     text: string,
-    existingMetadata: UrlMetadata[] = [],
+    existingMetadata: UrlMetadata[] = EMPTY_METADATA,
     onMetadataUpdate?: (metadata: UrlMetadata[]) => void
 ) {
     const [metadata, setMetadata] = useState<UrlMetadata[]>(existingMetadata)
 
-    // existingMetadataが変更されたら同期
+    // existingMetadataが変更されたら同期。内容が同一なら state を据え置き、
+    // 参照だけ変わった場合の不要な再レンダリング/フェッチ済みデータの上書きを防ぐ。
     useEffect(() => {
-        setMetadata(existingMetadata)
+        setMetadata((prev) => (areMetadataArraysEqual(prev, existingMetadata) ? prev : existingMetadata))
     }, [existingMetadata])
 
     useEffect(() => {

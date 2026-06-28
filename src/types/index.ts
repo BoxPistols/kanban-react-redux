@@ -64,7 +64,7 @@ export interface Card {
     dueDate?: number | null // nullは明示的な削除を表す
     progress?: number
     urlMetadata?: UrlMetadata[] // URL メタ情報のキャッシュ
-    images?: ImageAttachment[] // 貼り付け画像
+    images?: ImageAttachment[] | null // 貼り付け画像（nullは明示的な削除を表す）
 }
 
 export interface Column {

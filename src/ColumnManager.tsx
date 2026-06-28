@@ -173,10 +173,13 @@ interface ColumnManagerProps {
 
 export const ColumnManager = memo(function ColumnManager({ boardId, onClose }: ColumnManagerProps) {
     const { getColumns, addColumn, removeColumn, updateColumn, reorderColumns } = useBoardStore()
+    const boards = useBoardStore((state) => state.boards)
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
 
-    const columns = useMemo(() => getColumns(boardId), [getColumns, boardId])
+    // boards を deps に含めないと、getColumns/boardId が安定参照のためメモが初回で凍結し、
+    // レーンの追加/改名/並べ替え/削除がモーダルを開いている間に反映されない(監査)。
+    const columns = useMemo(() => getColumns(boardId), [getColumns, boardId, boards])
     const [newColumnTitle, setNewColumnTitle] = useState('')
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
