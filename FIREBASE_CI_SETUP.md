@@ -1,37 +1,59 @@
 # Firebase CI/CD セットアップ手順
 
-## 1. Firebase CI Token の取得
+Firestore のセキュリティルール（`firestore.rules`）と複合インデックス
+（`firestore.indexes.json`）を、`main` への push 時に自動デプロイするための設定。
 
-ターミナルで以下のコマンドを実行:
+> ⚠️ **重要:** `FIREBASE_SERVICE_ACCOUNT` secret を設定するまで、デプロイは
+> **スキップ**されます（ワークフローは警告付きで成功扱い）。設定が完了するまで
+> ルール/インデックスの変更は**本番に反映されません**。
+> 既存の変更を今すぐ反映したい場合は、後述の「手動デプロイ」を実行してください。
 
-```bash
-firebase login:ci
-```
+## 1. サービスアカウントの作成
 
-ブラウザが開くのでログインし、生成されたトークンをコピー
+`firebase login:ci` のトークン方式は Google が非推奨化したため、
+**サービスアカウント**を使う。
+
+1. [Google Cloud Console](https://console.cloud.google.com/) で対象プロジェクト
+   （`kanban-relax`）を開く
+2. IAM と管理 → サービスアカウント → 「サービスアカウントを作成」
+3. ロールに **Firebase Admin**（または最小権限なら
+   `Cloud Datastore Index Admin` + `Firebase Rules Admin`）を付与
+4. 作成したサービスアカウント → キー → 「鍵を追加」→ JSON を作成しダウンロード
 
 ## 2. GitHub Secrets に登録
 
-1. GitHubリポジトリページを開く
-2. Settings → Secrets and variables → Actions
-3. "New repository secret" をクリック
-4. Name: `FIREBASE_TOKEN`
-5. Secret: 先ほどコピーしたトークンを貼り付け
-6. "Add secret" をクリック
+1. GitHub リポジトリ → Settings → Secrets and variables → Actions
+2. "New repository secret"
+3. Name: `FIREBASE_SERVICE_ACCOUNT`
+4. Secret: ダウンロードした **JSON の中身をそのまま**貼り付け
+5. "Add secret"
 
 ## 3. 自動デプロイの動作
 
-以下のファイルが変更されると、自動的にFirebaseルールがデプロイされます:
+以下のファイルが `main` で変更されると自動デプロイされる:
+
 - `firestore.rules`
 - `firestore.indexes.json`
+- `.firebaserc`
+- `.github/workflows/firebase-deploy.yml`
 
-## 4. デプロイ状況の確認
+`workflow_dispatch` でも手動実行可能。
+
+## 4. 手動デプロイ（初回反映 / 緊急時）
+
+ローカルに Firebase CLI とログイン済み環境があれば:
+
+```bash
+firebase deploy --only firestore:rules,firestore:indexes --project kanban-relax
+```
+
+## 5. デプロイ状況の確認
 
 - GitHub Actions タブでワークフローの実行状況を確認
-- 失敗した場合はログを確認
+- secret 未設定の場合は「Check credentials」ステップに警告が出てスキップされる
 
 ## 注意事項
 
-- `FIREBASE_TOKEN`は絶対に公開しないこと
-- トークンが漏洩した場合は `firebase logout --token <TOKEN>` で無効化
-- 定期的にトークンを再生成することを推奨
+- `FIREBASE_SERVICE_ACCOUNT`（JSON 鍵）は絶対に公開しないこと
+- 鍵が漏洩した場合は Google Cloud Console から該当鍵を無効化し、再発行する
+- プロジェクト ID（`kanban-relax`）は `.firebaserc` の default で固定
