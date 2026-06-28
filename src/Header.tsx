@@ -125,6 +125,9 @@ export const Header = memo(function Header({ className }: { className?: string }
                 }}
                 title='メニュー'
                 aria-label='メニュー'
+                aria-expanded={isMenuOpen}
+                aria-controls='mobile-menu-drawer'
+                aria-haspopup='menu'
                 data-menu-container
             >
                 {isMenuOpen ? <CloseIcon /> : <MenuIcon />}
@@ -133,7 +136,14 @@ export const Header = memo(function Header({ className }: { className?: string }
             {/* モバイルメニュードロワー */}
             {isMenuOpen && (
                 <MobileMenuOverlay onClick={() => setIsMenuOpen(false)}>
-                    <MobileMenu onClick={(e) => e.stopPropagation()} data-menu-container $isDarkMode={isDarkMode}>
+                    <MobileMenu
+                        id='mobile-menu-drawer'
+                        role='menu'
+                        aria-label='メニュー'
+                        onClick={(e) => e.stopPropagation()}
+                        data-menu-container
+                        $isDarkMode={isDarkMode}
+                    >
                         <MenuSection>
                             <MenuSectionTitle>ボード</MenuSectionTitle>
                             <BoardSelector />
