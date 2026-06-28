@@ -196,8 +196,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     },
 }))
 
-// Export helper to check auth state in console
-if (typeof window !== 'undefined') {
+// Export helper to check auth state in console（開発時のみ。本番では Firebase User
+// (uid/email/トークン)を露出させないため import.meta.env.DEV で畳む: 監査/C8 と同方針）
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
     interface ExtendedWindow extends Window {
         checkAuth?: () => User | null
     }
