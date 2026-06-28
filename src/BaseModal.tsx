@@ -9,6 +9,9 @@ interface BaseModalProps {
     children: ReactNode
     maxWidth?: string
     mobileAlignTop?: boolean
+    // ダイアログのアクセシブル名。id='modal-title' を持たないモーダルはこれを渡す。
+    // 未指定時は従来どおり aria-labelledby='modal-title' を参照する(監査)。
+    ariaLabel?: string
 }
 
 // iOS判定（iPhone, iPad, macOS Safari）
@@ -26,6 +29,7 @@ export const BaseModal = memo(function BaseModal({
     children,
     maxWidth = '600px',
     mobileAlignTop = false,
+    ariaLabel,
 }: BaseModalProps) {
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
@@ -35,6 +39,9 @@ export const BaseModal = memo(function BaseModal({
     useEffect(() => {
         const modal = modalRef.current
         if (!modal) return
+
+        // モーダルを開いたトリガー要素を控え、閉じる時にフォーカスを戻す(監査)。
+        const previouslyFocused = document.activeElement as HTMLElement | null
 
         const getFocusableElements = () => {
             return Array.from(
@@ -79,6 +86,8 @@ export const BaseModal = memo(function BaseModal({
 
         return () => {
             document.removeEventListener('keydown', handleTab)
+            // 閉じた後、開く前にフォーカスしていた要素へ戻す（キーボード位置を失わない）。
+            previouslyFocused?.focus?.()
         }
     }, [])
 
@@ -128,7 +137,8 @@ export const BaseModal = memo(function BaseModal({
                 $maxWidth={maxWidth}
                 role='dialog'
                 aria-modal='true'
-                aria-labelledby='modal-title'
+                aria-label={ariaLabel}
+                aria-labelledby={ariaLabel ? undefined : 'modal-title'}
             >
                 {children}
             </Modal>

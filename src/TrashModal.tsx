@@ -87,7 +87,7 @@ export const TrashModal = memo(function TrashModal({ onClose }: TrashModalProps)
     }, [])
 
     return (
-        <BaseModal onClose={onClose} maxWidth='600px'>
+        <BaseModal onClose={onClose} maxWidth='600px' ariaLabel='ゴミ箱'>
             <ModalContent $theme={theme}>
                 <Header $theme={theme}>
                     <Title $theme={theme}>ゴミ箱</Title>

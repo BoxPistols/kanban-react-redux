@@ -309,4 +309,10 @@ const CollapseButton = styled.button<{ $theme: Theme; $columnColor?: string }>`
         color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 1)' : props.$theme.text)};
         background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.15)' : props.$theme.surfaceHover)};
     }
+
+    /* キーボードフォーカス時も表示（opacity:0 だと focus-visible の輪郭が見えない: 監査） */
+    &:focus-visible {
+        opacity: 1 !important;
+        color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 1)' : props.$theme.text)};
+    }
 `

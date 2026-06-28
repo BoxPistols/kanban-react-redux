@@ -341,4 +341,10 @@ const DeleteButton = styled.button.attrs({
         color: ${color.Red};
         opacity: 1 !important;
     }
+
+    /* キーボードフォーカス時も表示。opacity:0 のままだと focus-visible の輪郭も隠れる(監査) */
+    &:focus-visible {
+        color: ${color.Red};
+        opacity: 1 !important;
+    }
 `

@@ -16,6 +16,7 @@ import {
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
+import { isComposing } from './utils/keyboard'
 import { BOARD_COLORS, LABEL_COLORS } from './constants'
 import { BaseModal } from './BaseModal'
 import type { Label } from './types'
@@ -227,6 +228,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
 
     const handleLabelKeyPress = useCallback(
         (e: React.KeyboardEvent) => {
+            if (isComposing(e)) return
             if (e.key === 'Enter') {
                 e.preventDefault()
                 handleAddLabel()
@@ -389,7 +391,7 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
     }, [boardId, deleteBoard, onClose])
 
     return (
-        <BaseModal onClose={onClose} maxWidth='500px'>
+        <BaseModal onClose={onClose} maxWidth='500px' ariaLabel={boardId ? 'ボードを編集' : '新しいボード'}>
             <ModalContent $theme={theme}>
                 <Header $theme={theme}>
                     <Title $theme={theme}>{boardId ? 'ボードを編集' : '新しいボード'}</Title>
