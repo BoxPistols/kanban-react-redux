@@ -37,6 +37,7 @@ import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { showToast } from './store/toastStore'
+import { pushUndo, useUndoStore } from './store/undoStore'
 import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
@@ -222,25 +223,68 @@ export function App() {
         return () => clearTimeout(timer)
     }, [isInitialized, user, boards.length, offlineMode])
 
-    // グローバルショートカットキー（Cmd+K / Ctrl+K で検索欄にフォーカス）
+    const clearFilters = useCallback(() => {
+        setSearchQuery('')
+        setSelectedLabelIds([])
+    }, [setSearchQuery, setSelectedLabelIds])
+
+    // グローバルショートカットキー
+    //   Cmd/Ctrl+K, F, / : 検索欄にフォーカス
+    //   N                : 最初のレーンのカード追加を開く
+    //   X                : フィルターをクリア
+    //   Cmd/Ctrl+Z       : 直前の操作を元に戻す(移動・削除・並べ替え)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Cmd+K / Ctrl+K で検索欄にフォーカス
-            if (isShortcutKey(e, 'k', { requireModifier: true })) {
+            const target = e.target as HTMLElement
+            const isTyping =
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.tagName === 'SELECT' ||
+                target.isContentEditable
+
+            // Cmd+Z / Ctrl+Z で直前の操作を取り消す(入力中はブラウザ既定に任せる)
+            if (!isTyping && isShortcutKey(e, 'z', { requireModifier: true }) && !e.shiftKey) {
+                const entry = useUndoStore.getState().popUndo()
+                if (entry) {
+                    e.preventDefault()
+                    void entry.undo()
+                    showToast(`「${entry.label}」を元に戻しました`, 'success')
+                }
+                return
+            }
+
+            // 検索フォーカス: Cmd/Ctrl+K は常時、f と / は非入力時のみ
+            const wantsSearch =
+                isShortcutKey(e, 'k', { requireModifier: true }) || (!isTyping && (e.key === 'f' || e.key === '/'))
+            if (wantsSearch) {
                 e.preventDefault()
                 const searchInput = document.querySelector<HTMLInputElement>('input[aria-label="カード検索"]')
                 searchInput?.focus()
+                return
+            }
+
+            if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return
+
+            // n: 最初のレーンのカード追加を開く
+            if (e.key === 'n') {
+                const addButton = document.querySelector<HTMLButtonElement>('[data-add-card-button]')
+                if (addButton) {
+                    e.preventDefault()
+                    addButton.click()
+                }
+                return
+            }
+
+            // x: フィルターをクリア
+            if (e.key === 'x') {
+                e.preventDefault()
+                clearFilters()
             }
         }
 
         document.addEventListener('keydown', handleKeyDown)
         return () => document.removeEventListener('keydown', handleKeyDown)
-    }, [])
-
-    const clearFilters = useCallback(() => {
-        setSearchQuery('')
-        setSelectedLabelIds([])
-    }, [setSearchQuery, setSelectedLabelIds])
+    }, [clearFilters])
 
     const handleDragStart = useCallback(
         (event: DragStartEvent) => {
@@ -334,7 +378,12 @@ export function App() {
                 const oldIndex = columns.findIndex((col) => col.id === active.id)
                 const newIndex = columns.findIndex((col) => col.id === over.id)
                 if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+                const previousColumns = columns
                 reorderColumns(currentBoardId, arrayMove(columns, oldIndex, newIndex))
+                pushUndo({
+                    label: 'レーンの並べ替え',
+                    undo: () => reorderColumns(currentBoardId, previousColumns),
+                })
                 return
             }
 

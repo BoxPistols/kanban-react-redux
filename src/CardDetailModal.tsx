@@ -4,13 +4,15 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closest
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { v4 as uuidv4 } from 'uuid'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import * as color from './color'
 import { IconButton, SmallPrimaryButton } from './Button'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
-import { useTrashStore } from './store/trashStore'
 import { showToast } from './store/toastStore'
+import { pushUndo } from './store/undoStore'
 import { getTheme, Theme } from './theme'
 import { CARD_COLOR_LABELS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
@@ -140,7 +142,7 @@ function SortableChecklistItem({
 }
 
 export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: CardDetailModalProps) {
-    const { updateCard, addCard, deleteCard, restoreCard, cards } = useKanbanStore()
+    const { updateCard, addCard, trashCard, cards } = useKanbanStore()
     const { boards, currentBoardId, getColumns } = useBoardStore()
     const { isDarkMode } = useThemeStore()
 
@@ -157,7 +159,18 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
     const [editingChecklistItem, setEditingChecklistItem] = useState<string | null>(null)
     const [editingChecklistText, setEditingChecklistText] = useState('')
     const [convertingItemId, setConvertingItemId] = useState<string | null>(null)
-    const [dueDate, setDueDate] = useState(card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : '')
+    // 期限: 日付と時刻を分離して保持(時刻は任意)。ローカルタイムゾーン基準で表示する
+    const initialDue = card.dueDate ? new Date(card.dueDate) : null
+    const toLocalDateString = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const toLocalTimeString = (d: Date) =>
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    const [dueDate, setDueDate] = useState(initialDue ? toLocalDateString(initialDue) : '')
+    const [dueTime, setDueTime] = useState(
+        initialDue && (initialDue.getHours() !== 0 || initialDue.getMinutes() !== 0)
+            ? toLocalTimeString(initialDue)
+            : ''
+    )
     const [cardColor, setCardColor] = useState(card.color || '')
     const [editingDescription, setEditingDescription] = useState(false)
     const [images, setImages] = useState<ImageAttachment[]>(card.images || [])
@@ -248,8 +261,8 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
             description,
             labels: selectedLabels,
             checklist,
-            // 日付が空の場合はnullを設定して削除を明示
-            dueDate: dueDate ? new Date(dueDate).getTime() : null,
+            // 日付が空の場合はnullを設定して削除を明示。時刻未指定は 00:00 扱い
+            dueDate: dueDate ? new Date(`${dueDate}T${dueTime || '00:00'}`).getTime() : null,
             progress,
             color: cardColor,
             // 全画像削除時は null を渡してフィールド削除を明示する。undefined だと
@@ -279,7 +292,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
         }
         const timer = setTimeout(saveNow, 600)
         return () => clearTimeout(timer)
-    }, [title, description, selectedLabels, checklist, dueDate, cardColor, images, saveNow])
+    }, [title, description, selectedLabels, checklist, dueDate, dueTime, cardColor, images, saveNow])
 
     // 閉じるときは未保存分を確実に書き込む
     const handleClose = useCallback(() => {
@@ -294,29 +307,21 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
             saveNow()
             const cardsInColumn = cards.filter((c) => c.columnId === columnId && c.boardId === card.boardId)
             const maxOrder = cardsInColumn.length > 0 ? Math.max(...cardsInColumn.map((c) => c.order)) : -1
+            const prev = { columnId: card.columnId, order: card.order }
             updateCard(card.id, { columnId, order: maxOrder + 1 })
+            pushUndo({ label: 'レーン移動', undo: () => updateCard(card.id, prev) })
             const columnTitle = boardColumns.find((c) => c.id === columnId)?.title || columnId
             showToast(`「${columnTitle}」へ移動しました`, 'success')
         },
-        [card.columnId, card.boardId, card.id, cards, updateCard, saveNow, boardColumns]
+        [card.columnId, card.order, card.boardId, card.id, cards, updateCard, saveNow, boardColumns]
     )
 
     // ゴミ箱へ移動(Undo付き)。削除後に自動保存が走らないようフラグで抑止する
     const handleMoveToTrash = useCallback(async () => {
         skipSaveRef.current = true
-        const cardId = card.id
-        await deleteCard(cardId)
+        await trashCard(card.id)
         onClose()
-        showToast('カードをゴミ箱に移動しました', 'info', {
-            label: '元に戻す',
-            onAction: () => {
-                const restored = useTrashStore.getState().restoreFromTrash(cardId)
-                if (restored) {
-                    restoreCard(restored, restored.originalBoardId, restored.originalColumnId)
-                }
-            },
-        })
-    }, [card.id, deleteCard, restoreCard, onClose])
+    }, [card.id, trashCard, onClose])
 
     const toggleLabel = useCallback(
         (label: Label) => {
@@ -428,7 +433,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
         [setChecklist]
     )
 
-    const dueDateTimestamp = dueDate ? new Date(dueDate).getTime() : undefined
+    const dueDateTimestamp = dueDate ? new Date(`${dueDate}T${dueTime || '00:00'}`).getTime() : undefined
     const { isDueSoon, isOverdue } = getDueDateStatus(dueDateTimestamp)
 
     return (
@@ -485,15 +490,28 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                     {/* Due Date Section */}
                     <Section>
                         <SectionTitle $theme={theme}>期限</SectionTitle>
-                        <DueDateInput
-                            type='date'
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                            $isOverdue={isOverdue}
-                            $isDueSoon={isDueSoon && !isOverdue}
-                            $theme={theme}
-                            $isDarkMode={isDarkMode}
-                        />
+                        <DueDateRow>
+                            <DueDateInput
+                                type='date'
+                                value={dueDate}
+                                onChange={(e) => setDueDate(e.target.value)}
+                                $isOverdue={isOverdue}
+                                $isDueSoon={isDueSoon && !isOverdue}
+                                $theme={theme}
+                                $isDarkMode={isDarkMode}
+                                aria-label='期限日'
+                            />
+                            <DueTimeInput
+                                type='time'
+                                value={dueTime}
+                                onChange={(e) => setDueTime(e.target.value)}
+                                disabled={!dueDate}
+                                $theme={theme}
+                                $isDarkMode={isDarkMode}
+                                aria-label='期限時刻(任意)'
+                                title='時刻(任意)'
+                            />
+                        </DueDateRow>
                         {isOverdue && <WarningText>期限切れです</WarningText>}
                         {isDueSoon && !isOverdue && <WarningText $warning>まもなく期限です</WarningText>}
                     </Section>
@@ -560,7 +578,31 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 title='クリックまたはEnterで編集'
                                 aria-label='説明を編集'
                             >
-                                <LinkedText text={description} metadata={metadata} theme={theme} />
+                                <MarkdownBody $theme={theme}>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            a: ({ href, children }) => {
+                                                // 生URLのオートリンクは、取得済みメタデータのページタイトルで表示する
+                                                const childText = Array.isArray(children) ? children[0] : children
+                                                const meta = metadata?.find((m) => m.url === href)
+                                                const label = meta?.title && childText === href ? meta.title : children
+                                                return (
+                                                    <a
+                                                        href={href}
+                                                        target='_blank'
+                                                        rel='noopener noreferrer'
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {label}
+                                                    </a>
+                                                )
+                                            },
+                                        }}
+                                    >
+                                        {description}
+                                    </ReactMarkdown>
+                                </MarkdownBody>
                             </DescriptionDisplay>
                         ) : (
                             <DescriptionTextArea
@@ -569,7 +611,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 onChange={(e) => setDescription(e.target.value)}
                                 onBlur={() => setEditingDescription(false)}
                                 onPaste={handlePaste}
-                                placeholder='詳細な説明を入力... (画像の貼り付けも可能)'
+                                placeholder='詳細な説明を入力... (Markdown対応 / 画像の貼り付けも可能)'
                                 rows={4}
                                 $theme={theme}
                                 autoFocus={editingDescription}
@@ -827,8 +869,33 @@ const EmptyHint = styled.div<{ $theme: Theme }>`
     font-size: 12px;
 `
 
+const DueDateRow = styled.div`
+    display: flex;
+    gap: 8px;
+`
+
+const DueTimeInput = styled.input<{ $theme: Theme; $isDarkMode?: boolean }>`
+    width: 120px;
+    padding: 10px 12px;
+    border: 1px solid ${(props) => props.$theme.border};
+    border-radius: 8px;
+    font-size: 14px;
+    color: ${(props) => props.$theme.text};
+    background-color: ${(props) => props.$theme.inputBackground};
+    color-scheme: ${(props) => (props.$isDarkMode ? 'dark' : 'light')};
+
+    &:disabled {
+        opacity: 0.5;
+    }
+
+    &:focus {
+        outline: 2px solid ${color.Blue};
+        outline-offset: 2px;
+    }
+`
+
 const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: Theme; $isDarkMode?: boolean }>`
-    width: 100%;
+    flex: 1;
     padding: 10px 12px;
     border: 1px solid ${(props) => (props.$isOverdue ? color.Red : props.$isDueSoon ? '#FF9F1A' : props.$theme.border)};
     border-radius: 8px;
@@ -919,6 +986,116 @@ const DescriptionDisplay = styled.div<{ $theme: Theme }>`
 
     &:hover {
         border-color: ${(props) => props.$theme.border};
+    }
+`
+
+// Markdown表示の最小スタイル(見出し/リスト/コード/引用/リンク)
+const MarkdownBody = styled.div<{ $theme: Theme }>`
+    font-size: 14px;
+    line-height: 1.6;
+    color: ${(props) => props.$theme.text};
+    word-break: break-word;
+
+    > :first-child {
+        margin-top: 0;
+    }
+    > :last-child {
+        margin-bottom: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        margin: 0.8em 0 0.4em;
+        line-height: 1.3;
+    }
+    h1 {
+        font-size: 1.3em;
+    }
+    h2 {
+        font-size: 1.15em;
+    }
+    h3,
+    h4 {
+        font-size: 1em;
+    }
+
+    p {
+        margin: 0.4em 0;
+    }
+
+    ul,
+    ol {
+        margin: 0.4em 0;
+        padding-left: 1.4em;
+    }
+
+    li {
+        margin: 0.15em 0;
+    }
+
+    /* GFMタスクリストのチェックボックス */
+    li:has(> input[type='checkbox']) {
+        list-style: none;
+        margin-left: -1.2em;
+    }
+
+    code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+        background: ${(props) => props.$theme.surfaceHover};
+        border: 1px solid ${(props) => props.$theme.border};
+        border-radius: 4px;
+        padding: 0.1em 0.35em;
+    }
+
+    pre {
+        background: ${(props) => props.$theme.surfaceHover};
+        border: 1px solid ${(props) => props.$theme.border};
+        border-radius: 8px;
+        padding: 10px 12px;
+        overflow-x: auto;
+        margin: 0.5em 0;
+
+        code {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+    }
+
+    blockquote {
+        margin: 0.5em 0;
+        padding: 0.2em 0.9em;
+        border-left: 3px solid ${(props) => props.$theme.border};
+        color: ${(props) => props.$theme.textSecondary};
+    }
+
+    a {
+        color: ${(props) => props.$theme.linkColor};
+
+        &:hover {
+            color: ${(props) => props.$theme.linkColorHover};
+        }
+    }
+
+    table {
+        border-collapse: collapse;
+        margin: 0.5em 0;
+    }
+
+    th,
+    td {
+        border: 1px solid ${(props) => props.$theme.border};
+        padding: 4px 8px;
+        font-size: 0.9em;
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid ${(props) => props.$theme.border};
+        margin: 0.8em 0;
     }
 `
 

@@ -216,7 +216,7 @@ export const Column = memo(function Column({
                 {inputMode ? (
                     <InputForm value={text} onChange={setText} onConfirm={confirmInput} onCancel={cancelInput} />
                 ) : (
-                    <AddCardButton onClick={openInput} $theme={theme}>
+                    <AddCardButton onClick={openInput} $theme={theme} data-add-card-button>
                         <PlusIcon />
                         カードを追加
                     </AddCardButton>

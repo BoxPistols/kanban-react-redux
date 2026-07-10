@@ -16,6 +16,7 @@ import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useTrashStore } from './trashStore'
 import { useAuthStore } from './authStore'
 import { showToast } from './toastStore'
+import { pushUndo } from './undoStore'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -102,6 +103,8 @@ interface KanbanState {
     addCard: (text: string, columnId: ColumnType, boardId: string) => Promise<void>
     updateCard: (id: string, updates: Partial<Card>) => Promise<void>
     deleteCard: (id: string) => Promise<void>
+    // 削除+Undoトースト+Undoスタック積みまでを一括で行う(UIから使う削除の標準経路)
+    trashCard: (id: string) => Promise<void>
     restoreCard: (card: Card, boardId: string, columnId: ColumnType) => Promise<void>
     moveCard: (cardId: string, newColumnId: ColumnType, newOrder: number) => Promise<void>
     reorderCards: (updates: { id: string; order: number; columnId?: ColumnType }[]) => Promise<void>
@@ -257,6 +260,23 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         } else {
             saveCardsToLocalStorage(get().cards)
         }
+    },
+
+    trashCard: async (id) => {
+        const card = get().cards.find((c) => c.id === id)
+        if (!card) return
+        await get().deleteCard(id)
+
+        // トーストの「元に戻す」と Cmd/Ctrl+Z のどちらからでも復元できるようにする。
+        // 片方で復元済みなら restoreFromTrash が null を返すので二重復元にはならない。
+        const restore = () => {
+            const restored = useTrashStore.getState().restoreFromTrash(id)
+            if (restored) {
+                get().restoreCard(restored, restored.originalBoardId, restored.originalColumnId)
+            }
+        }
+        pushUndo({ label: 'カードの削除', undo: restore })
+        showToast('カードをゴミ箱に移動しました', 'info', { label: '元に戻す', onAction: restore })
     },
 
     restoreCard: async (card, boardId, columnId) => {
@@ -436,6 +456,18 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         })
 
         if (changed.length === 0) return
+
+        // Cmd/Ctrl+Z で移動前の並びに戻せるよう、逆操作をUndoスタックへ積む
+        const inverse = changed
+            .map((card) => {
+                const before = backup.find((c) => c.id === card.id)
+                return before ? { id: before.id, order: before.order, columnId: before.columnId } : null
+            })
+            .filter((u): u is { id: string; order: number; columnId: ColumnType } => u !== null)
+        pushUndo({
+            label: 'カードの移動',
+            undo: () => get().reorderCards(inverse),
+        })
 
         const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
         if (useFirebase) {

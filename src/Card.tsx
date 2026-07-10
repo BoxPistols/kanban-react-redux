@@ -5,9 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
-import { useTrashStore } from './store/trashStore'
 import { useThemeStore } from './store/themeStore'
-import { showToast } from './store/toastStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
 import { isComposing } from './utils/keyboard'
@@ -18,8 +16,24 @@ import type { Card as CardType } from './types'
 // 遅延ロード: CardDetailModal
 const CardDetailModal = lazy(() => import('./CardDetailModal').then((m) => ({ default: m.CardDetailModal })))
 
+// カード面のプレビュー用に Markdown 記号を落とす簡易ストリップ
+// (正確なパースは不要。見出し/強調/コード/リスト/引用/リンクの記号だけ除去する)
+function stripMarkdownSyntax(text: string): string {
+    return text
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/`([^`]*)`/g, '$1')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/^[-*+]\s+/gm, '')
+        .replace(/^>\s?/gm, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/\n{2,}/g, '\n')
+        .trim()
+}
+
 export const Card = memo(function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
-    const { deleteCard, restoreCard, updateCard } = useKanbanStore()
+    const { trashCard, updateCard } = useKanbanStore()
     const { isDarkMode } = useThemeStore()
     const [showModal, setShowModal] = useState(false)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -51,20 +65,10 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
         }
     }, [isEditingTitle])
 
-    // 削除は confirm を挟まず即ゴミ箱へ移動し、トーストの「元に戻す」で復元できるようにする
+    // 削除は confirm を挟まず即ゴミ箱へ。トーストの「元に戻す」/Cmd+Z で復元できる
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
-        const cardId = card.id
-        await deleteCard(cardId)
-        showToast('カードをゴミ箱に移動しました', 'info', {
-            label: '元に戻す',
-            onAction: () => {
-                const restored = useTrashStore.getState().restoreFromTrash(cardId)
-                if (restored) {
-                    restoreCard(restored, restored.originalBoardId, restored.originalColumnId)
-                }
-            },
-        })
+        await trashCard(card.id)
     }
 
     const displayText = card.title || card.text
@@ -105,10 +109,12 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
     const { isDueSoon, isOverdue } = getDueDateStatus(card.dueDate)
 
     // Get description preview (first 80 characters)
-    const descriptionPreview = card.description
-        ? card.description.length > 80
-            ? card.description.slice(0, 80) + '...'
-            : card.description
+    // プレビューでは Markdown 記号を除去してプレーンテキストで見せる
+    const plainDescription = card.description ? stripMarkdownSyntax(card.description) : null
+    const descriptionPreview = plainDescription
+        ? plainDescription.length > 80
+            ? plainDescription.slice(0, 80) + '...'
+            : plainDescription
         : null
 
     return (
