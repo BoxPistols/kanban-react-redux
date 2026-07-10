@@ -416,12 +416,23 @@ const ActionsRow = styled.div`
 `
 
 const SmallIconButton = styled.button<{ $theme: Theme; $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
     border: none;
     background: none;
     font-size: 16px;
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
+
+    /* タッチデバイスでは実サイズで確保(隣接ボタンのため拡張は使わない) */
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
     color: ${(props) => (props.$danger ? color.Red : props.$theme.textSecondary)};
 
     &:hover {

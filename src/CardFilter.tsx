@@ -105,6 +105,12 @@ const SearchContainer = styled.label`
     border-radius: 3px;
     background-color: rgba(255, 255, 255, 0.1);
 
+    /* タッチデバイスでは44px(Apple HIG)を確保 */
+    @media (pointer: coarse) {
+        height: 44px;
+        border-radius: 6px;
+    }
+
     @media (max-width: 768px) {
         min-width: unset;
         width: 100%;
@@ -119,6 +125,7 @@ const SearchIcon = styled(_SearchIcon)`
 
 const Input = styled.input.attrs({ type: 'search' })`
     width: 100%;
+    height: 100%;
     padding: 6px 8px 6px 0;
     color: ${color.White};
     background: transparent;
@@ -163,6 +170,12 @@ const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
     align-items: center;
     height: 32px;
     padding: 0 12px;
+
+    /* タッチデバイスでは44px(Apple HIG)を確保。隣接チップなので実サイズで担保する */
+    @media (pointer: coarse) {
+        height: 44px;
+        border-radius: 8px;
+    }
     border-radius: 4px;
     border: none;
     background: ${(props) => (props.$isSelected ? props.$color : 'rgba(255, 255, 255, 0.12)')};

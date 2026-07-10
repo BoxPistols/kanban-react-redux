@@ -9,6 +9,7 @@ import { useAuthStore } from './store/authStore'
 import { useTrashStore } from './store/trashStore'
 import { isFirebaseEnabled } from './lib/firebase'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
+import { touchTargetExpand } from './a11yStyles'
 
 // 遅延ロード: TrashModal
 const TrashModal = lazy(() => import('./TrashModal').then((m) => ({ default: m.TrashModal })))
@@ -319,6 +320,7 @@ const HeaderDivider = styled.div`
 `
 
 const ThemeToggle = styled.button`
+    ${touchTargetExpand}
     display: flex;
     align-items: center;
     justify-content: center;
@@ -399,6 +401,9 @@ const MobileMenuButton = styled.button`
     display: none;
     align-items: center;
     justify-content: center;
+    /* タッチデバイスの主要導線なので44px(Apple HIG)を確保 */
+    min-width: 44px;
+    min-height: 44px;
     padding: 8px;
     border: none;
     background: rgba(255, 255, 255, 0.1);
@@ -479,7 +484,7 @@ const MenuSection = styled.div`
 
 const MenuSectionTitle = styled.div`
     color: rgba(255, 255, 255, 0.5);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -546,7 +551,7 @@ const MenuLogoutButton = styled.button`
 `
 
 const TrashButton = styled.button`
-    position: relative;
+    ${touchTargetExpand}
     display: flex;
     align-items: center;
     justify-content: center;
@@ -573,16 +578,16 @@ const TrashButton = styled.button`
 
 const TrashBadge = styled.span`
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -6px;
+    right: -6px;
     background-color: ${color.Red};
     color: ${color.White};
-    font-size: 10px;
+    font-size: 12px;
     font-weight: bold;
-    min-width: 16px;
-    height: 16px;
+    min-width: 18px;
+    height: 18px;
     padding: 0 4px;
-    border-radius: 8px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -595,7 +600,7 @@ const MenuTrashButton = styled(MenuButton)`
 const MenuTrashBadge = styled.span`
     background-color: ${color.Red};
     color: ${color.White};
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
     min-width: 18px;
     height: 18px;

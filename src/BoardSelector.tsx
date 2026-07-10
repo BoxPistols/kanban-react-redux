@@ -207,6 +207,12 @@ const TriggerButton = styled.button`
     gap: 8px;
     height: 32px;
     padding: 0 12px;
+
+    /* タッチデバイスでは44px(Apple HIG)を確保 */
+    @media (pointer: coarse) {
+        height: 44px;
+        border-radius: 8px;
+    }
     border: none;
     border-radius: 6px;
     background-color: rgba(255, 255, 255, 0.12);
@@ -243,7 +249,7 @@ const TriggerName = styled.span`
 `
 
 const Chevron = styled.span<{ $open: boolean }>`
-    font-size: 10px;
+    font-size: 12px;
     opacity: 0.7;
     transition: transform 0.15s;
     transform: rotate(${(props) => (props.$open ? '180deg' : '0deg')});
@@ -330,7 +336,7 @@ const BoardName = styled.div<{ $theme: Theme }>`
 `
 
 const BoardDescription = styled.div<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -346,14 +352,25 @@ const RowActions = styled.div`
 `
 
 const StarButton = styled.button<{ $active: boolean; $theme: Theme }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
     border: none;
     background: transparent;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1;
     padding: 4px;
     border-radius: 6px;
     cursor: pointer;
     color: ${(props) => (props.$active ? '#F2C744' : props.$theme.textSecondary)};
+
+    /* 隣接ボタンと重ならないよう、タッチ時は実サイズで確保 */
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
 
     &:hover {
         background: ${(props) => props.$theme.border};
@@ -370,6 +387,14 @@ const RowEditButton = styled.button<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     display: flex;
     align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
 
     svg {
         width: 14px;

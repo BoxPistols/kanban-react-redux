@@ -312,11 +312,11 @@ const LabelBadge = styled.div<{ $color: string }>`
     display: inline-flex;
     align-items: center;
     max-width: 100%;
-    padding: 1px 8px;
+    padding: 2px 8px;
     border-radius: 10px;
     background: ${(props) => props.$color};
     color: #fff;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.6;
     letter-spacing: 0.02em;
@@ -343,7 +343,7 @@ const TextContent = styled.div`
 
 const Title = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
     line-height: 1.45;
     word-break: break-word;
@@ -355,7 +355,7 @@ const TitleEditArea = styled.textarea<{ $theme: Theme }>`
     border: 1px solid ${color.Blue};
     border-radius: 6px;
     padding: 4px 6px;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
     line-height: 1.45;
     color: ${(props) => props.$theme.text};
@@ -390,7 +390,7 @@ const ImageThumb = styled.img`
 `
 
 const MoreImages = styled.div<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     padding: 0 4px;
 `
@@ -406,15 +406,15 @@ const MetaBadge = `
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: 2px 7px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.02em;
 
     svg {
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
     }
 `
 
@@ -446,14 +446,25 @@ const HoverActions = styled.div`
     right: 6px;
     display: flex;
     gap: 2px;
+
+    /* タッチデバイスでは非表示にする。hover前提の透明ボタンを残すと
+       「見えないのにタップで削除される」事故になるため。
+       タイトル編集・削除は詳細モーダルから行える(Trelloモバイルと同様) */
+    @media (hover: none) {
+        display: none;
+    }
 `
 
 const ActionIconButton = styled.button<{ $theme: Theme; $danger?: boolean }>`
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
     color: ${(props) => props.$theme.textSecondary};
     background: ${(props) => props.$theme.cardBackground};
     border-radius: 6px;
-    padding: 3px;
+    padding: 4px;
     opacity: 0;
     transition:
         opacity 0.15s,
@@ -461,8 +472,8 @@ const ActionIconButton = styled.button<{ $theme: Theme; $danger?: boolean }>`
 
     svg {
         display: block;
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
     }
 
     ${Container}:hover & {

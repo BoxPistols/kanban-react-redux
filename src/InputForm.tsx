@@ -131,7 +131,7 @@ const CancelButton = styled(SecondaryButton).attrs({
 const SubmitHint = styled.span<{ $theme: Theme }>`
     margin-left: auto;
     align-self: center;
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     opacity: 0.7;
 `

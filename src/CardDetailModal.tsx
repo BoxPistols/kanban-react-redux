@@ -766,12 +766,18 @@ const ModalHeader = styled.div<{ $color?: string; $theme: Theme }>`
 
 const TitleInput = styled.input<{ $theme: Theme }>`
     flex: 1;
+    min-width: 0;
+    min-height: 32px;
     border: none;
     background: transparent;
     font-size: 22px;
     font-weight: 700;
     color: ${(props) => props.$theme.text};
-    padding: 2px 4px;
+    padding: 4px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
     border-radius: 4px;
     letter-spacing: -0.02em;
 
@@ -795,6 +801,11 @@ const CloseButton = styled.button<{ $theme: Theme; $cardColor?: string }>`
     padding: 0;
     width: 32px;
     height: 32px;
+
+    @media (pointer: coarse) {
+        width: 44px;
+        height: 44px;
+    }
     display: flex;
     align-items: center;
     justify-content: center;
@@ -849,6 +860,12 @@ const LabelsContainer = styled.div`
 
 const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode?: boolean }>`
     padding: 4px 12px;
+    min-height: 28px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+        border-radius: 8px;
+    }
     border-radius: 4px;
     border: 2px solid ${(props) => (props.$selected ? 'rgba(255, 255, 255, 0.6)' : 'transparent')};
     background-color: ${(props) => props.$color};
@@ -935,8 +952,13 @@ const ColorPicker = styled.div`
 `
 
 const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: Theme }>`
-    width: 36px;
-    height: 28px;
+    width: 40px;
+    height: 32px;
+
+    @media (pointer: coarse) {
+        width: 48px;
+        height: 40px;
+    }
     border-radius: 4px;
     border: 2px solid ${(props) => (props.$selected ? props.$theme.text : 'transparent')};
     background-color: ${(props) => props.$color || props.$theme.surface};
@@ -1135,8 +1157,8 @@ const ImageRemoveButton = styled.button`
     position: absolute;
     top: 4px;
     right: 4px;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
     background: rgba(0, 0, 0, 0.6);
@@ -1152,11 +1174,22 @@ const ImageRemoveButton = styled.button`
     &:hover {
         background: rgba(220, 50, 50, 0.9);
     }
+
+    /* タッチデバイスは hover が無いので常時表示+44px確保 */
+    @media (hover: none) {
+        opacity: 1;
+    }
+
+    @media (pointer: coarse) {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
 `
 
 const PasteHint = styled.div<{ $theme: Theme }>`
     margin-top: 6px;
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     opacity: 0.7;
 `
@@ -1205,8 +1238,8 @@ const ChecklistItemRow = styled.div<{ $theme?: Theme }>`
 `
 
 const Checkbox = styled.input`
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
     flex-shrink: 0;
     accent-color: ${color.Blue};
@@ -1223,12 +1256,22 @@ const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: Theme }>`
 `
 
 const DragHandle = styled.div<{ $theme?: Theme }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
     cursor: grab;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
     font-size: 14px;
     padding: 0 4px;
     flex-shrink: 0;
     user-select: none;
+
+    @media (pointer: coarse) {
+        min-width: 36px;
+        min-height: 40px;
+    }
 
     &:active {
         cursor: grabbing;
@@ -1255,6 +1298,11 @@ const EditChecklistInput = styled.input<{ $theme: Theme }>`
 const SmallButton = styled(IconButton)``
 
 const DeleteItemButton = styled.button<{ $theme?: Theme }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
     border: none;
     background: none;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
@@ -1262,6 +1310,11 @@ const DeleteItemButton = styled.button<{ $theme?: Theme }>`
     cursor: pointer;
     padding: 0 4px;
     flex-shrink: 0;
+
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
 
     &:hover {
         color: ${color.Red};
@@ -1337,20 +1390,22 @@ const DateItem = styled.div`
 `
 
 const DateLabel = styled.span<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: ${(props) => props.$theme.textSecondary};
 `
 
 const DateValue = styled.span<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
 `
 
 const Footer = styled.div<{ $theme: Theme }>`
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-top: 1px solid ${(props) => props.$theme.border};
     background-color: ${(props) => props.$theme.surface};
     flex-shrink: 0;
@@ -1370,6 +1425,11 @@ const MoveLabel = styled.span<{ $theme: Theme }>`
 
 const MoveSelect = styled.select<{ $theme: Theme }>`
     padding: 8px 10px;
+    min-height: 36px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
     border: 1px solid ${(props) => props.$theme.border};
     border-radius: 8px;
     background: ${(props) => props.$theme.inputBackground};
@@ -1386,13 +1446,23 @@ const MoveSelect = styled.select<{ $theme: Theme }>`
 const AutoSaveHint = styled.span<{ $theme: Theme }>`
     flex: 1;
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     opacity: 0.7;
+
+    /* 幅の狭い画面では操作ボタンを優先する */
+    @media (max-width: 480px) {
+        display: none;
+    }
 `
 
 const TrashActionButton = styled.button`
     padding: 8px 14px;
+    min-height: 36px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
     border: 1px solid ${color.Red}40;
     border-radius: 8px;
     background: ${color.Red}14;

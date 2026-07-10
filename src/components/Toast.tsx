@@ -103,8 +103,13 @@ const ActionButton = styled.button`
     font-weight: 700;
     cursor: pointer;
     padding: 4px 8px;
+    min-height: 28px;
     border-radius: 6px;
     white-space: nowrap;
+
+    @media (pointer: coarse) {
+        min-height: 40px;
+    }
 
     &:hover {
         background: rgba(33, 150, 243, 0.12);
@@ -113,6 +118,11 @@ const ActionButton = styled.button`
 
 const CloseButton = styled.button`
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
     border: none;
     background: transparent;
     color: inherit;
@@ -122,6 +132,11 @@ const CloseButton = styled.button`
     padding: 2px 6px;
     border-radius: 6px;
     line-height: 1;
+
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
 
     &:hover {
         opacity: 1;

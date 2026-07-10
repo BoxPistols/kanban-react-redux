@@ -11,6 +11,7 @@ import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { isComposing } from './utils/keyboard'
+import { touchTargetExpand, visibleWithoutHover } from './a11yStyles'
 import type { Card as CardType, ColumnType } from './types'
 
 export const Column = memo(function Column({
@@ -281,7 +282,7 @@ const CountBadge = styled.div<{ $theme: Theme; $columnColor?: string }>`
     padding: 1px 6px;
     color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.9)' : props.$theme.textSecondary)};
     background: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.18)' : props.$theme.surface)};
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     line-height: 1.4;
     font-variant-numeric: tabular-nums;
@@ -289,7 +290,7 @@ const CountBadge = styled.div<{ $theme: Theme; $columnColor?: string }>`
 
 const ColumnName = styled.div<{ $theme: Theme; $columnColor?: string }>`
     color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.95)' : props.$theme.text)};
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.01em;
 `
@@ -300,7 +301,7 @@ const TitleEditInput = styled.input<{ $theme: Theme; $columnColor?: string }>`
     border: none;
     border-radius: 4px;
     padding: 2px 6px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: ${(props) => props.$theme.text};
     background: ${(props) => props.$theme.inputBackground};
@@ -311,6 +312,12 @@ const AddButton = styled.button.attrs({
     type: 'button',
     children: <PlusIcon />,
 })<{ $theme: Theme; $columnColor?: string }>`
+    ${touchTargetExpand}
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
     margin-left: auto;
     color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.7)' : props.$theme.textSecondary)};
     padding: 4px;
@@ -350,15 +357,20 @@ const AddCardButton = styled.button<{ $theme: Theme }>`
     align-items: center;
     gap: 6px;
     width: 100%;
-    padding: 8px 10px;
+    padding: 9px 10px;
+    min-height: 36px;
     border: none;
     border-radius: 8px;
     background: transparent;
     color: ${(props) => props.$theme.textSecondary};
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
 
     svg {
         width: 14px;
@@ -406,14 +418,11 @@ const CollapsedColumn = styled.div<{ $theme: Theme; $columnColor?: string; $isDr
         transform: translateY(0);
     }
 
-    @media (max-width: 768px) {
-        width: 38px;
-        min-width: 38px;
-    }
+    /* 折りたたみレーン全体がタップターゲットなので44px幅を維持する(HIG) */
 `
 
 const CollapsedCount = styled.div<{ $theme: Theme; $columnColor?: string }>`
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: ${(props) => (props.$columnColor ? '#fff' : props.$theme.text)};
     background: ${(props) => props.$columnColor || props.$theme.surface};
@@ -450,6 +459,12 @@ const CollapsedTitle = styled.div<{ $theme: Theme }>`
 `
 
 const CollapseButton = styled.button<{ $theme: Theme; $columnColor?: string }>`
+    ${touchTargetExpand}
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
     color: ${(props) => (props.$columnColor ? 'rgba(255, 255, 255, 0.5)' : props.$theme.textSecondary)};
     padding: 2px 6px;
     border-radius: 6px;
@@ -462,6 +477,9 @@ const CollapseButton = styled.button<{ $theme: Theme; $columnColor?: string }>`
     [data-column-container]:hover & {
         opacity: 0.5;
     }
+
+    /* タッチデバイスは hover が無いので常時表示する */
+    ${visibleWithoutHover(0.45)}
 
     &:hover {
         opacity: 1 !important;
