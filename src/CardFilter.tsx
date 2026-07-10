@@ -1,70 +1,22 @@
 import { useState, useEffect, memo, useRef, useImperativeHandle, forwardRef } from 'react'
 import styled from 'styled-components'
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { SearchIcon as _SearchIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
-import { useThemeStore } from './store/themeStore'
-import { getTheme, Theme } from './theme'
 import { useDebounce } from './hooks/useDebounce'
-import type { Label } from './types'
-
-// Sortable Label Chip Component
-interface SortableLabelChipProps {
-    label: Label
-    isSelected: boolean
-    toggleLabelFilter: (labelId: string) => void
-}
-
-function SortableLabelChip({ label, isSelected, toggleLabelFilter }: SortableLabelChipProps) {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-        id: label.id,
-    })
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-    }
-
-    return (
-        <LabelChip
-            ref={setNodeRef}
-            style={style}
-            $color={label.color}
-            $isSelected={isSelected}
-            onClick={() => toggleLabelFilter(label.id)}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    toggleLabelFilter(label.id)
-                }
-            }}
-            {...attributes}
-            {...listeners}
-            role='checkbox'
-            aria-checked={isSelected}
-            title={`${label.name} でフィルター`}
-            aria-label={`${label.name} でフィルター`}
-        >
-            {label.name}
-        </LabelChip>
-    )
-}
 
 export interface CardFilterRef {
     focus: () => void
 }
 
+// ラベルチップはフィルタ(トグル)専用にする。
+// 以前はチップのドラッグでボードのラベル順を書き換えており、クリックとの誤爆で
+// 意図せずデータ変更が起きていた。並べ替えは BoardModal のラベル管理で行う。
 export const CardFilter = memo(
     forwardRef<CardFilterRef>(function CardFilter(_props, ref) {
         const { searchQuery, selectedLabelIds, setSearchQuery, toggleLabelFilter } = useKanbanStore()
-        const { boards, currentBoardId, updateBoard } = useBoardStore()
-        const { isDarkMode } = useThemeStore()
-        const theme = getTheme(isDarkMode)
+        const { boards, currentBoardId } = useBoardStore()
         const inputRef = useRef<HTMLInputElement>(null)
 
         // 外部からフォーカスできるようにする
@@ -92,38 +44,13 @@ export const CardFilter = memo(
         const currentBoard = boards.find((b) => b.id === currentBoardId)
         const labels = currentBoard?.labels || []
 
-        const handleDragEnd = async (event: DragEndEvent) => {
-            const { active, over } = event
-            if (!over || !currentBoardId || !currentBoard?.labels || active.id === over.id) return
-
-            const oldIndex = currentBoard.labels.findIndex((l) => l.id === active.id)
-            const newIndex = currentBoard.labels.findIndex((l) => l.id === over.id)
-
-            if (oldIndex === -1 || newIndex === -1) return
-
-            // 配列を並び替える
-            const reorderedLabels = [...currentBoard.labels]
-            const [movedLabel] = reorderedLabels.splice(oldIndex, 1)
-            reorderedLabels.splice(newIndex, 0, movedLabel)
-
-            await updateBoard(currentBoardId, { labels: reorderedLabels })
-        }
-
-        const sensors = useSensors(
-            useSensor(PointerSensor, {
-                activationConstraint: {
-                    distance: 5, // 5px移動するまでドラッグ開始しない
-                },
-            })
-        )
-
         return (
             <FilterContainer>
-                <SearchContainer $theme={theme}>
+                <SearchContainer>
                     <SearchIcon />
                     <Input
                         ref={inputRef}
-                        placeholder='Filter cards'
+                        placeholder='カードを検索'
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         aria-label='カード検索'
@@ -131,23 +58,25 @@ export const CardFilter = memo(
                 </SearchContainer>
 
                 {labels.length > 0 && (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={labels.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
-                            <LabelsContainer>
-                                {labels.map((label) => {
-                                    const isSelected = selectedLabelIds.includes(label.id)
-                                    return (
-                                        <SortableLabelChip
-                                            key={label.id}
-                                            label={label}
-                                            isSelected={isSelected}
-                                            toggleLabelFilter={toggleLabelFilter}
-                                        />
-                                    )
-                                })}
-                            </LabelsContainer>
-                        </SortableContext>
-                    </DndContext>
+                    <LabelsContainer>
+                        {labels.map((label) => {
+                            const isSelected = selectedLabelIds.includes(label.id)
+                            return (
+                                <LabelChip
+                                    key={label.id}
+                                    $color={label.color}
+                                    $isSelected={isSelected}
+                                    onClick={() => toggleLabelFilter(label.id)}
+                                    role='checkbox'
+                                    aria-checked={isSelected}
+                                    title={`${label.name} でフィルター`}
+                                    aria-label={`${label.name} でフィルター`}
+                                >
+                                    {label.name}
+                                </LabelChip>
+                            )
+                        })}
+                    </LabelsContainer>
                 )}
             </FilterContainer>
         )
@@ -167,7 +96,7 @@ const FilterContainer = styled.div`
     }
 `
 
-const SearchContainer = styled.label<{ $theme: Theme }>`
+const SearchContainer = styled.label`
     display: flex;
     align-items: center;
     min-width: 200px;
@@ -240,7 +169,7 @@ const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
     color: ${color.White};
     font-size: 12px;
     font-weight: 500;
-    cursor: move;
+    cursor: pointer;
     transition: opacity 0.15s;
     opacity: ${(props) => (props.$isSelected ? 1 : 0.6)};
     white-space: nowrap;
@@ -252,9 +181,5 @@ const LabelChip = styled.button<{ $color: string; $isSelected: boolean }>`
 
     &:hover {
         opacity: 1;
-    }
-
-    &:active {
-        cursor: grabbing;
     }
 `

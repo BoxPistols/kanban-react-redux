@@ -1,13 +1,16 @@
-import { useState, memo, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, memo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
-import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon } from './icon'
+import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
+import { useTrashStore } from './store/trashStore'
 import { useThemeStore } from './store/themeStore'
+import { showToast } from './store/toastStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
+import { isComposing } from './utils/keyboard'
 import { LinkedText } from './LinkedText'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import type { Card as CardType } from './types'
@@ -16,9 +19,12 @@ import type { Card as CardType } from './types'
 const CardDetailModal = lazy(() => import('./CardDetailModal').then((m) => ({ default: m.CardDetailModal })))
 
 export const Card = memo(function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
-    const { deleteCard } = useKanbanStore()
+    const { deleteCard, restoreCard, updateCard } = useKanbanStore()
     const { isDarkMode } = useThemeStore()
     const [showModal, setShowModal] = useState(false)
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [editTitle, setEditTitle] = useState('')
+    const editInputRef = useRef<HTMLTextAreaElement>(null)
 
     const theme = getTheme(isDarkMode)
 
@@ -35,18 +41,53 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
             type: 'card',
             card,
         },
+        disabled: isEditingTitle,
     })
 
+    useEffect(() => {
+        if (isEditingTitle) {
+            editInputRef.current?.focus()
+            editInputRef.current?.select()
+        }
+    }, [isEditingTitle])
+
+    // 削除は confirm を挟まず即ゴミ箱へ移動し、トーストの「元に戻す」で復元できるようにする
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
-        if (window.confirm('このカードを削除しますか？')) {
-            await deleteCard(card.id)
+        const cardId = card.id
+        await deleteCard(cardId)
+        showToast('カードをゴミ箱に移動しました', 'info', {
+            label: '元に戻す',
+            onAction: () => {
+                const restored = useTrashStore.getState().restoreFromTrash(cardId)
+                if (restored) {
+                    restoreCard(restored, restored.originalBoardId, restored.originalColumnId)
+                }
+            },
+        })
+    }
+
+    const displayText = card.title || card.text
+
+    const startEditTitle = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setEditTitle(displayText)
+        setIsEditingTitle(true)
+    }
+
+    const saveTitle = async () => {
+        const next = editTitle.trim()
+        setIsEditingTitle(false)
+        if (next && next !== displayText) {
+            // title と text を同時に更新して二重管理による「見えないテキスト」を残さない
+            await updateCard(card.id, { title: next, text: next })
         }
     }
 
     const handleCardClick = (e: React.MouseEvent) => {
         // Don't open modal if clicking delete button or dragging
         if ((e.target as HTMLElement).closest('button')) return
+        if (isEditingTitle) return
         setShowModal(true)
     }
 
@@ -55,7 +96,6 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
         transition,
     }
 
-    const displayText = card.title || card.text
     const hasLabels = card.labels && card.labels.length > 0
     const hasChecklist = card.checklist && card.checklist.length > 0
     const hasDueDate = card.dueDate
@@ -98,8 +138,34 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
 
                     <ContentRow>
                         <TextContent>
-                            <Title $theme={theme}>{displayText}</Title>
-                            {descriptionPreview && (
+                            {isEditingTitle ? (
+                                <TitleEditArea
+                                    ref={editInputRef}
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    onBlur={saveTitle}
+                                    onKeyDown={(e) => {
+                                        // カード本体の KeyboardSensor にバブルさせない(ドラッグ誤起動防止)
+                                        e.stopPropagation()
+                                        if (isComposing(e)) return
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault()
+                                            saveTitle()
+                                        }
+                                        if (e.key === 'Escape') {
+                                            setIsEditingTitle(false)
+                                        }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    rows={2}
+                                    $theme={theme}
+                                    aria-label='カードタイトルを編集'
+                                />
+                            ) : (
+                                <Title $theme={theme}>{displayText}</Title>
+                            )}
+                            {descriptionPreview && !isEditingTitle && (
                                 <Description $theme={theme}>
                                     <LinkedText text={descriptionPreview} metadata={card.urlMetadata} theme={theme} />
                                 </Description>
@@ -149,7 +215,29 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                     </MetadataRow>
                 </CardBody>
 
-                <DeleteButton onClick={handleDelete} $theme={theme} aria-label='カードを削除' />
+                <HoverActions>
+                    <ActionIconButton
+                        onClick={startEditTitle}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        $theme={theme}
+                        title='タイトルを編集'
+                        aria-label='カードタイトルを編集'
+                    >
+                        <EditIcon />
+                    </ActionIconButton>
+                    <ActionIconButton
+                        onClick={handleDelete}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        $theme={theme}
+                        $danger
+                        title='ゴミ箱へ移動'
+                        aria-label='カードをゴミ箱へ移動'
+                    >
+                        <TrashIcon />
+                    </ActionIconButton>
+                </HoverActions>
             </Container>
 
             {showModal && (
@@ -172,8 +260,10 @@ const Container = styled.div<{ $isDragging?: boolean; $theme: Theme }>`
     background: ${(props) => props.$theme.cardBackground};
     color: ${(props) => props.$theme.text};
     cursor: pointer;
-    opacity: ${(props) => (props.$isDragging ? 0.5 : 1)};
-    touch-action: none;
+    opacity: ${(props) => (props.$isDragging ? 0.4 : 1)};
+    /* manipulation にすることでタッチでも縦スクロールを妨げない。
+       ドラッグ開始は TouchSensor の長押し判定(App側)に任せる */
+    touch-action: manipulation;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -208,16 +298,26 @@ const CardBody = styled.div`
 const LabelsRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
 `
 
+// ラベルは名前が読める大きさで表示する(旧: 高さ6px/font-size:0 で判読不能だった)
 const LabelBadge = styled.div<{ $color: string }>`
-    height: 6px;
-    width: 40px;
-    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 1px 8px;
+    border-radius: 10px;
     background: ${(props) => props.$color};
-    opacity: 0.75;
-    font-size: 0;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
 `
 
 const ContentRow = styled.div`
@@ -242,6 +342,24 @@ const Title = styled.div<{ $theme: Theme }>`
     line-height: 1.45;
     word-break: break-word;
     letter-spacing: -0.01em;
+`
+
+const TitleEditArea = styled.textarea<{ $theme: Theme }>`
+    width: 100%;
+    border: 1px solid ${color.Blue};
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: ${(props) => props.$theme.text};
+    background: ${(props) => props.$theme.inputBackground};
+    resize: none;
+    font-family: inherit;
+
+    &:focus {
+        outline: none;
+    }
 `
 
 const Description = styled.div<{ $theme: Theme }>`
@@ -316,13 +434,15 @@ const DescriptionBadge = styled.div<{ $theme: Theme }>`
     opacity: 0.6;
 `
 
-const DeleteButton = styled.button.attrs({
-    type: 'button',
-    children: <TrashIcon />,
-})<{ $theme: Theme }>`
+const HoverActions = styled.div`
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+`
+
+const ActionIconButton = styled.button<{ $theme: Theme; $danger?: boolean }>`
     font-size: 14px;
     color: ${(props) => props.$theme.textSecondary};
     background: ${(props) => props.$theme.cardBackground};
@@ -333,18 +453,24 @@ const DeleteButton = styled.button.attrs({
         opacity 0.15s,
         color 0.15s;
 
+    svg {
+        display: block;
+        width: 12px;
+        height: 12px;
+    }
+
     ${Container}:hover & {
         opacity: 0.7;
     }
 
     :hover {
-        color: ${color.Red};
+        color: ${(props) => (props.$danger ? color.Red : color.Blue)};
         opacity: 1 !important;
     }
 
     /* キーボードフォーカス時も表示。opacity:0 のままだと focus-visible の輪郭も隠れる(監査) */
     &:focus-visible {
-        color: ${color.Red};
+        color: ${(props) => (props.$danger ? color.Red : color.Blue)};
         opacity: 1 !important;
     }
 `

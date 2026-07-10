@@ -3,13 +3,25 @@ import styled from 'styled-components'
 import {
     DndContext,
     DragEndEvent,
+    DragOverEvent,
     DragOverlay,
     DragStartEvent,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
+    KeyboardSensor,
+    CollisionDetection,
+    closestCenter,
+    pointerWithin,
+    rectIntersection,
     useSensor,
     useSensors,
 } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
+import {
+    SortableContext,
+    arrayMove,
+    horizontalListSortingStrategy,
+    sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
 import { GlobalStyle } from './GlobalStyle'
 import { Header as _Header } from './Header'
 import { Column } from './Column'
@@ -19,10 +31,12 @@ import { ReloadPrompt } from './ReloadPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import { BlockerWarning } from './components/BlockerWarning'
+import { ToastContainer } from './components/Toast'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
+import { showToast } from './store/toastStore'
 import { BoardIcon } from './icon'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
@@ -45,13 +59,25 @@ export function App() {
         searchQuery,
         selectedLabelIds,
         subscribeToCards,
-        reorderCards,
+        setSearchQuery,
+        setSelectedLabelIds,
+        beginDrag,
+        moveCardLocal,
+        cancelDrag,
+        commitDrag,
         setForceOfflineMode: setKanbanOfflineMode,
     } = useKanbanStore()
-    const { subscribeToBoards, currentBoardId, setForceOfflineMode: setBoardOfflineMode, getColumns } = useBoardStore()
+    const {
+        subscribeToBoards,
+        currentBoardId,
+        setForceOfflineMode: setBoardOfflineMode,
+        getColumns,
+        reorderColumns,
+    } = useBoardStore()
     const { isDarkMode, initializeTheme } = useThemeStore()
     const { user, isInitialized, initAuth } = useAuthStore()
     const [activeId, setActiveId] = useState<string | null>(null)
+    const [activeType, setActiveType] = useState<'card' | 'column' | null>(null)
     const [offlineMode, setOfflineMode] = useState(false)
     const [showColumnManager, setShowColumnManager] = useState(false)
     const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set())
@@ -73,13 +99,19 @@ export function App() {
         // レーンを追加/改名/並べ替え/削除しても再計算されず画面に反映されない(監査)。
     }, [getColumns, currentBoardId, boards])
 
+    const currentBoard = useMemo(() => boards.find((b) => b.id === currentBoardId), [boards, currentBoardId])
+
+    // マウスは短距離移動で即ドラッグ開始(delay なし)、タッチは長押しでスクロールと区別、
+    // キーボード操作(Space+矢印)にも対応する。
     const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8,
-                delay: 100,
-                tolerance: 5,
-            },
+        useSensor(MouseSensor, {
+            activationConstraint: { distance: 5 },
+        }),
+        useSensor(TouchSensor, {
+            activationConstraint: { delay: 220, tolerance: 6 },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
         })
     )
 
@@ -89,11 +121,12 @@ export function App() {
 
         // Filter by search query
         if (searchQuery) {
+            const q = searchQuery.toLowerCase()
             filtered = filtered.filter(
                 (card) =>
-                    card.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    card.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    card.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                    // 表示名(title があれば title)と説明だけを対象にする。
+                    // 非表示の text も対象にすると「見えない文字列でヒットする」混乱が起きる。
+                    (card.title || card.text).toLowerCase().includes(q) || card.description?.toLowerCase().includes(q)
             )
         }
 
@@ -204,99 +237,157 @@ export function App() {
         return () => document.removeEventListener('keydown', handleKeyDown)
     }, [])
 
-    // All useCallback hooks must be called before conditional returns
-    const handleDragStart = useCallback((event: DragStartEvent) => {
-        setActiveId(event.active.id as string)
+    const clearFilters = useCallback(() => {
+        setSearchQuery('')
+        setSelectedLabelIds([])
+    }, [setSearchQuery, setSelectedLabelIds])
+
+    const handleDragStart = useCallback(
+        (event: DragStartEvent) => {
+            const type = (event.active.data.current?.type as 'card' | 'column' | undefined) ?? 'card'
+            setActiveId(event.active.id as string)
+            setActiveType(type)
+
+            if (type === 'card') {
+                if (isFiltered) {
+                    // order 破壊防止のためフィルタ中は並べ替え不可(監査C7)。理由を必ず伝える。
+                    showToast('フィルター適用中は並べ替えできません。フィルターを解除してください', 'info', {
+                        label: 'クリア',
+                        onAction: clearFilters,
+                    })
+                    return
+                }
+                beginDrag()
+            }
+        },
+        [isFiltered, beginDrag, clearFilters]
+    )
+
+    // ドラッグ中のライブプレビュー: カラムをまたいだ瞬間にローカル state 上で
+    // カードを移動し、挿入位置をリアルタイムに見せる(Trello 同等)。
+    // 同一カラム内の並び替えプレビューは SortableContext が自動で行う。
+    // 衝突判定: ドラッグ中のカードは自分自身のrectがカーソルに追従するため、
+    // 既定の判定だと常に自分が最近傍になり over が切り替わらない。
+    // アクティブ要素を除外した上で、ポインタ位置ベース(pointerWithin)を優先する。
+    const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+        const droppableContainers = args.droppableContainers.filter((c) => c.id !== args.active.id)
+
+        // レーンのドラッグはレーン同士だけで判定する
+        if (args.active.data.current?.type === 'column') {
+            return closestCenter({
+                ...args,
+                droppableContainers: droppableContainers.filter((c) => c.data.current?.type === 'column'),
+            })
+        }
+
+        const pointerCollisions = pointerWithin({ ...args, droppableContainers })
+        if (pointerCollisions.length > 0) return pointerCollisions
+        return rectIntersection({ ...args, droppableContainers })
     }, [])
+
+    const handleDragOver = useCallback(
+        (event: DragOverEvent) => {
+            if (activeType !== 'card' || isFiltered) return
+            const { active, over } = event
+            if (!over) return
+
+            const activeCardId = active.id as string
+            const overId = over.id as string
+            if (activeCardId === overId) return
+
+            const activeCard = cards.find((c) => c.id === activeCardId)
+            if (!activeCard) return
+
+            const overIsColumn = over.data.current?.type === 'column' || columns.some((col) => col.id === overId)
+            const overColumnId: ColumnType | undefined = overIsColumn
+                ? overId
+                : cards.find((c) => c.id === overId)?.columnId
+
+            if (!overColumnId || activeCard.columnId === overColumnId) return
+
+            const overCards = (cardsByColumn[overColumnId] || []).filter((c) => c.id !== activeCardId)
+            let insertIndex = overCards.length
+            if (!overIsColumn) {
+                const overIndex = overCards.findIndex((c) => c.id === overId)
+                if (overIndex >= 0) {
+                    // ポインタが対象カードの下半分にあれば「後ろ」に挿入
+                    const activeTop = active.rect.current.translated?.top
+                    const isBelow = activeTop !== undefined && activeTop > over.rect.top + over.rect.height / 2
+                    insertIndex = overIndex + (isBelow ? 1 : 0)
+                }
+            }
+
+            moveCardLocal(activeCardId, overColumnId, insertIndex)
+        },
+        [activeType, isFiltered, cards, columns, cardsByColumn, moveCardLocal]
+    )
 
     const handleDragEnd = useCallback(
         (event: DragEndEvent) => {
             const { active, over } = event
             setActiveId(null)
+            setActiveType(null)
 
-            // フィルタ適用中の並べ替えは表示中カードだけで order を再採番し、
-            // 非表示カードの order を破壊する(監査C7)。フィルタ中は抑止する。
-            if (isFiltered) return
+            // レーン自体の並べ替え
+            if (active.data.current?.type === 'column') {
+                if (!over || !currentBoardId || active.id === over.id) return
+                const oldIndex = columns.findIndex((col) => col.id === active.id)
+                const newIndex = columns.findIndex((col) => col.id === over.id)
+                if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
+                reorderColumns(currentBoardId, arrayMove(columns, oldIndex, newIndex))
+                return
+            }
 
-            if (!over) return
+            // フィルタ適用中の並べ替えは非表示カードの order を破壊する(監査C7)ため確定しない
+            if (isFiltered) {
+                cancelDrag()
+                return
+            }
 
-            const activeId = active.id as string
+            if (!over) {
+                // ドロップ先なし: dragOver で動かした分は確定する(視覚と結果を一致させる)
+                commitDrag()
+                return
+            }
+
+            const activeCardId = active.id as string
             const overId = over.id as string
+            const activeCard = cards.find((c) => c.id === activeCardId)
+            if (!activeCard) {
+                commitDrag()
+                return
+            }
 
-            const activeCard = cards.find((c) => c.id === activeId)
-            if (!activeCard) return
-
-            // Check if dropping on a column or a card
-            const overColumn = columns.find((col) => col.id === overId)
+            // 同一カラム内での並べ替え位置を確定(カラムまたぎは dragOver で反映済み)
             const overCard = cards.find((c) => c.id === overId)
-
-            if (overCard) {
-                // Dropping on a card - handle sorting within same or different column
-                const activeColumnId = activeCard.columnId
-                const overColumnId = overCard.columnId
-
-                if (activeColumnId === overColumnId) {
-                    // Same column - reorder within column
-                    const columnCards = cardsByColumn[activeColumnId] || []
-                    const oldIndex = columnCards.findIndex((c) => c.id === activeId)
-                    const newIndex = columnCards.findIndex((c) => c.id === overId)
-
-                    if (oldIndex !== newIndex) {
-                        const reorderedCards = arrayMove(columnCards, oldIndex, newIndex)
-                        const updates = reorderedCards.map((card, index) => ({
-                            id: card.id,
-                            order: index,
-                        }))
-                        reorderCards(updates)
-                    }
-                } else {
-                    // Different column - move card to new column at specific position
-                    const targetColumnCards = cardsByColumn[overColumnId] || []
-                    const targetIndex = targetColumnCards.findIndex((c) => c.id === overId)
-
-                    // Create new order for the moved card and update all cards in target column
-                    const updates: { id: string; order: number; columnId?: ColumnType }[] = []
-
-                    // Update the moved card
-                    updates.push({
-                        id: activeId,
-                        order: targetIndex,
-                        columnId: overColumnId,
-                    })
-
-                    // Update cards in the target column that come after the insertion point
-                    targetColumnCards.forEach((card, index) => {
-                        if (index >= targetIndex) {
-                            updates.push({
-                                id: card.id,
-                                order: index + 1,
-                            })
-                        }
-                    })
-
-                    reorderCards(updates)
-                }
-            } else if (overColumn) {
-                // Dropping on a column - add to end of column
-                if (activeCard.columnId !== overColumn.id) {
-                    const targetColumnCards = cardsByColumn[overColumn.id] || []
-                    // order が連番でない(移動で穴が空いた)場合 .length が既存 order と衝突し
-                    // カードが重なる/入れ替わるため、addCard と同様 max(order)+1 で末尾を確定(監査)。
-                    const newOrder =
-                        targetColumnCards.length > 0 ? Math.max(...targetColumnCards.map((c) => c.order)) + 1 : 0
-
-                    reorderCards([
-                        {
-                            id: activeId,
-                            order: newOrder,
-                            columnId: overColumn.id,
-                        },
-                    ])
+            if (overCard && overCard.columnId === activeCard.columnId && activeCardId !== overId) {
+                const columnCards = cardsByColumn[activeCard.columnId] || []
+                const newIndex = columnCards.findIndex((c) => c.id === overId)
+                if (newIndex !== -1) {
+                    moveCardLocal(activeCardId, activeCard.columnId, newIndex)
                 }
             }
+
+            commitDrag()
         },
-        [cards, columns, cardsByColumn, reorderCards, isFiltered]
+        [
+            cards,
+            columns,
+            cardsByColumn,
+            currentBoardId,
+            reorderColumns,
+            isFiltered,
+            cancelDrag,
+            commitDrag,
+            moveCardLocal,
+        ]
     )
+
+    const handleDragCancel = useCallback(() => {
+        setActiveId(null)
+        setActiveType(null)
+        cancelDrag()
+    }, [cancelDrag])
 
     const toggleColumnCollapse = useCallback(
         (columnId: string) => {
@@ -328,7 +419,8 @@ export function App() {
         window.location.reload()
     }, [])
 
-    const activeCard = activeId ? cards.find((c) => c.id === activeId) : null
+    const activeCard = activeId && activeType === 'card' ? cards.find((c) => c.id === activeId) : null
+    const columnIds = useMemo(() => columns.map((col) => col.id), [columns])
 
     // Show loading while checking auth
     if (isFirebaseEnabled && !isInitialized && !offlineMode) {
@@ -354,12 +446,28 @@ export function App() {
 
     return (
         <ErrorBoundary>
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <DndContext
+                sensors={sensors}
+                collisionDetection={collisionDetectionStrategy}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+            >
                 <GlobalStyle $theme={theme} />
                 <Container $theme={theme} data-app-container>
                     <Header />
 
-                    <MainArea $theme={theme}>
+                    {isFiltered && (
+                        <FilterBar $theme={theme}>
+                            <FilterInfo>
+                                {filteredCards.length}件のカードを表示中(フィルター適用中は並べ替えできません)
+                            </FilterInfo>
+                            <FilterClearButton onClick={clearFilters}>フィルターをクリア</FilterClearButton>
+                        </FilterBar>
+                    )}
+
+                    <MainArea $theme={theme} $boardColor={currentBoard?.color}>
                         <HorizontalScroll data-horizontal-scroll>
                             {!currentBoardId ? (
                                 <EmptyState>
@@ -373,22 +481,24 @@ export function App() {
                                 </EmptyState>
                             ) : (
                                 <>
-                                    {columns.map((column) => {
-                                        const columnCards = cardsByColumn[column.id] || []
+                                    <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+                                        {columns.map((column) => {
+                                            const columnCards = cardsByColumn[column.id] || []
 
-                                        return (
-                                            <Column
-                                                key={column.id}
-                                                id={column.id}
-                                                title={column.title}
-                                                cards={columnCards}
-                                                boardId={currentBoardId}
-                                                columnColor={column.color}
-                                                isCollapsed={collapsedColumns.has(column.id)}
-                                                onToggleCollapse={() => toggleColumnCollapse(column.id)}
-                                            />
-                                        )
-                                    })}
+                                            return (
+                                                <Column
+                                                    key={column.id}
+                                                    id={column.id}
+                                                    title={column.title}
+                                                    cards={columnCards}
+                                                    boardId={currentBoardId}
+                                                    columnColor={column.color}
+                                                    isCollapsed={collapsedColumns.has(column.id)}
+                                                    onToggleCollapse={() => toggleColumnCollapse(column.id)}
+                                                />
+                                            )
+                                        })}
+                                    </SortableContext>
                                     <AddColumnButton
                                         $theme={theme}
                                         onClick={() => setShowColumnManager(true)}
@@ -408,6 +518,8 @@ export function App() {
                     <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
 
                     <BlockerWarning />
+
+                    <ToastContainer />
 
                     {showColumnManager && currentBoardId && (
                         <ChunkErrorBoundary>
@@ -448,9 +560,41 @@ const Header = styled(_Header)`
     flex-shrink: 0;
 `
 
-const MainArea = styled.div<{ $theme: Theme }>`
+const FilterBar = styled.div<{ $theme: Theme }>`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px;
+    background: ${(props) => props.$theme.surfaceHover};
+    border-bottom: 1px solid ${(props) => props.$theme.border};
+    color: ${(props) => props.$theme.textSecondary};
+    font-size: 12px;
+    flex-shrink: 0;
+`
+
+const FilterInfo = styled.span`
     flex: 1;
-    min-height: 90vh;
+`
+
+const FilterClearButton = styled.button`
+    border: none;
+    background: transparent;
+    color: #2196f3;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+
+    &:hover {
+        background: rgba(33, 150, 243, 0.12);
+    }
+`
+
+const MainArea = styled.div<{ $theme: Theme; $boardColor?: string }>`
+    flex: 1;
+    min-height: 0;
     padding: 16px 0;
     overflow: hidden;
     background: ${(props) => props.$theme.background};
@@ -462,7 +606,12 @@ const MainArea = styled.div<{ $theme: Theme }>`
         position: absolute;
         inset: 0;
         background:
-            radial-gradient(ellipse 80% 50% at 20% 40%, ${(props) => props.$theme.accentGlow} 0%, transparent 70%),
+            ${(props) =>
+                props.$boardColor
+                    ? // 選択中ボードの色を背景に薄く敷き、ボードの「場所」感を出す
+                      `linear-gradient(180deg, ${props.$boardColor}26 0%, ${props.$boardColor}0d 30%, transparent 70%),`
+                    : ''}
+                radial-gradient(ellipse 80% 50% at 20% 40%, ${(props) => props.$theme.accentGlow} 0%, transparent 70%),
             radial-gradient(ellipse 60% 40% at 80% 60%, ${(props) => props.$theme.accentGlow2} 0%, transparent 70%);
         pointer-events: none;
         z-index: -1;
@@ -476,7 +625,6 @@ const HorizontalScroll = styled.div`
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
     padding-bottom: 8px;
     position: relative;
     z-index: 0;

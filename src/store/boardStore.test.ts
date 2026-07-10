@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, beforeAll } from 'vitest'
-import { DEFAULT_COLUMNS } from '../types'
+import { DEFAULT_COLUMNS, INITIAL_COLUMNS } from '../types'
 import type { Board, ColumnDefinition } from '../types'
 
 const STORAGE_KEY = 'kanban-boards'
@@ -219,13 +219,14 @@ describe('boardStore', () => {
     })
 
     describe('initializeOfflineMode', () => {
-        it('creates a default board with DEFAULT_COLUMNS when none exist', () => {
+        it('creates a default board with INITIAL_COLUMNS (3 lanes) when none exist', () => {
             useBoardStore.getState().initializeOfflineMode()
 
             const state = useBoardStore.getState()
             expect(state.boards).toHaveLength(1)
             expect(state.boards[0].name).toBe('マイボード')
-            expect(state.boards[0].columns).toEqual(DEFAULT_COLUMNS)
+            // 新規ボードは3レーン構成。既存ボードのフォールバックは DEFAULT_COLUMNS のまま
+            expect(state.boards[0].columns).toEqual(INITIAL_COLUMNS)
             expect(state.forceOfflineMode).toBe(true)
             // First board is auto-selected as current.
             expect(state.currentBoardId).toBe(state.boards[0].id)

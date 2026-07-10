@@ -5,10 +5,12 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import { v4 as uuidv4 } from 'uuid'
 import * as color from './color'
-import { PrimaryButton, SecondaryButton, IconButton, SmallPrimaryButton } from './Button'
+import { IconButton, SmallPrimaryButton } from './Button'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
+import { useTrashStore } from './store/trashStore'
+import { showToast } from './store/toastStore'
 import { getTheme, Theme } from './theme'
 import { CARD_COLOR_LABELS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
@@ -138,13 +140,14 @@ function SortableChecklistItem({
 }
 
 export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: CardDetailModalProps) {
-    const { updateCard, addCard } = useKanbanStore()
-    const { boards, currentBoardId } = useBoardStore()
+    const { updateCard, addCard, deleteCard, restoreCard, cards } = useKanbanStore()
+    const { boards, currentBoardId, getColumns } = useBoardStore()
     const { isDarkMode } = useThemeStore()
 
     const theme = getTheme(isDarkMode)
     const currentBoard = boards.find((b) => b.id === currentBoardId)
     const boardLabels = currentBoard?.labels || []
+    const boardColumns = getColumns(card.boardId)
 
     const [title, setTitle] = useState(card.title || card.text)
     const [description, setDescription] = useState(card.description || '')
@@ -199,7 +202,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
 
                 // 5MB制限
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('画像サイズは5MB以下にしてください')
+                    showToast('画像サイズは5MB以下にしてください', 'error')
                     return
                 }
 
@@ -226,9 +229,22 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
         setImages((prev) => prev.filter((img) => img.id !== imageId))
     }, [])
 
-    const handleSave = useCallback(async () => {
-        await updateCard(card.id, {
-            title,
+    // --- 自動保存 ---
+    // 「保存ボタンを押し忘れて全変更が消える」事故を根絶するため、
+    // 編集内容はデバウンスで自動保存し、閉じる操作(×/ESC/外側クリック)では
+    // 未保存分をフラッシュしてから閉じる。
+    const latestUpdatesRef = useRef<Partial<Card>>({})
+    const savedSnapshotRef = useRef<string | null>(null)
+    const skipSaveRef = useRef(false)
+
+    // 毎レンダリング後に最新の編集内容を ref へ反映する(レンダリング中の ref 書き込みは不可)
+    useEffect(() => {
+        // タイトル空のまま保存すると表示名が消えるため、その場合は元の表示名を維持する
+        const titleToSave = title.trim() || card.title || card.text
+        latestUpdatesRef.current = {
+            title: titleToSave,
+            // title と text の二重管理をやめ、常に同期する(見えない text が検索にヒットする問題の解消)
+            text: titleToSave,
             description,
             labels: selectedLabels,
             checklist,
@@ -239,21 +255,68 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
             // 全画像削除時は null を渡してフィールド削除を明示する。undefined だと
             // Firestore 更新ペイロードから除外され、古い画像が消えず復活する(監査)。
             images: images.length > 0 ? images : null,
-        })
+        }
+        if (savedSnapshotRef.current === null) {
+            // 初回レンダリング時点の内容を「保存済み」とみなす(開いただけでは書き込まない)
+            savedSnapshotRef.current = JSON.stringify(latestUpdatesRef.current)
+        }
+    })
+
+    const saveNow = useCallback(() => {
+        if (skipSaveRef.current) return
+        const updates = latestUpdatesRef.current
+        const serialized = JSON.stringify(updates)
+        if (serialized === savedSnapshotRef.current) return
+        savedSnapshotRef.current = serialized
+        updateCard(card.id, updates)
+    }, [updateCard, card.id])
+
+    const isFirstRender = useRef(true)
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false
+            return
+        }
+        const timer = setTimeout(saveNow, 600)
+        return () => clearTimeout(timer)
+    }, [title, description, selectedLabels, checklist, dueDate, cardColor, images, saveNow])
+
+    // 閉じるときは未保存分を確実に書き込む
+    const handleClose = useCallback(() => {
+        saveNow()
         onClose()
-    }, [
-        updateCard,
-        card.id,
-        title,
-        description,
-        selectedLabels,
-        checklist,
-        dueDate,
-        progress,
-        cardColor,
-        images,
-        onClose,
-    ])
+    }, [saveNow, onClose])
+
+    // レーン移動: モーダル内から直接カードを別レーンへ動かせるようにする
+    const handleMoveToColumn = useCallback(
+        (columnId: string) => {
+            if (columnId === card.columnId) return
+            saveNow()
+            const cardsInColumn = cards.filter((c) => c.columnId === columnId && c.boardId === card.boardId)
+            const maxOrder = cardsInColumn.length > 0 ? Math.max(...cardsInColumn.map((c) => c.order)) : -1
+            updateCard(card.id, { columnId, order: maxOrder + 1 })
+            const columnTitle = boardColumns.find((c) => c.id === columnId)?.title || columnId
+            showToast(`「${columnTitle}」へ移動しました`, 'success')
+        },
+        [card.columnId, card.boardId, card.id, cards, updateCard, saveNow, boardColumns]
+    )
+
+    // ゴミ箱へ移動(Undo付き)。削除後に自動保存が走らないようフラグで抑止する
+    const handleMoveToTrash = useCallback(async () => {
+        skipSaveRef.current = true
+        const cardId = card.id
+        await deleteCard(cardId)
+        onClose()
+        showToast('カードをゴミ箱に移動しました', 'info', {
+            label: '元に戻す',
+            onAction: () => {
+                const restored = useTrashStore.getState().restoreFromTrash(cardId)
+                if (restored) {
+                    restoreCard(restored, restored.originalBoardId, restored.originalColumnId)
+                }
+            },
+        })
+    }, [card.id, deleteCard, restoreCard, onClose])
 
     const toggleLabel = useCallback(
         (label: Label) => {
@@ -313,7 +376,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                 // 元のチェックリストアイテムを削除（関数型更新）
                 setChecklist((prev) => prev.filter((i) => i.id !== item.id))
             } catch (error) {
-                alert('カードへの変換に失敗しました。')
+                showToast('カードへの変換に失敗しました', 'error')
             } finally {
                 setConvertingItemId(null)
             }
@@ -369,7 +432,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
     const { isDueSoon, isOverdue } = getDueDateStatus(dueDateTimestamp)
 
     return (
-        <BaseModal onClose={onClose} maxWidth='600px'>
+        <BaseModal onClose={handleClose} maxWidth='600px'>
             <ModalContent $theme={theme}>
                 <ModalHeader $color={cardColor} $theme={theme}>
                     <TitleInput
@@ -380,7 +443,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                         $theme={theme}
                         aria-label='カードタイトル'
                     />
-                    <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
+                    <CloseButton onClick={handleClose} $theme={theme} aria-label='閉じる'>
                         ×
                     </CloseButton>
                 </ModalHeader>
@@ -611,12 +674,25 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                 </DateFooter>
 
                 <Footer $theme={theme}>
-                    <SaveButton onClick={handleSave} aria-label='保存'>
-                        保存
-                    </SaveButton>
-                    <CancelButton onClick={onClose} $theme={theme} aria-label='キャンセル'>
-                        キャンセル
-                    </CancelButton>
+                    <MoveGroup>
+                        <MoveLabel $theme={theme}>レーン:</MoveLabel>
+                        <MoveSelect
+                            value={card.columnId}
+                            onChange={(e) => handleMoveToColumn(e.target.value)}
+                            $theme={theme}
+                            aria-label='レーンを移動'
+                        >
+                            {boardColumns.map((col) => (
+                                <option key={col.id} value={col.id}>
+                                    {col.title}
+                                </option>
+                            ))}
+                        </MoveSelect>
+                    </MoveGroup>
+                    <AutoSaveHint $theme={theme}>変更は自動保存されます</AutoSaveHint>
+                    <TrashActionButton onClick={handleMoveToTrash} aria-label='カードをゴミ箱へ移動'>
+                        ゴミ箱へ
+                    </TrashActionButton>
                 </Footer>
             </ModalContent>
         </BaseModal>
@@ -1103,14 +1179,53 @@ const Footer = styled.div<{ $theme: Theme }>`
     flex-shrink: 0;
 `
 
-const SaveButton = styled(PrimaryButton)`
-    flex: 1;
-    padding: 10px 16px;
-    border-radius: 8px;
+const MoveGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
 `
 
-const CancelButton = styled(SecondaryButton)`
-    flex: 1;
-    padding: 10px 16px;
+const MoveLabel = styled.span<{ $theme: Theme }>`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${(props) => props.$theme.textSecondary};
+`
+
+const MoveSelect = styled.select<{ $theme: Theme }>`
+    padding: 8px 10px;
+    border: 1px solid ${(props) => props.$theme.border};
     border-radius: 8px;
+    background: ${(props) => props.$theme.inputBackground};
+    color: ${(props) => props.$theme.text};
+    font-size: 13px;
+    cursor: pointer;
+
+    &:focus {
+        outline: 2px solid ${color.Blue};
+        outline-offset: 1px;
+    }
+`
+
+const AutoSaveHint = styled.span<{ $theme: Theme }>`
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: ${(props) => props.$theme.textSecondary};
+    opacity: 0.7;
+`
+
+const TrashActionButton = styled.button`
+    padding: 8px 14px;
+    border: 1px solid ${color.Red}40;
+    border-radius: 8px;
+    background: ${color.Red}14;
+    color: ${color.Red};
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        background: ${color.Red}26;
+    }
 `

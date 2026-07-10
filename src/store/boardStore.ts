@@ -3,9 +3,10 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where
 import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useAuthStore } from './authStore'
+import { showToast } from './toastStore'
 import { BOARD_COLORS } from '../constants'
 import type { Board, Label, ColumnDefinition } from '../types'
-import { DEFAULT_COLUMNS } from '../types'
+import { DEFAULT_COLUMNS, INITIAL_COLUMNS } from '../types'
 
 const STORAGE_KEY = 'kanban-boards'
 const CURRENT_BOARD_KEY = 'kanban-current-board'
@@ -159,7 +160,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                 description: 'デフォルトのボード',
                 color: BOARD_COLORS[0],
                 labels: [],
-                columns: DEFAULT_COLUMNS,
+                columns: INITIAL_COLUMNS,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
             }
@@ -202,7 +203,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                 description: description || '',
                 color: color || '#0079BF',
                 labels: labels || [],
-                columns: DEFAULT_COLUMNS,
+                columns: INITIAL_COLUMNS,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
                 ...(userId && { userId }), // Add userId only if user is authenticated
@@ -235,28 +236,29 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     },
 
     updateBoard: async (id, updates) => {
-        try {
-            set({ isLoading: true, error: null })
+        // 楽観的更新: レーン改名/並べ替え/ラベル編集を即座に画面へ反映し、
+        // Firestore 失敗時のみ巻き戻してトーストで通知する
+        const previousBoards = get().boards
+        const updatedBoards = previousBoards.map((board) =>
+            board.id === id ? { ...board, ...updates, updatedAt: Date.now() } : board
+        )
+        set({ boards: updatedBoards, error: null })
 
-            const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
-            if (useFirebase) {
+        const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+        if (useFirebase) {
+            try {
                 const boardRef = doc(db!, 'boards', id)
                 const cleanedUpdates = removeUndefinedFields({
                     ...updates,
                     updatedAt: Date.now(),
                 })
                 await updateDoc(boardRef, cleanedUpdates)
-            } else {
-                const currentBoards = get().boards
-                const updatedBoards = currentBoards.map((board) =>
-                    board.id === id ? { ...board, ...updates, updatedAt: Date.now() } : board
-                )
-                set({ boards: updatedBoards })
-                saveBoardsToLocalStorage(updatedBoards)
+            } catch (error) {
+                set({ boards: previousBoards, error: 'ボードの更新に失敗しました' })
+                showToast('ボードの更新に失敗しました', 'error')
             }
-            set({ isLoading: false })
-        } catch (error) {
-            set({ error: 'ボードの更新に失敗しました', isLoading: false })
+        } else {
+            saveBoardsToLocalStorage(updatedBoards)
         }
     },
 
