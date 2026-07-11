@@ -4,11 +4,15 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closest
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { v4 as uuidv4 } from 'uuid'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import * as color from './color'
-import { PrimaryButton, SecondaryButton, IconButton, SmallPrimaryButton } from './Button'
+import { IconButton, SmallPrimaryButton } from './Button'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
+import { showToast } from './store/toastStore'
+import { pushUndo } from './store/undoStore'
 import { getTheme, Theme } from './theme'
 import { CARD_COLOR_LABELS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
@@ -138,13 +142,14 @@ function SortableChecklistItem({
 }
 
 export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: CardDetailModalProps) {
-    const { updateCard, addCard } = useKanbanStore()
-    const { boards, currentBoardId } = useBoardStore()
+    const { updateCard, addCard, trashCard, cards } = useKanbanStore()
+    const { boards, currentBoardId, getColumns } = useBoardStore()
     const { isDarkMode } = useThemeStore()
 
     const theme = getTheme(isDarkMode)
     const currentBoard = boards.find((b) => b.id === currentBoardId)
     const boardLabels = currentBoard?.labels || []
+    const boardColumns = getColumns(card.boardId)
 
     const [title, setTitle] = useState(card.title || card.text)
     const [description, setDescription] = useState(card.description || '')
@@ -154,7 +159,18 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
     const [editingChecklistItem, setEditingChecklistItem] = useState<string | null>(null)
     const [editingChecklistText, setEditingChecklistText] = useState('')
     const [convertingItemId, setConvertingItemId] = useState<string | null>(null)
-    const [dueDate, setDueDate] = useState(card.dueDate ? new Date(card.dueDate).toISOString().split('T')[0] : '')
+    // 期限: 日付と時刻を分離して保持(時刻は任意)。ローカルタイムゾーン基準で表示する
+    const initialDue = card.dueDate ? new Date(card.dueDate) : null
+    const toLocalDateString = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const toLocalTimeString = (d: Date) =>
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    const [dueDate, setDueDate] = useState(initialDue ? toLocalDateString(initialDue) : '')
+    const [dueTime, setDueTime] = useState(
+        initialDue && (initialDue.getHours() !== 0 || initialDue.getMinutes() !== 0)
+            ? toLocalTimeString(initialDue)
+            : ''
+    )
     const [cardColor, setCardColor] = useState(card.color || '')
     const [editingDescription, setEditingDescription] = useState(false)
     const [images, setImages] = useState<ImageAttachment[]>(card.images || [])
@@ -199,7 +215,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
 
                 // 5MB制限
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('画像サイズは5MB以下にしてください')
+                    showToast('画像サイズは5MB以下にしてください', 'error')
                     return
                 }
 
@@ -226,34 +242,86 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
         setImages((prev) => prev.filter((img) => img.id !== imageId))
     }, [])
 
-    const handleSave = useCallback(async () => {
-        await updateCard(card.id, {
-            title,
+    // --- 自動保存 ---
+    // 「保存ボタンを押し忘れて全変更が消える」事故を根絶するため、
+    // 編集内容はデバウンスで自動保存し、閉じる操作(×/ESC/外側クリック)では
+    // 未保存分をフラッシュしてから閉じる。
+    const latestUpdatesRef = useRef<Partial<Card>>({})
+    const savedSnapshotRef = useRef<string | null>(null)
+    const skipSaveRef = useRef(false)
+
+    // 毎レンダリング後に最新の編集内容を ref へ反映する(レンダリング中の ref 書き込みは不可)
+    useEffect(() => {
+        // タイトル空のまま保存すると表示名が消えるため、その場合は元の表示名を維持する
+        const titleToSave = title.trim() || card.title || card.text
+        latestUpdatesRef.current = {
+            title: titleToSave,
+            // title と text の二重管理をやめ、常に同期する(見えない text が検索にヒットする問題の解消)
+            text: titleToSave,
             description,
             labels: selectedLabels,
             checklist,
-            // 日付が空の場合はnullを設定して削除を明示
-            dueDate: dueDate ? new Date(dueDate).getTime() : null,
+            // 日付が空の場合はnullを設定して削除を明示。時刻未指定は 00:00 扱い
+            dueDate: dueDate ? new Date(`${dueDate}T${dueTime || '00:00'}`).getTime() : null,
             progress,
             color: cardColor,
             // 全画像削除時は null を渡してフィールド削除を明示する。undefined だと
             // Firestore 更新ペイロードから除外され、古い画像が消えず復活する(監査)。
             images: images.length > 0 ? images : null,
-        })
+        }
+        if (savedSnapshotRef.current === null) {
+            // 初回レンダリング時点の内容を「保存済み」とみなす(開いただけでは書き込まない)
+            savedSnapshotRef.current = JSON.stringify(latestUpdatesRef.current)
+        }
+    })
+
+    const saveNow = useCallback(() => {
+        if (skipSaveRef.current) return
+        const updates = latestUpdatesRef.current
+        const serialized = JSON.stringify(updates)
+        if (serialized === savedSnapshotRef.current) return
+        savedSnapshotRef.current = serialized
+        updateCard(card.id, updates)
+    }, [updateCard, card.id])
+
+    const isFirstRender = useRef(true)
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false
+            return
+        }
+        const timer = setTimeout(saveNow, 600)
+        return () => clearTimeout(timer)
+    }, [title, description, selectedLabels, checklist, dueDate, dueTime, cardColor, images, saveNow])
+
+    // 閉じるときは未保存分を確実に書き込む
+    const handleClose = useCallback(() => {
+        saveNow()
         onClose()
-    }, [
-        updateCard,
-        card.id,
-        title,
-        description,
-        selectedLabels,
-        checklist,
-        dueDate,
-        progress,
-        cardColor,
-        images,
-        onClose,
-    ])
+    }, [saveNow, onClose])
+
+    // レーン移動: モーダル内から直接カードを別レーンへ動かせるようにする
+    const handleMoveToColumn = useCallback(
+        (columnId: string) => {
+            if (columnId === card.columnId) return
+            saveNow()
+            const cardsInColumn = cards.filter((c) => c.columnId === columnId && c.boardId === card.boardId)
+            const maxOrder = cardsInColumn.length > 0 ? Math.max(...cardsInColumn.map((c) => c.order)) : -1
+            const prev = { columnId: card.columnId, order: card.order }
+            updateCard(card.id, { columnId, order: maxOrder + 1 })
+            pushUndo({ label: 'レーン移動', undo: () => updateCard(card.id, prev) })
+            const columnTitle = boardColumns.find((c) => c.id === columnId)?.title || columnId
+            showToast(`「${columnTitle}」へ移動しました`, 'success')
+        },
+        [card.columnId, card.order, card.boardId, card.id, cards, updateCard, saveNow, boardColumns]
+    )
+
+    // ゴミ箱へ移動(Undo付き)。削除後に自動保存が走らないようフラグで抑止する
+    const handleMoveToTrash = useCallback(async () => {
+        skipSaveRef.current = true
+        await trashCard(card.id)
+        onClose()
+    }, [card.id, trashCard, onClose])
 
     const toggleLabel = useCallback(
         (label: Label) => {
@@ -313,7 +381,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                 // 元のチェックリストアイテムを削除（関数型更新）
                 setChecklist((prev) => prev.filter((i) => i.id !== item.id))
             } catch (error) {
-                alert('カードへの変換に失敗しました。')
+                showToast('カードへの変換に失敗しました', 'error')
             } finally {
                 setConvertingItemId(null)
             }
@@ -365,11 +433,11 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
         [setChecklist]
     )
 
-    const dueDateTimestamp = dueDate ? new Date(dueDate).getTime() : undefined
+    const dueDateTimestamp = dueDate ? new Date(`${dueDate}T${dueTime || '00:00'}`).getTime() : undefined
     const { isDueSoon, isOverdue } = getDueDateStatus(dueDateTimestamp)
 
     return (
-        <BaseModal onClose={onClose} maxWidth='600px'>
+        <BaseModal onClose={handleClose} maxWidth='600px'>
             <ModalContent $theme={theme}>
                 <ModalHeader $color={cardColor} $theme={theme}>
                     <TitleInput
@@ -380,7 +448,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                         $theme={theme}
                         aria-label='カードタイトル'
                     />
-                    <CloseButton onClick={onClose} $theme={theme} aria-label='閉じる'>
+                    <CloseButton onClick={handleClose} $theme={theme} aria-label='閉じる'>
                         ×
                     </CloseButton>
                 </ModalHeader>
@@ -422,15 +490,28 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                     {/* Due Date Section */}
                     <Section>
                         <SectionTitle $theme={theme}>期限</SectionTitle>
-                        <DueDateInput
-                            type='date'
-                            value={dueDate}
-                            onChange={(e) => setDueDate(e.target.value)}
-                            $isOverdue={isOverdue}
-                            $isDueSoon={isDueSoon && !isOverdue}
-                            $theme={theme}
-                            $isDarkMode={isDarkMode}
-                        />
+                        <DueDateRow>
+                            <DueDateInput
+                                type='date'
+                                value={dueDate}
+                                onChange={(e) => setDueDate(e.target.value)}
+                                $isOverdue={isOverdue}
+                                $isDueSoon={isDueSoon && !isOverdue}
+                                $theme={theme}
+                                $isDarkMode={isDarkMode}
+                                aria-label='期限日'
+                            />
+                            <DueTimeInput
+                                type='time'
+                                value={dueTime}
+                                onChange={(e) => setDueTime(e.target.value)}
+                                disabled={!dueDate}
+                                $theme={theme}
+                                $isDarkMode={isDarkMode}
+                                aria-label='期限時刻(任意)'
+                                title='時刻(任意)'
+                            />
+                        </DueDateRow>
                         {isOverdue && <WarningText>期限切れです</WarningText>}
                         {isDueSoon && !isOverdue && <WarningText $warning>まもなく期限です</WarningText>}
                     </Section>
@@ -497,7 +578,31 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 title='クリックまたはEnterで編集'
                                 aria-label='説明を編集'
                             >
-                                <LinkedText text={description} metadata={metadata} theme={theme} />
+                                <MarkdownBody $theme={theme}>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            a: ({ href, children }) => {
+                                                // 生URLのオートリンクは、取得済みメタデータのページタイトルで表示する
+                                                const childText = Array.isArray(children) ? children[0] : children
+                                                const meta = metadata?.find((m) => m.url === href)
+                                                const label = meta?.title && childText === href ? meta.title : children
+                                                return (
+                                                    <a
+                                                        href={href}
+                                                        target='_blank'
+                                                        rel='noopener noreferrer'
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {label}
+                                                    </a>
+                                                )
+                                            },
+                                        }}
+                                    >
+                                        {description}
+                                    </ReactMarkdown>
+                                </MarkdownBody>
                             </DescriptionDisplay>
                         ) : (
                             <DescriptionTextArea
@@ -506,7 +611,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 onChange={(e) => setDescription(e.target.value)}
                                 onBlur={() => setEditingDescription(false)}
                                 onPaste={handlePaste}
-                                placeholder='詳細な説明を入力... (画像の貼り付けも可能)'
+                                placeholder='詳細な説明を入力... (Markdown対応 / 画像の貼り付けも可能)'
                                 rows={4}
                                 $theme={theme}
                                 autoFocus={editingDescription}
@@ -611,12 +716,25 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                 </DateFooter>
 
                 <Footer $theme={theme}>
-                    <SaveButton onClick={handleSave} aria-label='保存'>
-                        保存
-                    </SaveButton>
-                    <CancelButton onClick={onClose} $theme={theme} aria-label='キャンセル'>
-                        キャンセル
-                    </CancelButton>
+                    <MoveGroup>
+                        <MoveLabel $theme={theme}>レーン:</MoveLabel>
+                        <MoveSelect
+                            value={card.columnId}
+                            onChange={(e) => handleMoveToColumn(e.target.value)}
+                            $theme={theme}
+                            aria-label='レーンを移動'
+                        >
+                            {boardColumns.map((col) => (
+                                <option key={col.id} value={col.id}>
+                                    {col.title}
+                                </option>
+                            ))}
+                        </MoveSelect>
+                    </MoveGroup>
+                    <AutoSaveHint $theme={theme}>変更は自動保存されます</AutoSaveHint>
+                    <TrashActionButton onClick={handleMoveToTrash} aria-label='カードをゴミ箱へ移動'>
+                        ゴミ箱へ
+                    </TrashActionButton>
                 </Footer>
             </ModalContent>
         </BaseModal>
@@ -648,12 +766,18 @@ const ModalHeader = styled.div<{ $color?: string; $theme: Theme }>`
 
 const TitleInput = styled.input<{ $theme: Theme }>`
     flex: 1;
+    min-width: 0;
+    min-height: 32px;
     border: none;
     background: transparent;
     font-size: 22px;
     font-weight: 700;
     color: ${(props) => props.$theme.text};
-    padding: 2px 4px;
+    padding: 4px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
     border-radius: 4px;
     letter-spacing: -0.02em;
 
@@ -677,6 +801,11 @@ const CloseButton = styled.button<{ $theme: Theme; $cardColor?: string }>`
     padding: 0;
     width: 32px;
     height: 32px;
+
+    @media (pointer: coarse) {
+        width: 44px;
+        height: 44px;
+    }
     display: flex;
     align-items: center;
     justify-content: center;
@@ -731,6 +860,12 @@ const LabelsContainer = styled.div`
 
 const LabelTag = styled.button<{ $color: string; $selected: boolean; $isDarkMode?: boolean }>`
     padding: 4px 12px;
+    min-height: 28px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+        border-radius: 8px;
+    }
     border-radius: 4px;
     border: 2px solid ${(props) => (props.$selected ? 'rgba(255, 255, 255, 0.6)' : 'transparent')};
     background-color: ${(props) => props.$color};
@@ -751,8 +886,33 @@ const EmptyHint = styled.div<{ $theme: Theme }>`
     font-size: 12px;
 `
 
+const DueDateRow = styled.div`
+    display: flex;
+    gap: 8px;
+`
+
+const DueTimeInput = styled.input<{ $theme: Theme; $isDarkMode?: boolean }>`
+    width: 120px;
+    padding: 10px 12px;
+    border: 1px solid ${(props) => props.$theme.border};
+    border-radius: 8px;
+    font-size: 14px;
+    color: ${(props) => props.$theme.text};
+    background-color: ${(props) => props.$theme.inputBackground};
+    color-scheme: ${(props) => (props.$isDarkMode ? 'dark' : 'light')};
+
+    &:disabled {
+        opacity: 0.5;
+    }
+
+    &:focus {
+        outline: 2px solid ${color.Blue};
+        outline-offset: 2px;
+    }
+`
+
 const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; $theme: Theme; $isDarkMode?: boolean }>`
-    width: 100%;
+    flex: 1;
     padding: 10px 12px;
     border: 1px solid ${(props) => (props.$isOverdue ? color.Red : props.$isDueSoon ? '#FF9F1A' : props.$theme.border)};
     border-radius: 8px;
@@ -792,8 +952,13 @@ const ColorPicker = styled.div`
 `
 
 const ColorOption = styled.button<{ $color: string; $selected: boolean; $theme: Theme }>`
-    width: 36px;
-    height: 28px;
+    width: 40px;
+    height: 32px;
+
+    @media (pointer: coarse) {
+        width: 48px;
+        height: 40px;
+    }
     border-radius: 4px;
     border: 2px solid ${(props) => (props.$selected ? props.$theme.text : 'transparent')};
     background-color: ${(props) => props.$color || props.$theme.surface};
@@ -846,6 +1011,116 @@ const DescriptionDisplay = styled.div<{ $theme: Theme }>`
     }
 `
 
+// Markdown表示の最小スタイル(見出し/リスト/コード/引用/リンク)
+const MarkdownBody = styled.div<{ $theme: Theme }>`
+    font-size: 14px;
+    line-height: 1.6;
+    color: ${(props) => props.$theme.text};
+    word-break: break-word;
+
+    > :first-child {
+        margin-top: 0;
+    }
+    > :last-child {
+        margin-bottom: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        margin: 0.8em 0 0.4em;
+        line-height: 1.3;
+    }
+    h1 {
+        font-size: 1.3em;
+    }
+    h2 {
+        font-size: 1.15em;
+    }
+    h3,
+    h4 {
+        font-size: 1em;
+    }
+
+    p {
+        margin: 0.4em 0;
+    }
+
+    ul,
+    ol {
+        margin: 0.4em 0;
+        padding-left: 1.4em;
+    }
+
+    li {
+        margin: 0.15em 0;
+    }
+
+    /* GFMタスクリストのチェックボックス */
+    li:has(> input[type='checkbox']) {
+        list-style: none;
+        margin-left: -1.2em;
+    }
+
+    code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+        background: ${(props) => props.$theme.surfaceHover};
+        border: 1px solid ${(props) => props.$theme.border};
+        border-radius: 4px;
+        padding: 0.1em 0.35em;
+    }
+
+    pre {
+        background: ${(props) => props.$theme.surfaceHover};
+        border: 1px solid ${(props) => props.$theme.border};
+        border-radius: 8px;
+        padding: 10px 12px;
+        overflow-x: auto;
+        margin: 0.5em 0;
+
+        code {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+    }
+
+    blockquote {
+        margin: 0.5em 0;
+        padding: 0.2em 0.9em;
+        border-left: 3px solid ${(props) => props.$theme.border};
+        color: ${(props) => props.$theme.textSecondary};
+    }
+
+    a {
+        color: ${(props) => props.$theme.linkColor};
+
+        &:hover {
+            color: ${(props) => props.$theme.linkColorHover};
+        }
+    }
+
+    table {
+        border-collapse: collapse;
+        margin: 0.5em 0;
+    }
+
+    th,
+    td {
+        border: 1px solid ${(props) => props.$theme.border};
+        padding: 4px 8px;
+        font-size: 0.9em;
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid ${(props) => props.$theme.border};
+        margin: 0.8em 0;
+    }
+`
+
 // 画像関連スタイル
 const ImageGallery = styled.div`
     display: grid;
@@ -882,8 +1157,8 @@ const ImageRemoveButton = styled.button`
     position: absolute;
     top: 4px;
     right: 4px;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
     background: rgba(0, 0, 0, 0.6);
@@ -899,11 +1174,22 @@ const ImageRemoveButton = styled.button`
     &:hover {
         background: rgba(220, 50, 50, 0.9);
     }
+
+    /* タッチデバイスは hover が無いので常時表示+44px確保 */
+    @media (hover: none) {
+        opacity: 1;
+    }
+
+    @media (pointer: coarse) {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
 `
 
 const PasteHint = styled.div<{ $theme: Theme }>`
     margin-top: 6px;
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     opacity: 0.7;
 `
@@ -952,8 +1238,8 @@ const ChecklistItemRow = styled.div<{ $theme?: Theme }>`
 `
 
 const Checkbox = styled.input`
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
     flex-shrink: 0;
     accent-color: ${color.Blue};
@@ -970,12 +1256,22 @@ const ChecklistItemText = styled.span<{ $completed: boolean; $theme?: Theme }>`
 `
 
 const DragHandle = styled.div<{ $theme?: Theme }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
     cursor: grab;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
     font-size: 14px;
     padding: 0 4px;
     flex-shrink: 0;
     user-select: none;
+
+    @media (pointer: coarse) {
+        min-width: 36px;
+        min-height: 40px;
+    }
 
     &:active {
         cursor: grabbing;
@@ -1002,6 +1298,11 @@ const EditChecklistInput = styled.input<{ $theme: Theme }>`
 const SmallButton = styled(IconButton)``
 
 const DeleteItemButton = styled.button<{ $theme?: Theme }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
     border: none;
     background: none;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
@@ -1009,6 +1310,11 @@ const DeleteItemButton = styled.button<{ $theme?: Theme }>`
     cursor: pointer;
     padding: 0 4px;
     flex-shrink: 0;
+
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
 
     &:hover {
         color: ${color.Red};
@@ -1084,33 +1390,89 @@ const DateItem = styled.div`
 `
 
 const DateLabel = styled.span<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: ${(props) => props.$theme.textSecondary};
 `
 
 const DateValue = styled.span<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
 `
 
 const Footer = styled.div<{ $theme: Theme }>`
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-top: 1px solid ${(props) => props.$theme.border};
     background-color: ${(props) => props.$theme.surface};
     flex-shrink: 0;
 `
 
-const SaveButton = styled(PrimaryButton)`
-    flex: 1;
-    padding: 10px 16px;
-    border-radius: 8px;
+const MoveGroup = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
 `
 
-const CancelButton = styled(SecondaryButton)`
-    flex: 1;
-    padding: 10px 16px;
+const MoveLabel = styled.span<{ $theme: Theme }>`
+    font-size: 12px;
+    font-weight: 600;
+    color: ${(props) => props.$theme.textSecondary};
+`
+
+const MoveSelect = styled.select<{ $theme: Theme }>`
+    padding: 8px 10px;
+    min-height: 36px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
+    border: 1px solid ${(props) => props.$theme.border};
     border-radius: 8px;
+    background: ${(props) => props.$theme.inputBackground};
+    color: ${(props) => props.$theme.text};
+    font-size: 13px;
+    cursor: pointer;
+
+    &:focus {
+        outline: 2px solid ${color.Blue};
+        outline-offset: 1px;
+    }
+`
+
+const AutoSaveHint = styled.span<{ $theme: Theme }>`
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: ${(props) => props.$theme.textSecondary};
+    opacity: 0.7;
+
+    /* 幅の狭い画面では操作ボタンを優先する */
+    @media (max-width: 480px) {
+        display: none;
+    }
+`
+
+const TrashActionButton = styled.button`
+    padding: 8px 14px;
+    min-height: 36px;
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
+    border: 1px solid ${color.Red}40;
+    border-radius: 8px;
+    background: ${color.Red}14;
+    color: ${color.Red};
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        background: ${color.Red}26;
+    }
 `

@@ -1,13 +1,14 @@
-import { useState, memo, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, memo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
-import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon } from './icon'
+import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
+import { isComposing } from './utils/keyboard'
 import { LinkedText } from './LinkedText'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import type { Card as CardType } from './types'
@@ -15,10 +16,29 @@ import type { Card as CardType } from './types'
 // 遅延ロード: CardDetailModal
 const CardDetailModal = lazy(() => import('./CardDetailModal').then((m) => ({ default: m.CardDetailModal })))
 
+// カード面のプレビュー用に Markdown 記号を落とす簡易ストリップ
+// (正確なパースは不要。見出し/強調/コード/リスト/引用/リンクの記号だけ除去する)
+function stripMarkdownSyntax(text: string): string {
+    return text
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/`([^`]*)`/g, '$1')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/^[-*+]\s+/gm, '')
+        .replace(/^>\s?/gm, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/\n{2,}/g, '\n')
+        .trim()
+}
+
 export const Card = memo(function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
-    const { deleteCard } = useKanbanStore()
+    const { trashCard, updateCard } = useKanbanStore()
     const { isDarkMode } = useThemeStore()
     const [showModal, setShowModal] = useState(false)
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [editTitle, setEditTitle] = useState('')
+    const editInputRef = useRef<HTMLTextAreaElement>(null)
 
     const theme = getTheme(isDarkMode)
 
@@ -35,18 +55,43 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
             type: 'card',
             card,
         },
+        disabled: isEditingTitle,
     })
 
+    useEffect(() => {
+        if (isEditingTitle) {
+            editInputRef.current?.focus()
+            editInputRef.current?.select()
+        }
+    }, [isEditingTitle])
+
+    // 削除は confirm を挟まず即ゴミ箱へ。トーストの「元に戻す」/Cmd+Z で復元できる
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
-        if (window.confirm('このカードを削除しますか？')) {
-            await deleteCard(card.id)
+        await trashCard(card.id)
+    }
+
+    const displayText = card.title || card.text
+
+    const startEditTitle = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setEditTitle(displayText)
+        setIsEditingTitle(true)
+    }
+
+    const saveTitle = async () => {
+        const next = editTitle.trim()
+        setIsEditingTitle(false)
+        if (next && next !== displayText) {
+            // title と text を同時に更新して二重管理による「見えないテキスト」を残さない
+            await updateCard(card.id, { title: next, text: next })
         }
     }
 
     const handleCardClick = (e: React.MouseEvent) => {
         // Don't open modal if clicking delete button or dragging
         if ((e.target as HTMLElement).closest('button')) return
+        if (isEditingTitle) return
         setShowModal(true)
     }
 
@@ -55,7 +100,6 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
         transition,
     }
 
-    const displayText = card.title || card.text
     const hasLabels = card.labels && card.labels.length > 0
     const hasChecklist = card.checklist && card.checklist.length > 0
     const hasDueDate = card.dueDate
@@ -65,10 +109,12 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
     const { isDueSoon, isOverdue } = getDueDateStatus(card.dueDate)
 
     // Get description preview (first 80 characters)
-    const descriptionPreview = card.description
-        ? card.description.length > 80
-            ? card.description.slice(0, 80) + '...'
-            : card.description
+    // プレビューでは Markdown 記号を除去してプレーンテキストで見せる
+    const plainDescription = card.description ? stripMarkdownSyntax(card.description) : null
+    const descriptionPreview = plainDescription
+        ? plainDescription.length > 80
+            ? plainDescription.slice(0, 80) + '...'
+            : plainDescription
         : null
 
     return (
@@ -98,8 +144,34 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
 
                     <ContentRow>
                         <TextContent>
-                            <Title $theme={theme}>{displayText}</Title>
-                            {descriptionPreview && (
+                            {isEditingTitle ? (
+                                <TitleEditArea
+                                    ref={editInputRef}
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    onBlur={saveTitle}
+                                    onKeyDown={(e) => {
+                                        // カード本体の KeyboardSensor にバブルさせない(ドラッグ誤起動防止)
+                                        e.stopPropagation()
+                                        if (isComposing(e)) return
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault()
+                                            saveTitle()
+                                        }
+                                        if (e.key === 'Escape') {
+                                            setIsEditingTitle(false)
+                                        }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    rows={2}
+                                    $theme={theme}
+                                    aria-label='カードタイトルを編集'
+                                />
+                            ) : (
+                                <Title $theme={theme}>{displayText}</Title>
+                            )}
+                            {descriptionPreview && !isEditingTitle && (
                                 <Description $theme={theme}>
                                     <LinkedText text={descriptionPreview} metadata={card.urlMetadata} theme={theme} />
                                 </Description>
@@ -149,7 +221,29 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                     </MetadataRow>
                 </CardBody>
 
-                <DeleteButton onClick={handleDelete} $theme={theme} aria-label='カードを削除' />
+                <HoverActions>
+                    <ActionIconButton
+                        onClick={startEditTitle}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        $theme={theme}
+                        title='タイトルを編集'
+                        aria-label='カードタイトルを編集'
+                    >
+                        <EditIcon />
+                    </ActionIconButton>
+                    <ActionIconButton
+                        onClick={handleDelete}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        $theme={theme}
+                        $danger
+                        title='ゴミ箱へ移動'
+                        aria-label='カードをゴミ箱へ移動'
+                    >
+                        <TrashIcon />
+                    </ActionIconButton>
+                </HoverActions>
             </Container>
 
             {showModal && (
@@ -172,8 +266,10 @@ const Container = styled.div<{ $isDragging?: boolean; $theme: Theme }>`
     background: ${(props) => props.$theme.cardBackground};
     color: ${(props) => props.$theme.text};
     cursor: pointer;
-    opacity: ${(props) => (props.$isDragging ? 0.5 : 1)};
-    touch-action: none;
+    opacity: ${(props) => (props.$isDragging ? 0.4 : 1)};
+    /* manipulation にすることでタッチでも縦スクロールを妨げない。
+       ドラッグ開始は TouchSensor の長押し判定(App側)に任せる */
+    touch-action: manipulation;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -208,16 +304,26 @@ const CardBody = styled.div`
 const LabelsRow = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
 `
 
+// ラベルは名前が読める大きさで表示する(旧: 高さ6px/font-size:0 で判読不能だった)
 const LabelBadge = styled.div<{ $color: string }>`
-    height: 6px;
-    width: 40px;
-    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 2px 8px;
+    border-radius: 10px;
     background: ${(props) => props.$color};
-    opacity: 0.75;
-    font-size: 0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
 `
 
 const ContentRow = styled.div`
@@ -237,11 +343,29 @@ const TextContent = styled.div`
 
 const Title = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.text};
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
     line-height: 1.45;
     word-break: break-word;
     letter-spacing: -0.01em;
+`
+
+const TitleEditArea = styled.textarea<{ $theme: Theme }>`
+    width: 100%;
+    border: 1px solid ${color.Blue};
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: ${(props) => props.$theme.text};
+    background: ${(props) => props.$theme.inputBackground};
+    resize: none;
+    font-family: inherit;
+
+    &:focus {
+        outline: none;
+    }
 `
 
 const Description = styled.div<{ $theme: Theme }>`
@@ -266,7 +390,7 @@ const ImageThumb = styled.img`
 `
 
 const MoreImages = styled.div<{ $theme: Theme }>`
-    font-size: 11px;
+    font-size: 12px;
     color: ${(props) => props.$theme.textSecondary};
     padding: 0 4px;
 `
@@ -282,15 +406,15 @@ const MetaBadge = `
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 1px 6px;
+    padding: 2px 7px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.02em;
 
     svg {
-        width: 10px;
-        height: 10px;
+        width: 12px;
+        height: 12px;
     }
 `
 
@@ -316,35 +440,54 @@ const DescriptionBadge = styled.div<{ $theme: Theme }>`
     opacity: 0.6;
 `
 
-const DeleteButton = styled.button.attrs({
-    type: 'button',
-    children: <TrashIcon />,
-})<{ $theme: Theme }>`
+const HoverActions = styled.div`
     position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 14px;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+
+    /* タッチデバイスでは非表示にする。hover前提の透明ボタンを残すと
+       「見えないのにタップで削除される」事故になるため。
+       タイトル編集・削除は詳細モーダルから行える(Trelloモバイルと同様) */
+    @media (hover: none) {
+        display: none;
+    }
+`
+
+const ActionIconButton = styled.button<{ $theme: Theme; $danger?: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
     color: ${(props) => props.$theme.textSecondary};
     background: ${(props) => props.$theme.cardBackground};
     border-radius: 6px;
-    padding: 3px;
+    padding: 4px;
     opacity: 0;
     transition:
         opacity 0.15s,
         color 0.15s;
+
+    svg {
+        display: block;
+        width: 14px;
+        height: 14px;
+    }
 
     ${Container}:hover & {
         opacity: 0.7;
     }
 
     :hover {
-        color: ${color.Red};
+        color: ${(props) => (props.$danger ? color.Red : color.Blue)};
         opacity: 1 !important;
     }
 
     /* キーボードフォーカス時も表示。opacity:0 のままだと focus-visible の輪郭も隠れる(監査) */
     &:focus-visible {
-        color: ${color.Red};
+        color: ${(props) => (props.$danger ? color.Red : color.Blue)};
         opacity: 1 !important;
     }
 `

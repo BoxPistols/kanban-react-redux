@@ -1,7 +1,8 @@
 // カスタムレーン対応: ColumnTypeはstring型に変更
 export type ColumnType = string
 
-// デフォルトカラム定義
+// デフォルトカラム定義(既存データの後方互換フォールバック用)。
+// columns 未保存の既存ボードのカードを孤児にしないため 6 本構成は変更しない。
 export const DEFAULT_COLUMNS: ColumnDefinition[] = [
     { id: 'Backlog', title: 'Backlog', order: 0 },
     { id: 'TODO', title: 'TODO', order: 1 },
@@ -9,6 +10,14 @@ export const DEFAULT_COLUMNS: ColumnDefinition[] = [
     { id: 'Doing', title: 'Doing', order: 3 },
     { id: 'Waiting', title: 'Waiting', order: 4 },
     { id: 'Done', title: 'Done', order: 5 },
+]
+
+// 新規ボードの初期レーン。6本は初見の認知負荷と横スクロールを強いるため、
+// Trello同様シンプルな3本から始める(レーンはあとから自由に追加できる)
+export const INITIAL_COLUMNS: ColumnDefinition[] = [
+    { id: 'TODO', title: 'TODO', order: 0 },
+    { id: 'Doing', title: 'Doing', order: 1 },
+    { id: 'Done', title: 'Done', order: 2 },
 ]
 
 export interface ColumnDefinition {

@@ -4,7 +4,7 @@ import * as color from './color'
 import { PrimaryButton, SecondaryButton } from './Button'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, Theme } from './theme'
-import { isComposing, isModifierKey, getModifierKeySymbol } from './utils/keyboard'
+import { isComposing, isModifierKey } from './utils/keyboard'
 
 export const InputForm = memo(function InputForm({
     value,
@@ -34,25 +34,26 @@ export const InputForm = memo(function InputForm({
         ref.current?.focus()
     }, [])
 
-    const modifierKey = getModifierKeySymbol()
-
     return (
         <Container className={className}>
             <Input
                 ref={ref}
-                placeholder={`Enter a note (${modifierKey}+Enter to submit)`}
+                placeholder='カードのタイトルを入力…'
                 value={value}
                 onChange={(ev) => onChange?.(ev.currentTarget.value)}
                 onKeyDown={(ev) => {
                     // IME入力中はEnterキーを無視
                     if (isComposing(ev)) return
 
-                    // Cmd+Enter / Ctrl+Enter でsubmit
-                    if (isModifierKey(ev) && ev.key === 'Enter') {
+                    // Enter で追加(Trello同等)。Shift+Enter は改行、Cmd/Ctrl+Enter も追加として維持
+                    if (ev.key === 'Enter' && (!ev.shiftKey || isModifierKey(ev))) {
                         ev.preventDefault()
                         handleConfirm()
                     }
-                    // 通常のEnterキーは改行（デフォルト動作）
+                    if (ev.key === 'Escape') {
+                        ev.preventDefault()
+                        onCancel?.()
+                    }
                 }}
                 $theme={theme}
                 aria-label='カード内容を入力'
@@ -61,6 +62,7 @@ export const InputForm = memo(function InputForm({
             <ButtonRow>
                 <AddButton disabled={disabled} onClick={handleConfirm} aria-label='カードを追加' />
                 <CancelButton onClick={onCancel} aria-label='入力をキャンセル' />
+                <SubmitHint $theme={theme}>Enterで追加</SubmitHint>
             </ButtonRow>
         </Container>
     )
@@ -119,9 +121,17 @@ const ButtonRow = styled.div`
 `
 
 const AddButton = styled(PrimaryButton).attrs({
-    children: 'Add',
+    children: 'カードを追加',
 })``
 
 const CancelButton = styled(SecondaryButton).attrs({
-    children: 'Cancel',
+    children: 'キャンセル',
 })``
+
+const SubmitHint = styled.span<{ $theme: Theme }>`
+    margin-left: auto;
+    align-self: center;
+    font-size: 12px;
+    color: ${(props) => props.$theme.textSecondary};
+    opacity: 0.7;
+`

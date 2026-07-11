@@ -4,9 +4,11 @@ import type { Theme } from './theme'
 export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
   html, body, #app, #root {
     height: 100%;
-    /* iPhoneのセーフエリアを考慮した最小高さ */
+    /* iPhoneのセーフエリアを考慮した最小高さ。
+       dvh はiOS Safariのツールバー伸縮に追従する(非対応環境は前行にフォールバック) */
     min-height: 100vh;
     min-height: -webkit-fill-available;
+    min-height: 100dvh;
   }
 
   body {
@@ -110,6 +112,11 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
     border: none;
     cursor: pointer;
     font-family: inherit;
+  }
+
+  /* iOSのタップ時ハイライト(灰色のフラッシュ)を無効化。フォーカスは :focus-visible で示す */
+  button, a, [role='button'] {
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* 選択色 */
