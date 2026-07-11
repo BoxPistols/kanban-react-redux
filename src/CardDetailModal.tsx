@@ -900,13 +900,14 @@ const EmptyHint = styled.div<{ $theme: Theme }>`
 
 const DueDateRow = styled.div`
     display: flex;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
 `
 
 // iOSの日付ピッカーの「リセット」は React が拾えない change イベントのみ発火し
 // 値が戻ってしまうため、期限の解除はこのボタンで行う(実機フィードバック対応)
-const ClearDueDateButton = styled.button<{ $theme: Theme }>`
+const ClearDueDateButton = styled.button.attrs({ type: 'button' })<{ $theme: Theme }>`
     padding: 8px 12px;
     min-height: 36px;
     border: 1px solid ${(props) => props.$theme.border};
@@ -1341,7 +1342,7 @@ const EditChecklistInput = styled.input<{ $theme: Theme }>`
 // チェックリスト行のアイコンボタン共通スタイル。
 // 実機で「編集=枠付き44px/変換=28px/削除=40px」と大きさも見た目もバラバラだったため、
 // 同一サイズ・同一スタイル・18pxグリフに統一する(iPhoneフィードバック対応)
-const RowIconButton = styled.button<{ $theme?: Theme; $danger?: boolean }>`
+const RowIconButton = styled.button.attrs({ type: 'button' })<{ $theme?: Theme; $danger?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1360,9 +1361,12 @@ const RowIconButton = styled.button<{ $theme?: Theme; $danger?: boolean }>`
         background-color 0.15s,
         color 0.15s;
 
-    &:hover:not(:disabled) {
-        background: ${(props) => props.$theme?.surfaceHover || color.LightSilver};
-        color: ${(props) => (props.$danger ? color.Red : props.$theme?.text || color.Black)};
+    /* タッチデバイスでは :hover が「押した後も残る」(sticky hover)ため、hover対応環境に限定 */
+    @media (hover: hover) {
+        &:hover:not(:disabled) {
+            background: ${(props) => props.$theme?.surfaceHover || color.LightSilver};
+            color: ${(props) => (props.$danger ? color.Red : props.$theme?.text || color.Black)};
+        }
     }
 
     &:disabled {
