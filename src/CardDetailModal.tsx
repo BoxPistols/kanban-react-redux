@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import * as color from './color'
-import { IconButton, SmallPrimaryButton } from './Button'
+import { SmallPrimaryButton } from './Button'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
@@ -511,6 +511,18 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 aria-label='期限時刻(任意)'
                                 title='時刻(任意)'
                             />
+                            {dueDate && (
+                                <ClearDueDateButton
+                                    onClick={() => {
+                                        setDueDate('')
+                                        setDueTime('')
+                                    }}
+                                    $theme={theme}
+                                    aria-label='期限をクリア'
+                                >
+                                    クリア
+                                </ClearDueDateButton>
+                            )}
                         </DueDateRow>
                         {isOverdue && <WarningText>期限切れです</WarningText>}
                         {isDueSoon && !isOverdue && <WarningText $warning>まもなく期限です</WarningText>}
@@ -888,7 +900,33 @@ const EmptyHint = styled.div<{ $theme: Theme }>`
 
 const DueDateRow = styled.div`
     display: flex;
+    align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+`
+
+// iOSの日付ピッカーの「リセット」は React が拾えない change イベントのみ発火し
+// 値が戻ってしまうため、期限の解除はこのボタンで行う(実機フィードバック対応)
+const ClearDueDateButton = styled.button.attrs({ type: 'button' })<{ $theme: Theme }>`
+    padding: 8px 12px;
+    min-height: 36px;
+    border: 1px solid ${(props) => props.$theme.border};
+    border-radius: 8px;
+    background: transparent;
+    color: ${(props) => props.$theme.textSecondary};
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        background: ${(props) => props.$theme.surfaceHover};
+        color: ${(props) => props.$theme.text};
+    }
+
+    @media (pointer: coarse) {
+        min-height: 44px;
+    }
 `
 
 const DueTimeInput = styled.input<{ $theme: Theme; $isDarkMode?: boolean }>`
@@ -1228,6 +1266,12 @@ const ChecklistItemRow = styled.div<{ $theme?: Theme }>`
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
+
+    /* 幅の狭い画面ではテキスト領域を優先して余白を詰める */
+    @media (max-width: 480px) {
+        gap: 4px;
+        padding: 8px 6px;
+    }
     border-radius: 8px;
     background-color: ${(props) => props.$theme?.surfaceHover || color.LightSilver};
     transition: background-color 0.15s;
@@ -1263,7 +1307,7 @@ const DragHandle = styled.div<{ $theme?: Theme }>`
     min-height: 24px;
     cursor: grab;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
-    font-size: 14px;
+    font-size: 16px;
     padding: 0 4px;
     flex-shrink: 0;
     user-select: none;
@@ -1295,59 +1339,52 @@ const EditChecklistInput = styled.input<{ $theme: Theme }>`
 `
 
 // アイコン用ボタン（チェックリストの編集・保存・キャンセル）
-const SmallButton = styled(IconButton)``
-
-const DeleteItemButton = styled.button<{ $theme?: Theme }>`
+// チェックリスト行のアイコンボタン共通スタイル。
+// 実機で「編集=枠付き44px/変換=28px/削除=40px」と大きさも見た目もバラバラだったため、
+// 同一サイズ・同一スタイル・18pxグリフに統一する(iPhoneフィードバック対応)
+const RowIconButton = styled.button.attrs({ type: 'button' })<{ $theme?: Theme; $danger?: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 28px;
-    min-height: 28px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px;
     border: none;
-    background: none;
+    border-radius: 8px;
+    background: transparent;
     color: ${(props) => props.$theme?.textSecondary || color.Gray};
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1;
     cursor: pointer;
-    padding: 0 4px;
     flex-shrink: 0;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
 
-    @media (pointer: coarse) {
-        min-width: 40px;
-        min-height: 40px;
-    }
-
-    &:hover {
-        color: ${color.Red};
-    }
-`
-
-const ConvertToCardButton = styled.button<{ $theme?: Theme }>`
-    border: 1px solid transparent;
-    background: ${(props) => props.$theme?.surface || 'rgba(0, 0, 0, 0.03)'};
-    color: ${(props) => props.$theme?.textSecondary || color.Gray};
-    font-size: 14px;
-    cursor: pointer;
-    padding: 4px 8px;
-    flex-shrink: 0;
-    border-radius: 6px;
-    transition: all 0.2s;
-    min-width: 28px;
-    min-height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover:not(:disabled) {
-        color: ${color.Blue};
-        background-color: ${(props) => props.$theme?.surfaceHover || 'rgba(0, 121, 191, 0.1)'};
-        border-color: ${color.Blue};
+    /* タッチデバイスでは :hover が「押した後も残る」(sticky hover)ため、hover対応環境に限定 */
+    @media (hover: hover) {
+        &:hover:not(:disabled) {
+            background: ${(props) => props.$theme?.surfaceHover || color.LightSilver};
+            color: ${(props) => (props.$danger ? color.Red : props.$theme?.text || color.Black)};
+        }
     }
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
+
+    @media (pointer: coarse) {
+        min-width: 40px;
+        min-height: 40px;
+    }
 `
+
+const SmallButton = styled(RowIconButton)``
+
+const DeleteItemButton = styled(RowIconButton).attrs({ $danger: true })``
+
+const ConvertToCardButton = styled(RowIconButton)``
 
 const AddChecklistItemRow = styled.div`
     display: flex;

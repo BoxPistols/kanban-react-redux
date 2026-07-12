@@ -498,6 +498,12 @@ export function App() {
             <DndContext
                 sensors={sensors}
                 collisionDetection={collisionDetectionStrategy}
+                autoScroll={{
+                    // 既定(threshold 0.2 / acceleration 10)では離れたレーンへの
+                    // ドラッグ中にボードが暴走気味に流れるため、発動域を狭く・加速を緩やかに(実機フィードバック)
+                    threshold: { x: 0.12, y: 0.15 },
+                    acceleration: 5,
+                }}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDragEnd={handleDragEnd}
@@ -674,18 +680,16 @@ const HorizontalScroll = styled.div`
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    /* iOSで横スクロールがページの戻るジェスチャ等に連鎖しないようにする */
+    overscroll-behavior-x: contain;
     padding-bottom: 8px;
     position: relative;
     z-index: 0;
 
-    /* モバイルでのスクロール改善 */
+    /* scroll-snap はドラッグ中の自動スクロールと衝突し、
+       「画面端でカードがつっかえて進まない」不具合になるため使用しない(実機フィードバック) */
     @media (max-width: 768px) {
-        scroll-snap-type: x proximity;
         padding-left: 8px;
-
-        > * {
-            scroll-snap-align: start;
-        }
     }
 
     > * {
