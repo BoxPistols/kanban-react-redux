@@ -17,6 +17,7 @@ import { useTrashStore } from './trashStore'
 import { useAuthStore } from './authStore'
 import { showToast } from './toastStore'
 import { pushUndo } from './undoStore'
+import { classifyFirestoreError } from '../utils/firestoreError'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -595,15 +596,11 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                     // Firebaseエラー時はオフラインモードにフォールバック
                     console.error('Firestore subscription error:', error)
 
-                    // エラーメッセージを設定（BlockerWarning用）
-                    let errorMessage = 'Firestoreへの接続に失敗しました'
-                    if (error instanceof Error) {
-                        if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
-                            errorMessage = 'ERR_BLOCKED: Firestoreへの接続がブロックされています'
-                        }
-                    }
-
-                    set({ error: errorMessage })
+                    // エラーメッセージを設定（BlockerWarning用）。
+                    // 一時的な通信断を一律「広告ブロッカー」と誤表示しないよう、
+                    // オフライン(ERR_OFFLINE)と遮断(ERR_BLOCKED)を区別する。
+                    const online = typeof navigator === 'undefined' ? true : navigator.onLine
+                    set({ error: classifyFirestoreError(error, online) })
                     loadLocal()
                 }
             )
