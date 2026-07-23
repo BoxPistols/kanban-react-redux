@@ -218,4 +218,69 @@ describe('kanbanStore (offline / localStorage mode)', () => {
             expect(typeof trashed[0].deletedAt).toBe('number')
         })
     })
+
+    // 回帰テスト: 複数ボード利用時のデータ消失。
+    // subscribeToCards は state.cards を現在ボードだけに絞り込むため、素朴に
+    // 全置換保存すると、ボードを切り替えて操作した瞬間に他ボードのカード
+    // (とそのラベル)が localStorage から丸ごと消えていた。マージ保存で温存する。
+    describe('localStorage persistence across boards (data-loss regression)', () => {
+        // 全ボードのカードを1キーに集約している kanban-cards をシードする
+        function seedStorage(cards: Card[]) {
+            localStorage.setItem('kanban-cards', JSON.stringify(cards))
+        }
+        function readStorage(): Card[] {
+            return JSON.parse(localStorage.getItem('kanban-cards') ?? '[]') as Card[]
+        }
+
+        it('adding a card to the current board keeps other boards’ cards (and their labels)', async () => {
+            seedStorage([
+                makeCard({ id: 'b1-1', boardId: 'b1', columnId: 'TODO', order: 0 }),
+                makeCard({
+                    id: 'b2-1',
+                    boardId: 'b2',
+                    columnId: 'TODO',
+                    order: 0,
+                    labels: [{ id: 'L1', name: '重要', color: '#ff0000' }],
+                }),
+            ])
+
+            // b1 を購読 -> state は b1 のカードだけを持つ
+            const unsub = useKanbanStore.getState().subscribeToCards('b1')
+            expect(useKanbanStore.getState().cards.map((c) => c.id)).toEqual(['b1-1'])
+
+            // b1 にカードを追加(b2 を巻き込んで消してはいけない)
+            await useKanbanStore.getState().addCard('new b1 card', 'TODO', 'b1')
+
+            const stored = readStorage()
+            const b2 = stored.find((c) => c.id === 'b2-1')
+            expect(b2).toBeDefined() // b2 のカードが生存
+            expect(b2?.labels?.[0].name).toBe('重要') // ラベルも生存
+            expect(stored.filter((c) => c.boardId === 'b1')).toHaveLength(2) // b1 は既存+追加で2枚
+
+            unsub()
+        })
+
+        it('deleting the last card of the current board leaves other boards intact', async () => {
+            seedStorage([
+                makeCard({ id: 'b1-only', boardId: 'b1', columnId: 'TODO', order: 0 }),
+                makeCard({ id: 'b2-1', boardId: 'b2', columnId: 'TODO', order: 0 }),
+                makeCard({ id: 'b2-2', boardId: 'b2', columnId: 'Done', order: 0 }),
+            ])
+
+            const unsub = useKanbanStore.getState().subscribeToCards('b1')
+            await useKanbanStore.getState().deleteCard('b1-only')
+
+            const stored = readStorage()
+            // b1 は空になり、b2 は2枚とも残る
+            expect(stored.filter((c) => c.boardId === 'b1')).toHaveLength(0)
+            expect(
+                stored
+                    .filter((c) => c.boardId === 'b2')
+                    .map((c) => c.id)
+                    .sort()
+            ).toEqual(['b2-1', 'b2-2'])
+
+            unsub()
+        })
+    })
 })
