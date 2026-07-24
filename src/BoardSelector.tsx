@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import styled from 'styled-components'
 import * as color from './color'
 import { useBoardStore } from './store/boardStore'
+import { useKanbanStore } from './store/kanbanStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { BoardModal } from './BoardModal'
@@ -31,6 +32,9 @@ function saveFavorites(favorites: Set<string>): void {
 // カラータイル+説明+スター付きのポップオーバーに刷新(Trelloのボードメニュー相当)
 export const BoardSelector = memo(function BoardSelector() {
     const { boards, currentBoardId, setCurrentBoardId } = useBoardStore()
+    // 件数バッジ: 現在ボードはライブ(cards.length)、他ボードは集計マップから
+    const cardCounts = useKanbanStore((s) => s.cardCounts)
+    const currentBoardCount = useKanbanStore((s) => s.cards.length)
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
     const [isOpen, setIsOpen] = useState(false)
@@ -145,6 +149,17 @@ export const BoardSelector = memo(function BoardSelector() {
                                                 <BoardDescription $theme={theme}>{board.description}</BoardDescription>
                                             )}
                                         </BoardInfo>
+                                        <CountBadge
+                                            $theme={theme}
+                                            title={`${
+                                                isCurrent ? currentBoardCount : (cardCounts[board.id] ?? 0)
+                                            }件のカード`}
+                                            aria-label={`${
+                                                isCurrent ? currentBoardCount : (cardCounts[board.id] ?? 0)
+                                            }件のカード`}
+                                        >
+                                            {isCurrent ? currentBoardCount : (cardCounts[board.id] ?? 0)}
+                                        </CountBadge>
                                         <RowActions data-row-actions>
                                             <StarButton
                                                 onClick={(e) => toggleFavorite(e, board.id)}
@@ -341,6 +356,24 @@ const BoardDescription = styled.div<{ $theme: Theme }>`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+`
+
+// カード枚数バッジ。行アクション(star/edit)と違い常時表示する
+const CountBadge = styled.span<{ $theme: Theme }>`
+    flex-shrink: 0;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: ${(props) => props.$theme.surfaceHover};
+    color: ${(props) => props.$theme.textSecondary};
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
 `
 
 const RowActions = styled.div`

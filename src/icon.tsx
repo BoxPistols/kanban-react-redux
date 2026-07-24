@@ -12,6 +12,7 @@ import {
     FiMenu,
     FiX,
     FiCheckCircle,
+    FiCheckSquare,
     FiSettings,
 } from 'react-icons/fi'
 import { MdViewKanban } from 'react-icons/md'
@@ -29,5 +30,6 @@ export { FiEdit2 as EditIcon }
 export { FiMenu as MenuIcon }
 export { FiX as CloseIcon }
 export { FiCheckCircle as CheckIcon }
+export { FiCheckSquare as SelectIcon }
 export { FiSettings as SettingsIcon }
 export { MdViewKanban as BoardIcon }
