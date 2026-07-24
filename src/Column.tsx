@@ -4,8 +4,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
 import { Card } from './Card'
-import { PlusIcon, EditIcon } from './icon'
-import { ContextMenu, type ContextMenuItem } from './ContextMenu'
+import { PlusIcon } from './icon'
 import { InputForm as _InputForm } from './InputForm'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -106,35 +105,6 @@ export const Column = memo(function Column({
 
     const cardIds = useMemo(() => cards.map((card) => card.id), [cards])
 
-    // レーンヘッダの右クリック(コンテキストメニュー)
-    const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
-
-    const beginEditTitle = useCallback(() => {
-        setEditTitle(title)
-        setIsEditingTitle(true)
-    }, [title])
-
-    const openColumnMenu = useCallback(
-        (e: React.MouseEvent) => {
-            if (isEditingTitle) return
-            e.preventDefault()
-            e.stopPropagation()
-            setMenuPos({ x: e.clientX, y: e.clientY })
-        },
-        [isEditingTitle]
-    )
-
-    const buildColumnMenu = (): ContextMenuItem[] => {
-        const items: ContextMenuItem[] = [
-            { id: 'add', label: 'カードを追加', icon: <PlusIcon />, onClick: openInput },
-            { id: 'rename', label: 'レーン名を編集', icon: <EditIcon />, onClick: beginEditTitle },
-        ]
-        if (onToggleCollapse) {
-            items.push({ id: 'collapse', label: 'レーンを畳む', onClick: onToggleCollapse })
-        }
-        return items
-    }
-
     if (isCollapsed) {
         return (
             <CollapsedColumn
@@ -174,13 +144,7 @@ export const Column = memo(function Column({
             data-column-container
         >
             {/* ヘッダーがレーンのドラッグハンドル。タイトルのダブルクリックでその場改名 */}
-            <HeaderBar
-                $columnColor={columnColor}
-                $theme={theme}
-                {...attributes}
-                {...listeners}
-                onContextMenu={openColumnMenu}
-            >
+            <HeaderBar $columnColor={columnColor} $theme={theme} {...attributes} {...listeners}>
                 <CountBadge $theme={theme} $columnColor={columnColor}>
                     {cards.length}
                 </CountBadge>
@@ -244,10 +208,6 @@ export const Column = memo(function Column({
                     aria-label='カードを追加'
                 />
             </HeaderBar>
-
-            {menuPos && (
-                <ContextMenu x={menuPos.x} y={menuPos.y} items={buildColumnMenu()} onClose={() => setMenuPos(null)} />
-            )}
 
             <VerticalScroll ref={scrollRef}>
                 <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
