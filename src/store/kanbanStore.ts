@@ -17,6 +17,7 @@ import { useTrashStore } from './trashStore'
 import { useAuthStore } from './authStore'
 import { showToast } from './toastStore'
 import { pushUndo } from './undoStore'
+import { classifyFirestoreError } from '../utils/firestoreError'
 import type { Card, ColumnType } from '../types'
 
 // ローカルストレージのキー
@@ -39,8 +40,15 @@ const localStorageAvailable = isLocalStorageAvailable()
 // In-memory fallback when localStorage is not available
 let inMemoryCards: Card[] = []
 
-// ローカルストレージからカードを読み込む
-function loadCardsFromLocalStorage(): Card[] {
+// 現在購読中のボードID。
+// state.cards は subscribeToCards で現在のボードだけに絞り込まれる一方、
+// localStorage(kanban-cards)は全ボードのカードを1キーに集約している。
+// 保存時にこのIDで「現在ボード分だけ」を差し替えることで、
+// 他ボードのカードを巻き込んで消すデータ消失を防ぐ。
+let subscribedBoardId: string | undefined = undefined
+
+// localStorage(kanban-cards)から全ボードのカードを読み込む(生データ)
+function readAllCardsFromStorage(): Card[] {
     if (!localStorageAvailable) {
         return inMemoryCards
     }
@@ -55,8 +63,8 @@ function loadCardsFromLocalStorage(): Card[] {
     return []
 }
 
-// ローカルストレージにカードを保存する
-function saveCardsToLocalStorage(cards: Card[]): void {
+// localStorage(kanban-cards)へ全ボードのカードを書き込む(生データ)
+function writeAllCardsToStorage(cards: Card[]): void {
     if (!localStorageAvailable) {
         inMemoryCards = cards
         return
@@ -67,6 +75,26 @@ function saveCardsToLocalStorage(cards: Card[]): void {
         console.error('Error saving to localStorage:', error)
         inMemoryCards = cards
     }
+}
+
+// ローカルストレージからカードを読み込む(全ボード分)
+function loadCardsFromLocalStorage(): Card[] {
+    return readAllCardsFromStorage()
+}
+
+// ローカルストレージにカードを保存する。
+// state.cards は現在のボード分のみのため、保存時に他ボードのカードを温存してマージする。
+// これをせず素朴に全置換すると、ボードを切り替えて1枚でも編集した瞬間に
+// 他ボードのカードが丸ごと消える(データ消失バグ)。
+function saveCardsToLocalStorage(cards: Card[]): void {
+    // 購読ボードが未指定(=全カードスコープ)ならそのまま全置換
+    if (subscribedBoardId === undefined) {
+        writeAllCardsToStorage(cards)
+        return
+    }
+    // 現在ボード以外のカードは既存ストレージから温存し、現在ボード分を state で置き換える
+    const others = readAllCardsFromStorage().filter((c) => c.boardId !== subscribedBoardId)
+    writeAllCardsToStorage([...others, ...cards])
 }
 
 // Firestoreは undefined 値をサポートしていないため、除去する
@@ -506,6 +534,8 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
     subscribeToCards: (boardId) => {
         set({ isLoading: true, error: null })
+        // 保存時に現在ボード分だけを差し替えられるよう、購読対象のボードIDを記録する
+        subscribedBoardId = boardId
 
         const loadLocal = () => {
             const allCards = loadCardsFromLocalStorage()
@@ -566,15 +596,11 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
                     // Firebaseエラー時はオフラインモードにフォールバック
                     console.error('Firestore subscription error:', error)
 
-                    // エラーメッセージを設定（BlockerWarning用）
-                    let errorMessage = 'Firestoreへの接続に失敗しました'
-                    if (error instanceof Error) {
-                        if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
-                            errorMessage = 'ERR_BLOCKED: Firestoreへの接続がブロックされています'
-                        }
-                    }
-
-                    set({ error: errorMessage })
+                    // エラーメッセージを設定（BlockerWarning用）。
+                    // 一時的な通信断を一律「広告ブロッカー」と誤表示しないよう、
+                    // オフライン(ERR_OFFLINE)と遮断(ERR_BLOCKED)を区別する。
+                    const online = typeof navigator === 'undefined' ? true : navigator.onLine
+                    set({ error: classifyFirestoreError(error, online) })
                     loadLocal()
                 }
             )
