@@ -15,7 +15,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useTrashStore } from './trashStore'
 import { useAuthStore } from './authStore'
-import { useBoardStore } from './boardStore'
 import { showToast } from './toastStore'
 import { pushUndo } from './undoStore'
 import { classifyFirestoreError } from '../utils/firestoreError'
@@ -116,24 +115,6 @@ function removeUndefinedFields<T extends Record<string, unknown>>(obj: T, forFir
     return result
 }
 
-// ボードごとのカード枚数を集計する(ボードセレクタのバッジ表示用)
-function countCardsByBoard(cards: Card[]): Record<string, number> {
-    const counts: Record<string, number> = {}
-    for (const card of cards) {
-        counts[card.boardId] = (counts[card.boardId] ?? 0) + 1
-    }
-    return counts
-}
-
-// 件数マップの浅い一致判定。毎スナップショットで新オブジェクトを set すると
-// 全ストア購読の App が無駄に再描画され、ドラッグ確定時の連続書き込みで
-// レンダー暴走(Maximum update depth)を招くため、値が変わった時だけ set する。
-function countsEqual(a: Record<string, number>, b: Record<string, number>): boolean {
-    const ak = Object.keys(a)
-    if (ak.length !== Object.keys(b).length) return false
-    return ak.every((k) => a[k] === b[k])
-}
-
 interface KanbanState {
     cards: Card[]
     searchQuery: string
@@ -143,11 +124,6 @@ interface KanbanState {
     forceOfflineMode: boolean
     // ドラッグ開始時のスナップショット。キャンセル時の復元と、確定時の差分検出に使う
     dragBackup: Card[] | null
-    // ボードごとのカード枚数(全ボード分。ボードセレクタのバッジ用)
-    cardCounts: Record<string, number>
-    // ボード間一括移動用の選択状態
-    isSelectMode: boolean
-    selectedCardIds: string[]
 
     // Actions
     setCards: (cards: Card[]) => void
@@ -169,13 +145,6 @@ interface KanbanState {
     setSelectedLabelIds: (labelIds: string[]) => void
     toggleLabelFilter: (labelId: string) => void
     subscribeToCards: (boardId?: string) => () => void
-    // 全ボードのカード枚数を購読する(ボードセレクタのバッジ用。ボード非依存で1回だけ張る)
-    subscribeToCardCounts: () => () => void
-    // ボード間一括移動
-    setSelectMode: (on: boolean) => void
-    toggleCardSelection: (id: string) => void
-    clearSelection: () => void
-    moveCardsToBoard: (cardIds: string[], targetBoardId: string) => Promise<void>
 }
 
 export const useKanbanStore = create<KanbanState>((set, get) => ({
@@ -186,9 +155,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
     error: null,
     forceOfflineMode: false,
     dragBackup: null,
-    cardCounts: {},
-    isSelectMode: false,
-    selectedCardIds: [],
 
     setCards: (cards) => {
         set({ cards })
@@ -574,7 +540,7 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
         const loadLocal = () => {
             const allCards = loadCardsFromLocalStorage()
             const cards = boardId ? allCards.filter((c) => c.boardId === boardId) : allCards
-            set({ cards, cardCounts: countCardsByBoard(allCards), isLoading: false, error: null })
+            set({ cards, isLoading: false, error: null })
         }
 
         const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
@@ -644,114 +610,6 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             // LocalStorage mode
             loadLocal()
             return () => {}
-        }
-    },
-
-    // カード本体の購読は現在ボードのみ(サーバー側 boardId フィルタ)なので、
-    // 全ボードの枚数は userId 等価フィルタのみの軽量クエリで別途購読する(複合インデックス不要)。
-    subscribeToCardCounts: () => {
-        const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
-        if (useFirebase) {
-            const userId = useAuthStore.getState().user?.uid
-            const constraints = userId ? [where('userId', '==', userId)] : []
-            const q = query(collection(db!, 'cards'), ...constraints)
-            const unsubscribe = onSnapshot(
-                q,
-                (snapshot) => {
-                    const counts: Record<string, number> = {}
-                    snapshot.docs.forEach((d) => {
-                        const bid = (d.data().boardId as string) ?? ''
-                        counts[bid] = (counts[bid] ?? 0) + 1
-                    })
-                    if (!countsEqual(counts, get().cardCounts)) set({ cardCounts: counts })
-                },
-                () => {
-                    // 集計クエリの失敗はカード本体購読側でハンドリング済み。ここでは静かにローカル集計へ。
-                    const local = countCardsByBoard(loadCardsFromLocalStorage())
-                    if (!countsEqual(local, get().cardCounts)) set({ cardCounts: local })
-                }
-            )
-            return unsubscribe
-        }
-        const local = countCardsByBoard(loadCardsFromLocalStorage())
-        if (!countsEqual(local, get().cardCounts)) set({ cardCounts: local })
-        return () => {}
-    },
-
-    setSelectMode: (on) => {
-        set(on ? { isSelectMode: true } : { isSelectMode: false, selectedCardIds: [] })
-    },
-
-    toggleCardSelection: (id) => {
-        const current = get().selectedCardIds
-        set({
-            selectedCardIds: current.includes(id) ? current.filter((c) => c !== id) : [...current, id],
-        })
-    },
-
-    clearSelection: () => {
-        set({ selectedCardIds: [], isSelectMode: false })
-    },
-
-    // 選択中カードを別ボードへ一括移動する。移動先に無い columnId は先頭カラムへ寄せる。
-    moveCardsToBoard: async (cardIds, targetBoardId) => {
-        if (cardIds.length === 0 || !targetBoardId) return
-        const idSet = new Set(cardIds)
-        const orderIndex = new Map(cardIds.map((id, i) => [id, i]))
-        const movingCards = get().cards.filter((c) => idSet.has(c.id))
-        if (movingCards.length === 0) return
-
-        const targetColumns = useBoardStore.getState().getColumns(targetBoardId)
-        const targetColumnIds = new Set(targetColumns.map((col) => col.id))
-        const fallbackColumn = (targetColumns[0]?.id ?? 'TODO') as ColumnType
-        const resolveColumn = (columnId: ColumnType): ColumnType =>
-            targetColumnIds.has(columnId) ? columnId : fallbackColumn
-        // 既存カード(order は小さい整数)より後ろに積むため、タイムスタンプ基準の order を振る
-        const base = Date.now()
-
-        const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
-        if (useFirebase) {
-            // 楽観的更新: 現在ボードから即座に除去(確定は onSnapshot)。失敗時は元に戻す。
-            const previousCards = get().cards
-            set({ cards: previousCards.filter((c) => !idSet.has(c.id)), selectedCardIds: [], isSelectMode: false })
-            try {
-                const batch = writeBatch(db!)
-                movingCards.forEach((c) => {
-                    batch.update(doc(db!, 'cards', c.id), {
-                        boardId: targetBoardId,
-                        columnId: resolveColumn(c.columnId),
-                        order: base + (orderIndex.get(c.id) ?? 0),
-                        updatedAt: Date.now(),
-                    })
-                })
-                await batch.commit()
-                showToast(`${movingCards.length}件のカードを移動しました`, 'success')
-            } catch (error) {
-                set({ cards: previousCards })
-                showToast('カードの移動に失敗しました', 'error')
-                console.error('moveCardsToBoard failed:', error)
-            }
-        } else {
-            const all = readAllCardsFromStorage()
-            const updated = all.map((c) =>
-                idSet.has(c.id)
-                    ? {
-                          ...c,
-                          boardId: targetBoardId,
-                          columnId: resolveColumn(c.columnId),
-                          order: base + (orderIndex.get(c.id) ?? 0),
-                          updatedAt: Date.now(),
-                      }
-                    : c
-            )
-            writeAllCardsToStorage(updated)
-            set({
-                cards: get().cards.filter((c) => !idSet.has(c.id)),
-                cardCounts: countCardsByBoard(updated),
-                selectedCardIds: [],
-                isSelectMode: false,
-            })
-            showToast(`${movingCards.length}件のカードを移動しました`, 'success')
         }
     },
 }))
