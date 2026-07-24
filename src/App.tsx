@@ -31,8 +31,6 @@ import { ReloadPrompt } from './ReloadPrompt'
 import { ErrorBoundary } from './ErrorBoundary'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import { BlockerWarning } from './components/BlockerWarning'
-import { BulkActionBar } from './BulkActionBar'
-import { BoardDropZone } from './BoardDropZone'
 import { ToastContainer } from './components/Toast'
 import { useKanbanStore } from './store/kanbanStore'
 import { useBoardStore } from './store/boardStore'
@@ -62,14 +60,12 @@ export function App() {
         searchQuery,
         selectedLabelIds,
         subscribeToCards,
-        subscribeToCardCounts,
         setSearchQuery,
         setSelectedLabelIds,
         beginDrag,
         moveCardLocal,
         cancelDrag,
         commitDrag,
-        moveCardsToBoard,
         setForceOfflineMode: setKanbanOfflineMode,
     } = useKanbanStore()
     const {
@@ -190,13 +186,6 @@ export function App() {
         const unsubscribeCards = subscribeToCards(currentBoardId)
         return () => unsubscribeCards()
     }, [subscribeToCards, currentBoardId, firebaseAuthPending, userId])
-
-    // ボードセレクタのバッジ用に全ボードの枚数を購読(ボード非依存で1本)
-    useEffect(() => {
-        if (firebaseAuthPending) return
-        const unsubscribeCounts = subscribeToCardCounts()
-        return () => unsubscribeCounts()
-    }, [subscribeToCardCounts, firebaseAuthPending, userId])
 
     // 折りたたみ状態の復元
     // localStorageとの同期は外部システムとの連携なので、useEffect内のsetStateは適切
@@ -398,17 +387,6 @@ export function App() {
                 return
             }
 
-            // カードをボードドックへドロップ → 別のボードへ移動する
-            if (over?.data.current?.type === 'board') {
-                const targetBoardId = over.data.current.boardId as string
-                const activeCardId = active.id as string
-                cancelDrag() // ドラッグ中のローカルプレビューを元に戻してから移動する
-                if (targetBoardId && targetBoardId !== currentBoardId) {
-                    moveCardsToBoard([activeCardId], targetBoardId)
-                }
-                return
-            }
-
             // フィルタ適用中の並べ替えは非表示カードの order を破壊する(監査C7)ため確定しない
             if (isFiltered) {
                 cancelDrag()
@@ -451,7 +429,6 @@ export function App() {
             cancelDrag,
             commitDrag,
             moveCardLocal,
-            moveCardsToBoard,
         ]
     )
 
@@ -536,8 +513,6 @@ export function App() {
                 <Container $theme={theme} data-app-container>
                     <Header />
 
-                    <BulkActionBar />
-
                     {isFiltered && (
                         <FilterBar $theme={theme}>
                             <FilterInfo>
@@ -596,9 +571,6 @@ export function App() {
                     <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
 
                     <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
-
-                    {/* カードのドラッグ中だけ下部に出る「別ボードへ移動」ドロップ先 */}
-                    <BoardDropZone visible={activeType === 'card' && !isFiltered} />
 
                     <BlockerWarning />
 

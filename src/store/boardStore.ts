@@ -5,7 +5,6 @@ import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useAuthStore } from './authStore'
 import { showToast } from './toastStore'
 import { BOARD_COLORS } from '../constants'
-import { classifyFirestoreError } from '../utils/firestoreError'
 import type { Board, Label, ColumnDefinition } from '../types'
 import { DEFAULT_COLUMNS, INITIAL_COLUMNS } from '../types'
 
@@ -447,14 +446,9 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                         get().setCurrentBoardId(boards[0].id)
                     }
                 },
-                (error) => {
-                    // 購読エラーを黙って握りつぶすと Firestore 障害が長期不可視になる
-                    // (rules/indexes 未反映などを1ヶ月見逃した実例あり)。必ず記録し、
-                    // オフライン退避後にエラー種別をストアへ残す(kanbanStore と同方針)。
-                    console.error('Boards subscription error:', error)
+                () => {
+                    // Firebaseエラー時はオフラインモードにフォールバック
                     get().initializeOfflineMode()
-                    const online = typeof navigator === 'undefined' ? true : navigator.onLine
-                    set({ error: classifyFirestoreError(error, online) })
                 }
             )
 
