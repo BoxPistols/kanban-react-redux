@@ -3,10 +3,11 @@ import styled from 'styled-components'
 import * as color from './color'
 import { CardFilter } from './CardFilter'
 import { BoardSelector } from './BoardSelector'
-import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon } from './icon'
+import { MoonIcon, SunIcon, MenuIcon, CloseIcon, TrashIcon, SelectIcon } from './icon'
 import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { useTrashStore } from './store/trashStore'
+import { useKanbanStore } from './store/kanbanStore'
 import { isFirebaseEnabled } from './lib/firebase'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
 import { touchTargetExpand } from './a11yStyles'
@@ -23,7 +24,11 @@ export const Header = memo(function Header({ className }: { className?: string }
     const { isDarkMode, toggleDarkMode } = useThemeStore()
     const { user, logOut } = useAuthStore()
     const { trashedCards, loadTrash } = useTrashStore()
+    // カードの一括移動: 選択モードのトグル
+    const isSelectMode = useKanbanStore((s) => s.isSelectMode)
+    const setSelectMode = useKanbanStore((s) => s.setSelectMode)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false)
 
     // ゴミ箱を読み込む
@@ -35,6 +40,7 @@ export const Header = memo(function Header({ className }: { className?: string }
         if (window.confirm('ログアウトしますか？')) {
             await logOut()
             setIsMenuOpen(false)
+            setIsAccountMenuOpen(false)
         }
     }, [logOut])
 
@@ -65,6 +71,34 @@ export const Header = memo(function Header({ className }: { className?: string }
             document.removeEventListener('keydown', handleEsc)
         }
     }, [isMenuOpen])
+
+    // アカウントメニューを閉じるための副作用（クリック外・ESCキー）
+    useEffect(() => {
+        if (!isAccountMenuOpen) {
+            return
+        }
+
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            if (!target.closest('[data-account-menu]')) {
+                setIsAccountMenuOpen(false)
+            }
+        }
+
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsAccountMenuOpen(false)
+            }
+        }
+
+        document.addEventListener('click', handleClickOutside)
+        document.addEventListener('keydown', handleEsc)
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside)
+            document.removeEventListener('keydown', handleEsc)
+        }
+    }, [isAccountMenuOpen])
 
     return (
         <Container className={className} $isDarkMode={isDarkMode}>
@@ -99,6 +133,18 @@ export const Header = memo(function Header({ className }: { className?: string }
             </DesktopOnly>
 
             <DesktopOnly>
+                <ActionToggle
+                    onClick={() => setSelectMode(!isSelectMode)}
+                    $active={isSelectMode}
+                    title={isSelectMode ? 'カード選択を終了' : 'カードを選択して一括移動'}
+                    aria-label={isSelectMode ? 'カード選択を終了' : 'カードを選択して一括移動'}
+                    aria-pressed={isSelectMode}
+                >
+                    <SelectIcon />
+                </ActionToggle>
+            </DesktopOnly>
+
+            <DesktopOnly>
                 <TrashButton onClick={() => setIsTrashModalOpen(true)} title='ゴミ箱' aria-label='ゴミ箱'>
                     <TrashIcon />
                     {trashedCards.length > 0 && <TrashBadge>{trashedCards.length}</TrashBadge>}
@@ -107,14 +153,32 @@ export const Header = memo(function Header({ className }: { className?: string }
 
             {isFirebaseEnabled && user && (
                 <DesktopOnly>
-                    <UserInfo>
-                        <UserInitial title={user.email || undefined}>
+                    <AccountMenu data-account-menu>
+                        <AccountButton
+                            type='button'
+                            onClick={() => setIsAccountMenuOpen((v) => !v)}
+                            aria-haspopup='menu'
+                            aria-expanded={isAccountMenuOpen}
+                            aria-label='アカウントメニュー'
+                            title={user.email || undefined}
+                        >
                             {user.email ? getFirstChar(user.email) : ''}
-                        </UserInitial>
-                        <LogoutButton onClick={handleLogout} aria-label='ログアウト'>
-                            ログアウト
-                        </LogoutButton>
-                    </UserInfo>
+                        </AccountButton>
+                        {isAccountMenuOpen && (
+                            <AccountDropdown role='menu' aria-label='アカウント' $isDarkMode={isDarkMode}>
+                                <AccountDropdownHeader>
+                                    <UserInitial title={user.email || undefined}>
+                                        {user.email ? getFirstChar(user.email) : ''}
+                                    </UserInitial>
+                                    <UserEmail>{user.email}</UserEmail>
+                                </AccountDropdownHeader>
+                                <AccountMenuDivider />
+                                <AccountLogoutButton type='button' role='menuitem' onClick={handleLogout}>
+                                    ログアウト
+                                </AccountLogoutButton>
+                            </AccountDropdown>
+                        )}
+                    </AccountMenu>
                 </DesktopOnly>
             )}
 
@@ -179,6 +243,17 @@ export const Header = memo(function Header({ className }: { className?: string }
                                 <span>ゴミ箱</span>
                                 {trashedCards.length > 0 && <MenuTrashBadge>{trashedCards.length}</MenuTrashBadge>}
                             </MenuTrashButton>
+                            <MenuSelectButton
+                                onClick={() => {
+                                    setSelectMode(!isSelectMode)
+                                    setIsMenuOpen(false)
+                                }}
+                                aria-pressed={isSelectMode}
+                                aria-label={isSelectMode ? 'カード選択を終了' : 'カードを選択して一括移動'}
+                            >
+                                <SelectIcon />
+                                <span>{isSelectMode ? 'カード選択を終了' : 'カードを選択'}</span>
+                            </MenuSelectButton>
                         </MenuSection>
 
                         {isFirebaseEnabled && user && (
@@ -345,13 +420,63 @@ const ThemeToggle = styled.button`
     }
 `
 
-const UserInfo = styled.div`
+// 選択モードのトグル。オン時は青系でアクティブを示す
+const ActionToggle = styled.button<{ $active?: boolean }>`
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: ${(props) => (props.$active ? color.Blue : 'rgba(255, 255, 255, 0.08)')};
+    cursor: pointer;
+    border-radius: 8px;
+    color: ${(props) => (props.$active ? color.White : 'rgba(255, 255, 255, 0.75)')};
+    transition: all 0.2s;
 
-    @media (max-width: 1024px) {
-        gap: 4px;
+    &:hover {
+        background: ${(props) => (props.$active ? color.Blue : 'rgba(255, 255, 255, 0.16)')};
+        color: rgba(255, 255, 255, 1);
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+`
+
+const AccountMenu = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+`
+
+const AccountButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: ${color.White};
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.28);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.6);
+        outline-offset: 2px;
     }
 `
 
@@ -377,22 +502,64 @@ const UserEmail = styled.div`
     word-break: break-all;
 `
 
-const LogoutButton = styled.button`
-    padding: 6px 12px;
-    border: none;
+const AccountDropdown = styled.div<{ $isDarkMode?: boolean }>`
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    max-width: 280px;
+    padding: 12px;
+    border-radius: 8px;
+    background: ${(props) => (props.$isDarkMode ? '#0D1117' : '#243447')};
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 30;
+    animation: fadeIn 0.15s ease-out;
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`
+
+const AccountDropdownHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+`
+
+const AccountMenuDivider = styled.div`
+    height: 1px;
     background: rgba(255, 255, 255, 0.1);
+    margin: 0 0 10px;
+`
+
+const AccountLogoutButton = styled.button`
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background: rgba(239, 83, 80, 0.15);
     cursor: pointer;
-    font-size: 13px;
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    color: #ef5350;
+    font-size: 14px;
+    font-weight: 600;
     transition: all 0.2s;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(239, 83, 80, 0.25);
     }
 
-    @media (max-width: 1200px) {
-        display: none;
+    &:focus-visible {
+        outline: 2px solid #ef5350;
+        outline-offset: 2px;
     }
 `
 
@@ -594,6 +761,10 @@ const TrashBadge = styled.span`
 `
 
 const MenuTrashButton = styled(MenuButton)`
+    margin-top: 8px;
+`
+
+const MenuSelectButton = styled(MenuButton)`
     margin-top: 8px;
 `
 

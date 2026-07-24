@@ -283,4 +283,59 @@ describe('kanbanStore (offline / localStorage mode)', () => {
             unsub()
         })
     })
+
+    describe('moveCardsToBoard + 選択状態', () => {
+        it('選択したカードを別ボードへ移し、他ボードは無傷・選択は解除される', async () => {
+            const allCards = [
+                makeCard({ id: 'a', boardId: 'b1', columnId: 'TODO', order: 0 }),
+                makeCard({ id: 'b', boardId: 'b1', columnId: 'Done', order: 1 }),
+                makeCard({ id: 'keep', boardId: 'b1', columnId: 'TODO', order: 2 }),
+                makeCard({ id: 'x', boardId: 'b2', columnId: 'TODO', order: 0 }),
+            ]
+            // 全スコープ購読で subscribedBoardId を undefined にし、全カードを永続化(全置換)
+            useKanbanStore.getState().subscribeToCards(undefined)
+            useKanbanStore.getState().setCards(allCards)
+            // 現在ボード(b1)の表示 + a,b を選択
+            useKanbanStore.setState({
+                cards: allCards.filter((c) => c.boardId === 'b1'),
+                isSelectMode: true,
+                selectedCardIds: ['a', 'b'],
+            })
+
+            await useKanbanStore.getState().moveCardsToBoard(['a', 'b'], 'b2')
+
+            // 現在ボード(b1)表示から移動分が消える
+            expect(useKanbanStore.getState().cards.map((c) => c.id)).toEqual(['keep'])
+            // 件数マップ更新(b1=1, b2=3)
+            expect(useKanbanStore.getState().cardCounts.b1).toBe(1)
+            expect(useKanbanStore.getState().cardCounts.b2).toBe(3)
+            // 選択解除
+            expect(useKanbanStore.getState().selectedCardIds).toEqual([])
+            expect(useKanbanStore.getState().isSelectMode).toBe(false)
+
+            // 永続化を確認: b2 を購読すると a,b(columnId 保持)と既存 x が見える
+            useKanbanStore.getState().subscribeToCards('b2')
+            const b2 = useKanbanStore.getState().cards
+            expect(b2.map((c) => c.id).sort()).toEqual(['a', 'b', 'x'])
+            expect(b2.find((c) => c.id === 'a')?.columnId).toBe('TODO')
+            expect(b2.find((c) => c.id === 'b')?.columnId).toBe('Done')
+        })
+
+        it('setSelectMode / toggleCardSelection / clearSelection の基本動作', () => {
+            useKanbanStore.setState({ isSelectMode: false, selectedCardIds: [] })
+            useKanbanStore.getState().setSelectMode(true)
+            expect(useKanbanStore.getState().isSelectMode).toBe(true)
+
+            useKanbanStore.getState().toggleCardSelection('a')
+            useKanbanStore.getState().toggleCardSelection('b')
+            expect(useKanbanStore.getState().selectedCardIds).toEqual(['a', 'b'])
+            useKanbanStore.getState().toggleCardSelection('a') // 再度で解除
+            expect(useKanbanStore.getState().selectedCardIds).toEqual(['b'])
+
+            // setSelectMode(false) は選択もクリアする
+            useKanbanStore.getState().setSelectMode(false)
+            expect(useKanbanStore.getState().isSelectMode).toBe(false)
+            expect(useKanbanStore.getState().selectedCardIds).toEqual([])
+        })
+    })
 })

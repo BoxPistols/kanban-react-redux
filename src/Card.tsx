@@ -1,16 +1,18 @@
-import { useState, useRef, useEffect, memo, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, useMemo, memo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
-import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon } from './icon'
+import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon, BoardIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
+import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
 import { isComposing } from './utils/keyboard'
 import { LinkedText } from './LinkedText'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
+import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import type { Card as CardType } from './types'
 
 // 遅延ロード: CardDetailModal
@@ -33,14 +35,29 @@ function stripMarkdownSyntax(text: string): string {
 }
 
 export const Card = memo(function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
-    const { trashCard, updateCard } = useKanbanStore()
+    // Zustand は必要なスライスだけ購読する。セレクタ無しの全ストア購読にすると
+    // cardCounts 等の無関係な変化でも全カードが再描画され、そのたびに dnd-kit へ
+    // 新しい data オブジェクトが渡って再計測が走り、ドラッグ確定時に
+    // 再計測ループ(Maximum update depth)を誘発する。
+    const trashCard = useKanbanStore((s) => s.trashCard)
+    const updateCard = useKanbanStore((s) => s.updateCard)
+    const isSelectMode = useKanbanStore((s) => s.isSelectMode)
+    const isSelected = useKanbanStore((s) => s.selectedCardIds.includes(card.id))
+    const toggleCardSelection = useKanbanStore((s) => s.toggleCardSelection)
+    const moveCardsToBoard = useKanbanStore((s) => s.moveCardsToBoard)
     const { isDarkMode } = useThemeStore()
     const [showModal, setShowModal] = useState(false)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [editTitle, setEditTitle] = useState('')
+    // 右クリックのコンテキストメニュー位置(null = 非表示)
+    const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
     const editInputRef = useRef<HTMLTextAreaElement>(null)
 
     const theme = getTheme(isDarkMode)
+
+    // useSortable の data は毎レンダー新規生成すると dnd-kit が登録し直して再計測するため、
+    // card が変わった時だけ作り直す(無関係な再描画で drop がループしないように)。
+    const sortableData = useMemo(() => ({ type: 'card', card }), [card])
 
     const {
         attributes,
@@ -51,11 +68,8 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
         isDragging: isSortableDragging,
     } = useSortable({
         id: card.id,
-        data: {
-            type: 'card',
-            card,
-        },
-        disabled: isEditingTitle,
+        data: sortableData,
+        disabled: isEditingTitle || isSelectMode,
     })
 
     useEffect(() => {
@@ -73,10 +87,57 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
 
     const displayText = card.title || card.text
 
-    const startEditTitle = (e: React.MouseEvent) => {
-        e.stopPropagation()
+    const beginTitleEdit = () => {
         setEditTitle(displayText)
         setIsEditingTitle(true)
+    }
+
+    const startEditTitle = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        beginTitleEdit()
+    }
+
+    // 右クリック / 長押しでコンテキストメニューを開く
+    const openContextMenu = (e: React.MouseEvent) => {
+        if (isEditingTitle) return
+        e.preventDefault()
+        e.stopPropagation()
+        setMenuPos({ x: e.clientX, y: e.clientY })
+    }
+
+    // メニュー項目を組み立てる(開いている時のみ呼ぶ)
+    const buildMenuItems = (): ContextMenuItem[] => {
+        // メニューを開いた瞬間の値を読む(常時購読しないことで無関係な再描画を避ける)
+        const { boards, currentBoardId } = useBoardStore.getState()
+        const otherBoards = boards.filter((b) => b.id !== currentBoardId)
+        const selected = useKanbanStore.getState().selectedCardIds
+        // 右クリックしたカードが複数選択に含まれる場合は選択全体を、そうでなければ単体を移動
+        const targetIds = isSelectMode && selected.length > 0 && selected.includes(card.id) ? selected : [card.id]
+        const moveLabel = targetIds.length > 1 ? `選択中の${targetIds.length}件を移動` : '別のボードへ移動'
+        return [
+            { id: 'open', label: '詳細を開く', icon: <DocumentIcon />, onClick: () => setShowModal(true) },
+            { id: 'edit', label: 'タイトルを編集', icon: <EditIcon />, onClick: beginTitleEdit },
+            {
+                id: 'move',
+                label: moveLabel,
+                icon: <BoardIcon />,
+                disabled: otherBoards.length === 0,
+                submenu: otherBoards.map((b) => ({
+                    id: `move-${b.id}`,
+                    label: b.name,
+                    colorDot: b.color || '#0079BF',
+                    onClick: () => moveCardsToBoard(targetIds, b.id),
+                })),
+            },
+            { id: 'sep', separator: true },
+            {
+                id: 'trash',
+                label: 'ゴミ箱へ移動',
+                icon: <TrashIcon />,
+                danger: true,
+                onClick: () => trashCard(card.id),
+            },
+        ]
     }
 
     const saveTitle = async () => {
@@ -92,6 +153,11 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
         // Don't open modal if clicking delete button or dragging
         if ((e.target as HTMLElement).closest('button')) return
         if (isEditingTitle) return
+        // 選択モード中はモーダルを開かず、選択のトグルにする
+        if (isSelectMode) {
+            toggleCardSelection(card.id)
+            return
+        }
         setShowModal(true)
     }
 
@@ -123,15 +189,22 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                 ref={setNodeRef}
                 style={style}
                 $isDragging={isDragging || isSortableDragging}
+                $isSelected={isSelectMode && isSelected}
                 $theme={theme}
                 onClick={handleCardClick}
                 data-card-container
                 {...listeners}
                 {...attributes}
+                onContextMenu={openContextMenu}
             >
+                {isSelectMode && (
+                    <SelectCheckbox $checked={isSelected} $theme={theme} aria-hidden='true'>
+                        {isSelected ? '✓' : ''}
+                    </SelectCheckbox>
+                )}
                 {card.color && <CardCover $color={card.color} />}
 
-                <CardBody>
+                <CardBody $selectMode={isSelectMode}>
                     {hasLabels && (
                         <LabelsRow>
                             {card.labels!.map((label) => (
@@ -253,16 +326,20 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                     </Suspense>
                 </ChunkErrorBoundary>
             )}
+
+            {menuPos && (
+                <ContextMenu x={menuPos.x} y={menuPos.y} items={buildMenuItems()} onClose={() => setMenuPos(null)} />
+            )}
         </>
     )
 })
 
-const Container = styled.div<{ $isDragging?: boolean; $theme: Theme }>`
+const Container = styled.div<{ $isDragging?: boolean; $theme: Theme; $isSelected?: boolean }>`
     position: relative;
     z-index: 0;
-    border: 1px solid ${(props) => props.$theme.border};
+    border: 1px solid ${(props) => (props.$isSelected ? color.Blue : props.$theme.border)};
     border-radius: ${(props) => props.$theme.cardBorderRadius};
-    box-shadow: 0 1px 3px ${(props) => props.$theme.shadow};
+    box-shadow: ${(props) => (props.$isSelected ? `0 0 0 2px ${color.Blue}` : `0 1px 3px ${props.$theme.shadow}`)};
     background: ${(props) => props.$theme.cardBackground};
     color: ${(props) => props.$theme.text};
     cursor: pointer;
@@ -294,11 +371,33 @@ const CardCover = styled.div<{ $color: string }>`
     opacity: 0.85;
 `
 
-const CardBody = styled.div`
+const CardBody = styled.div<{ $selectMode?: boolean }>`
     padding: 8px 10px;
+    /* 選択モード時は左上のチェックボックス分だけ左を空ける */
+    padding-left: ${(props) => (props.$selectMode ? '34px' : '10px')};
     display: flex;
     flex-direction: column;
     gap: 6px;
+`
+
+// 一括移動の選択モードで表示するチェックボックス(カード左上)
+const SelectCheckbox = styled.div<{ $checked: boolean; $theme: Theme }>`
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    border: 2px solid ${(props) => (props.$checked ? color.Blue : props.$theme.border)};
+    background: ${(props) => (props.$checked ? color.Blue : props.$theme.cardBackground)};
+    color: ${color.White};
 `
 
 const LabelsRow = styled.div`
