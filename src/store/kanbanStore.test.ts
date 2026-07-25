@@ -1,9 +1,37 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useKanbanStore } from './kanbanStore'
 import { useTrashStore } from './trashStore'
 import { useAuthStore } from './authStore'
 import type { Card } from '../types'
+
+// この jsdom 環境の localStorage は setItem を関数として持たない(TypeError になる)。
+// 一方 kanbanStore は import 時に可用性を一度だけ判定してモジュール変数へ固定するため、
+// beforeEach でモックを差しても手遅れで、ストアは in-memory フォールバックに落ちる。
+// その状態では localStorage 往復を一切検証できない(テストが素通りする)。
+// vi.hoisted は import より前に実行されるので、ここで Map ベースの Storage を差し込み、
+// import 時の判定を true にして本番と同じ localStorage 経路をテスト対象にする。
+const storage = vi.hoisted(() => {
+    const map = new Map<string, string>()
+    const mock: Storage = {
+        getItem: (key: string) => map.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+            map.set(key, value)
+        },
+        removeItem: (key: string) => {
+            map.delete(key)
+        },
+        clear: () => {
+            map.clear()
+        },
+        get length() {
+            return map.size
+        },
+        key: (index: number) => Array.from(map.keys())[index] ?? null,
+    }
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: mock })
+    return mock
+})
 
 // Build a fully-typed Card with sensible defaults that callers can override.
 function makeCard(over: Partial<Card> = {}): Card {
@@ -21,34 +49,15 @@ function makeCard(over: Partial<Card> = {}): Card {
 
 describe('kanbanStore (offline / localStorage mode)', () => {
     beforeEach(() => {
-        // jsdom's localStorage in this env lacks a usable clear(); install a Map-based mock
-        // (same pattern as themeStore.test.ts). setItem/removeItem still work so the store's
-        // module-level localStorageAvailable check stays true and writes hit this mock.
-        const store = new Map<string, string>()
-        const mock: Storage = {
-            getItem: (key: string) => store.get(key) ?? null,
-            setItem: (key: string, value: string) => {
-                store.set(key, value)
-            },
-            removeItem: (key: string) => {
-                store.delete(key)
-            },
-            clear: () => {
-                store.clear()
-            },
-            get length() {
-                return store.size
-            },
-            key: (index: number) => Array.from(store.keys())[index] ?? null,
-        }
-        Object.defineProperty(window, 'localStorage', { configurable: true, value: mock })
+        // ストアは全ボードのカードを1キーに集約するため、残留するとテスト間で混線する。
+        // 差し替えではなく hoisted 済みの同一 Storage を空にする(ストアが掴む参照を保つ)。
+        storage.clear()
 
         // Force the pure-localStorage branch so no Firebase write/onSnapshot runs.
         useKanbanStore.setState({ cards: [], forceOfflineMode: true, isLoading: false, error: null })
         useTrashStore.setState({ trashedCards: [] })
         // Null user is fine for addCard (userId becomes undefined and is dropped).
         useAuthStore.setState({ user: null })
-        localStorage.clear()
     })
 
     describe('addCard', () => {
