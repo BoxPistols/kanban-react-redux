@@ -471,15 +471,18 @@ export const BoardModal = memo(function BoardModal({ boardId, onClose }: BoardMo
                         </FormGroup>
 
                         <ButtonGroup>
-                            <SubmitButton type='submit'>{boardId ? '更新' : '作成'}</SubmitButton>
-                            <CancelButton type='button' onClick={onClose} $theme={theme}>
-                                キャンセル
-                            </CancelButton>
+                            {/* 破壊的操作(削除)は主操作から離して左に。右下=最優先スロットには主操作(更新)を置く */}
                             {boardId && (
                                 <DeleteButton type='button' onClick={handleDelete}>
                                     削除
                                 </DeleteButton>
                             )}
+                            <RightButtons>
+                                <CancelButton type='button' onClick={onClose} $theme={theme}>
+                                    キャンセル
+                                </CancelButton>
+                                <SubmitButton type='submit'>{boardId ? '更新' : '作成'}</SubmitButton>
+                            </RightButtons>
                         </ButtonGroup>
                     </Form>
                 ) : (
@@ -738,8 +741,27 @@ const ColorOption = styled.button<{ $color: string; $selected: boolean; $isDarkM
 
 const ButtonGroup = styled.div`
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 24px;
+`
+
+// キャンセル+更新を右に寄せる。更新(主操作)が右端=最優先スロットに来る。
+// 幅指定はここに閉じ込め、共有の SubmitButton/CancelButton の既定(flex:1)を変えない
+// = ラベルタブの「閉じる」(flex-end で全幅)を巻き込まないため。
+const RightButtons = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+
+    /* 狭い画面では 96px まで縮み、収まらなければ折り返す(横溢れ防止) */
+    & > button {
+        flex: 0 1 auto;
+        min-width: 96px;
+    }
 `
 
 const SubmitButton = styled(PrimaryButton)`

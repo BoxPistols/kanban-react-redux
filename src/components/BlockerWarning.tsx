@@ -4,6 +4,7 @@ import * as color from '../color'
 import { useThemeStore } from '../store/themeStore'
 import { getTheme, Theme } from '../theme'
 import { useKanbanStore } from '../store/kanbanStore'
+import { useBoardStore } from '../store/boardStore'
 
 // 表示バリアント:
 //   'blocked' … 広告ブロッカー/プライバシー保護による遮断が濃厚(赤い警告)
@@ -14,7 +15,11 @@ export function BlockerWarning() {
     const { isDarkMode } = useThemeStore()
     const theme = getTheme(isDarkMode)
     const isDark = isDarkMode
-    const error = useKanbanStore((state) => state.error)
+    // カード購読(kanban)とボード購読(board)は同じ Firestore 接続の障害を表すため、
+    // どちらのエラーでもこの警告を出す。分類プレフィックス(ERR_BLOCKED/ERR_OFFLINE)は共通。
+    const kanbanError = useKanbanStore((state) => state.error)
+    const boardError = useBoardStore((state) => state.error)
+    const error = kanbanError ?? boardError
 
     // 10秒後の通信ログ検査で遮断を検出したフラグ
     const [timerBlocked, setTimerBlocked] = useState(false)
