@@ -747,21 +747,28 @@ const ButtonGroup = styled.div`
     margin-top: 24px;
 `
 
-// キャンセル+更新を右に寄せる。更新(主操作)が右端=最優先スロットに来る
+// キャンセル+更新を右に寄せる。更新(主操作)が右端=最優先スロットに来る。
+// 幅指定はここに閉じ込め、共有の SubmitButton/CancelButton の既定(flex:1)を変えない
+// = ラベルタブの「閉じる」(flex-end で全幅)を巻き込まないため。
 const RightButtons = styled.div`
     display: flex;
     gap: 8px;
     margin-left: auto;
     flex-shrink: 0;
+
+    & > button {
+        flex: 0 0 auto;
+        min-width: 104px;
+    }
 `
 
 const SubmitButton = styled(PrimaryButton)`
-    min-width: 104px;
+    flex: 1;
     padding: 10px 16px;
 `
 
 const CancelButton = styled(SecondaryButton)`
-    min-width: 104px;
+    flex: 1;
     padding: 10px 16px;
 `
 
