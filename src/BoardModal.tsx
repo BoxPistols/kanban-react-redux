@@ -752,13 +752,15 @@ const ButtonGroup = styled.div`
 // = ラベルタブの「閉じる」(flex-end で全幅)を巻き込まないため。
 const RightButtons = styled.div`
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 8px;
     margin-left: auto;
-    flex-shrink: 0;
 
+    /* 狭い画面では 96px まで縮み、収まらなければ折り返す(横溢れ防止) */
     & > button {
-        flex: 0 0 auto;
-        min-width: 104px;
+        flex: 0 1 auto;
+        min-width: 96px;
     }
 `
 
