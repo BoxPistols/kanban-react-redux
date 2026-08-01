@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo, lazy, Suspense } from 'react'
+import { useState, useRef, useEffect, useMemo, memo, lazy, Suspense } from 'react'
 import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -33,8 +33,13 @@ function stripMarkdownSyntax(text: string): string {
 }
 
 export const Card = memo(function Card({ card, isDragging = false }: { card: CardType; isDragging?: boolean }) {
-    const { trashCard, updateCard } = useKanbanStore()
-    const { isDarkMode } = useThemeStore()
+    // Zustand は必要なスライスだけ購読する。セレクタ無しの全ストア購読にすると
+    // 無関係な state 変化でも全カードが再描画され、そのたびに dnd-kit へ新しい
+    // data オブジェクトが渡って再計測が走り、ドラッグ確定時に再計測ループ
+    // (Maximum update depth)を誘発する(#98/#101)。
+    const trashCard = useKanbanStore((s) => s.trashCard)
+    const updateCard = useKanbanStore((s) => s.updateCard)
+    const isDarkMode = useThemeStore((s) => s.isDarkMode)
     const [showModal, setShowModal] = useState(false)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [editTitle, setEditTitle] = useState('')
@@ -42,6 +47,13 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
 
     const theme = getTheme(isDarkMode)
 
+    // useSortable の data は毎レンダー新規生成すると dnd-kit が登録し直して再計測するため、
+    // card が変わった時だけ作り直す(無関係な再描画で drop がループしないように)。
+    const sortableData = useMemo(() => ({ type: 'card' as const, card }), [card])
+
+    // DragOverlay 内のクローン(isDragging prop 付き)が本物と同じ id で登録すると、
+    // draggable/droppable の登録マップを奪い合い「ドロップ直後のドラッグが無反応」になる。
+    // クローンはプレゼンテーション専用として別 id + disabled で登録を無害化する(#98)。
     const {
         attributes,
         listeners,
@@ -50,12 +62,9 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
         transition,
         isDragging: isSortableDragging,
     } = useSortable({
-        id: card.id,
-        data: {
-            type: 'card',
-            card,
-        },
-        disabled: isEditingTitle,
+        id: isDragging ? `overlay-${card.id}` : card.id,
+        data: sortableData,
+        disabled: isEditingTitle || isDragging,
     })
 
     useEffect(() => {

@@ -6,6 +6,7 @@ import {
     DragOverEvent,
     DragOverlay,
     DragStartEvent,
+    DropAnimation,
     MouseSensor,
     TouchSensor,
     KeyboardSensor,
@@ -53,6 +54,28 @@ if (import.meta.env.DEV) {
 
 // 遅延ロード: モーダル系コンポーネント
 const ColumnManager = lazy(() => import('./ColumnManager').then((m) => ({ default: m.ColumnManager })))
+
+// ドロップ確定後のアニメーション(~250ms)中、DragOverlay が次の mousedown を
+// 吸ってしまい「直後のドラッグが無反応」になる(#98)。アニメーション中だけ
+// overlay をヒットテスト対象から外す。ドラッグ中は overlay のヒットテストが
+// ドラッグ後クリック(モーダル誤開閉)の抑止に効いているため常時 none にはしない。
+const dropAnimation: DropAnimation = {
+    sideEffects: ({ active, dragOverlay }) => {
+        // 既定の sideEffects と同じく、着地アニメーション中は実カードを透明にして二重表示を防ぐ
+        const originalOpacity = active.node.style.getPropertyValue('opacity')
+        active.node.style.setProperty('opacity', '0')
+        // overlay はヒットテスト対象から外す。defaultDropAnimationSideEffects の styles は
+        // style.setProperty() 適用のため camelCase(pointerEvents)が効かず、ここで直接指定する
+        dragOverlay.node.style.setProperty('pointer-events', 'none')
+        return () => {
+            if (originalOpacity) {
+                active.node.style.setProperty('opacity', originalOpacity)
+            } else {
+                active.node.style.removeProperty('opacity')
+            }
+        }
+    },
+}
 
 export function App() {
     const {
@@ -568,7 +591,9 @@ export function App() {
                         </HorizontalScroll>
                     </MainArea>
 
-                    <DragOverlay>{activeCard ? <CardComponent card={activeCard} isDragging /> : null}</DragOverlay>
+                    <DragOverlay dropAnimation={dropAnimation}>
+                        {activeCard ? <CardComponent card={activeCard} isDragging /> : null}
+                    </DragOverlay>
 
                     <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
 

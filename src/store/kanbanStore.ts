@@ -451,14 +451,24 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
 
         const updatedById = new Map<string, Card>()
 
-        // 挿入先カラムを再採番(activeを挿入位置に差し込む)
+        // 挿入先カラムを再採番(activeを挿入位置に差し込む)。
+        // order が変わらないカードは参照を維持する(memo 済み Card の無駄な再描画と
+        // dnd-kit の再計測をドラッグ中に増やさないため)。
         const nextTarget = [...targetCards]
         nextTarget.splice(insertIndex, 0, { ...active, columnId: overColumnId })
-        nextTarget.forEach((c, index) => updatedById.set(c.id, { ...c, order: index }))
+        nextTarget.forEach((c, index) => {
+            if (c.id === activeId || c.order !== index) {
+                updatedById.set(c.id, { ...c, order: index })
+            }
+        })
 
         // カラム移動の場合は移動元も再採番して order の穴をなくす
         if (fromColumnId !== overColumnId) {
-            columnCards(fromColumnId).forEach((c, index) => updatedById.set(c.id, { ...c, order: index }))
+            columnCards(fromColumnId).forEach((c, index) => {
+                if (c.order !== index) {
+                    updatedById.set(c.id, { ...c, order: index })
+                }
+            })
         }
 
         set({ cards: cards.map((c) => updatedById.get(c.id) ?? c) })
