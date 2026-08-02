@@ -3,14 +3,16 @@ import styled from 'styled-components'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as color from './color'
-import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon } from './icon'
+import { TrashIcon, CalendarIcon, ListIcon, DocumentIcon, EditIcon, BoardIcon } from './icon'
 import { useKanbanStore } from './store/kanbanStore'
+import { useBoardStore } from './store/boardStore'
 import { useThemeStore } from './store/themeStore'
 import { getTheme, type Theme } from './theme'
 import { getDueDateStatus } from './utils/dateUtils'
 import { isComposing } from './utils/keyboard'
 import { LinkedText } from './LinkedText'
 import { ChunkErrorBoundary } from './ChunkErrorBoundary'
+import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import type { Card as CardType } from './types'
 
 // 遅延ロード: CardDetailModal
@@ -39,10 +41,13 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
     // (Maximum update depth)を誘発する(#98/#101)。
     const trashCard = useKanbanStore((s) => s.trashCard)
     const updateCard = useKanbanStore((s) => s.updateCard)
+    const moveCardsToBoard = useKanbanStore((s) => s.moveCardsToBoard)
     const isDarkMode = useThemeStore((s) => s.isDarkMode)
     const [showModal, setShowModal] = useState(false)
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [editTitle, setEditTitle] = useState('')
+    // 右クリックのコンテキストメニュー位置(null = 非表示)
+    const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
     const editInputRef = useRef<HTMLTextAreaElement>(null)
 
     const theme = getTheme(isDarkMode)
@@ -82,10 +87,53 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
 
     const displayText = card.title || card.text
 
-    const startEditTitle = (e: React.MouseEvent) => {
-        e.stopPropagation()
+    const beginTitleEdit = () => {
         setEditTitle(displayText)
         setIsEditingTitle(true)
+    }
+
+    const startEditTitle = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        beginTitleEdit()
+    }
+
+    // 右クリックでコンテキストメニューを開く
+    const openContextMenu = (e: React.MouseEvent) => {
+        if (isEditingTitle) return
+        e.preventDefault()
+        e.stopPropagation()
+        setMenuPos({ x: e.clientX, y: e.clientY })
+    }
+
+    // メニュー項目を組み立てる(開いている時のみ呼ぶ)
+    const buildMenuItems = (): ContextMenuItem[] => {
+        // メニューを開いた瞬間の値を読む(常時購読しないことで無関係な再描画を避ける)
+        const { boards, currentBoardId } = useBoardStore.getState()
+        const otherBoards = boards.filter((b) => b.id !== currentBoardId)
+        return [
+            { id: 'open', label: '詳細を開く', icon: <DocumentIcon />, onClick: () => setShowModal(true) },
+            { id: 'edit', label: 'タイトルを編集', icon: <EditIcon />, onClick: beginTitleEdit },
+            {
+                id: 'move',
+                label: '別のボードへ移動',
+                icon: <BoardIcon />,
+                disabled: otherBoards.length === 0,
+                submenu: otherBoards.map((b) => ({
+                    id: `move-${b.id}`,
+                    label: b.name,
+                    colorDot: b.color || '#0079BF',
+                    onClick: () => void moveCardsToBoard([card.id], b.id),
+                })),
+            },
+            { id: 'sep', separator: true },
+            {
+                id: 'trash',
+                label: 'ゴミ箱へ移動',
+                icon: <TrashIcon />,
+                danger: true,
+                onClick: () => void trashCard(card.id),
+            },
+        ]
     }
 
     const saveTitle = async () => {
@@ -134,6 +182,7 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                 $isDragging={isDragging || isSortableDragging}
                 $theme={theme}
                 onClick={handleCardClick}
+                onContextMenu={openContextMenu}
                 data-card-container
                 {...listeners}
                 {...attributes}
@@ -254,6 +303,10 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                     </ActionIconButton>
                 </HoverActions>
             </Container>
+
+            {menuPos && (
+                <ContextMenu x={menuPos.x} y={menuPos.y} items={buildMenuItems()} onClose={() => setMenuPos(null)} />
+            )}
 
             {showModal && (
                 <ChunkErrorBoundary>
