@@ -53,6 +53,21 @@ node scripts/firestore-backfill.mjs --owner <UID> --orphans=trash --apply
 **破壊的操作の前に必ず手順1の一覧で件数を確認すること。** 2026-07-24 の本番実測では
 userId 欠落が boards 1件 / cards 2件、孤児 boardId カードが 5件だった。
 
+## ルールの変更前に必ず実行するテスト
+
+`firestore.rules` を触ったら、反映前にエミュレータで許可/拒否を確かめる。
+
+```bash
+npm run test:rules
+```
+
+Firestore エミュレータが必要なので **Java が要る**（macOS なら `brew install openjdk`）。
+GitHub Actions の ubuntu ランナーには同梱されているため、CI では追加設定なしで走る。
+
+テストは「アプリが実際に書く形（最大構成のカード・最小構成・部分更新）が通ること」を
+先に固定してある。ルールを厳しくするときは**まずこの通る側が壊れていないか**を見ること。
+壊れたルールを反映すると「保存できない」が即ユーザー影響になる。
+
 ## ② ルール/インデックスの本番反映
 
 `.github/workflows/firebase-deploy.yml` は `FIREBASE_SERVICE_ACCOUNT` secret が
