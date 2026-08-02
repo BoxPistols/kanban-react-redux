@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db, isFirebaseEnabled } from '../lib/firebase'
 import { useTrashStore } from './trashStore'
 import { useAuthStore } from './authStore'
+import { useBoardStore } from './boardStore'
 import { showToast } from './toastStore'
 import { pushUndo } from './undoStore'
 import { classifyFirestoreError } from '../utils/firestoreError'
@@ -136,6 +137,8 @@ interface KanbanState {
     restoreCard: (card: Card, boardId: string, columnId: ColumnType) => Promise<void>
     moveCard: (cardId: string, newColumnId: ColumnType, newOrder: number) => Promise<void>
     reorderCards: (updates: { id: string; order: number; columnId?: ColumnType }[]) => Promise<void>
+    // カードを別ボードへ移動する(コンテキストメニューの「別のボードへ移動」)
+    moveCardsToBoard: (cardIds: string[], targetBoardId: string) => Promise<void>
     // ドラッグ&ドロップ用: ライブプレビュー(ローカルのみ) → 確定時に一括永続化
     beginDrag: () => void
     moveCardLocal: (activeId: string, overColumnId: ColumnType, overIndex: number) => void
@@ -416,6 +419,63 @@ export const useKanbanStore = create<KanbanState>((set, get) => ({
             }
         } else {
             saveCardsToLocalStorage(updatedCards)
+        }
+    },
+
+    // カードを別ボードへ移動する。移動先に同 ID のレーンが無ければ先頭レーンへ振り替える。
+    moveCardsToBoard: async (cardIds, targetBoardId) => {
+        if (cardIds.length === 0 || !targetBoardId) return
+        const idSet = new Set(cardIds)
+        const orderIndex = new Map(cardIds.map((id, i) => [id, i]))
+        const movingCards = get().cards.filter((c) => idSet.has(c.id))
+        if (movingCards.length === 0) return
+
+        const targetColumns = useBoardStore.getState().getColumns(targetBoardId)
+        const targetColumnIds = new Set(targetColumns.map((col) => col.id))
+        const fallbackColumn = (targetColumns[0]?.id ?? 'TODO') as ColumnType
+        const resolveColumn = (columnId: ColumnType): ColumnType =>
+            targetColumnIds.has(columnId) ? columnId : fallbackColumn
+        // 既存カード(order は小さい整数)より後ろに積むため、タイムスタンプ基準の order を振る
+        const base = Date.now()
+
+        const useFirebase = isFirebaseEnabled && db && !get().forceOfflineMode
+        if (useFirebase) {
+            // 楽観的更新: 現在ボードから即座に除去(確定は onSnapshot)。失敗時は元に戻す。
+            const previousCards = get().cards
+            set({ cards: previousCards.filter((c) => !idSet.has(c.id)) })
+            try {
+                const batch = writeBatch(db!)
+                movingCards.forEach((c) => {
+                    batch.update(doc(db!, 'cards', c.id), {
+                        boardId: targetBoardId,
+                        columnId: resolveColumn(c.columnId),
+                        order: base + (orderIndex.get(c.id) ?? 0),
+                        updatedAt: Date.now(),
+                    })
+                })
+                await batch.commit()
+                showToast(`${movingCards.length}件のカードを移動しました`, 'success')
+            } catch (error) {
+                set({ cards: previousCards })
+                showToast('カードの移動に失敗しました', 'error')
+                console.error('moveCardsToBoard failed:', error)
+            }
+        } else {
+            const all = readAllCardsFromStorage()
+            const updated = all.map((c) =>
+                idSet.has(c.id)
+                    ? {
+                          ...c,
+                          boardId: targetBoardId,
+                          columnId: resolveColumn(c.columnId),
+                          order: base + (orderIndex.get(c.id) ?? 0),
+                          updatedAt: Date.now(),
+                      }
+                    : c
+            )
+            writeAllCardsToStorage(updated)
+            set({ cards: get().cards.filter((c) => !idSet.has(c.id)) })
+            showToast(`${movingCards.length}件のカードを移動しました`, 'success')
         }
     },
 

@@ -39,7 +39,8 @@ import { useThemeStore } from './store/themeStore'
 import { useAuthStore } from './store/authStore'
 import { showToast } from './store/toastStore'
 import { pushUndo, useUndoStore } from './store/undoStore'
-import { BoardIcon } from './icon'
+import { BoardIcon, PlusIcon } from './icon'
+import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import { getTheme, Theme } from './theme'
 import { isFirebaseEnabled } from './lib/firebase'
 import { isShortcutKey } from './utils/keyboard'
@@ -106,6 +107,8 @@ export function App() {
     const [showColumnManager, setShowColumnManager] = useState(false)
     const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set())
     const [showReloadPrompt, setShowReloadPrompt] = useState(false)
+    // 盤面の空白右クリックのコンテキストメニュー位置(null = 非表示)
+    const [blankMenuPos, setBlankMenuPos] = useState<{ x: number; y: number } | null>(null)
 
     // オフラインモードをストアに同期
     useEffect(() => {
@@ -491,6 +494,56 @@ export function App() {
         window.location.reload()
     }, [])
 
+    // 盤面の空白を右クリックしたときのコンテキストメニュー(#106)。
+    // カード/レーン上はそれぞれのメニューに任せ、空白のみで開く。
+    const openBlankMenu = useCallback(
+        (e: React.MouseEvent) => {
+            if (!currentBoardId) return
+            const target = e.target as HTMLElement
+            if (target.closest('[data-card-container], [data-column-container], button, input, textarea')) return
+            e.preventDefault()
+            setBlankMenuPos({ x: e.clientX, y: e.clientY })
+        },
+        [currentBoardId]
+    )
+
+    // 指定レーンのコンポーザーを開く。折りたたみ中は展開してから開く。
+    const openColumnComposer = useCallback(
+        (columnId: string) => {
+            if (collapsedColumns.has(columnId)) {
+                toggleColumnCollapse(columnId)
+            }
+            // 展開の再レンダリング後にコンポーザーのボタンを押す(nショートカットと同じDOM経路)
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document
+                        .querySelector<HTMLButtonElement>(
+                            `[data-column-id="${CSS.escape(columnId)}"] [data-add-card-button]`
+                        )
+                        ?.click()
+                })
+            })
+        },
+        [collapsedColumns, toggleColumnCollapse]
+    )
+
+    const buildBlankMenuItems = (): ContextMenuItem[] => [
+        {
+            id: 'add-card',
+            label: 'カードを追加',
+            icon: <PlusIcon />,
+            disabled: columns.length === 0,
+            submenu: columns.map((col) => ({
+                id: `add-${col.id}`,
+                label: col.title,
+                ...(col.color ? { colorDot: col.color } : {}),
+                onClick: () => openColumnComposer(col.id),
+            })),
+        },
+        { id: 'sep', separator: true },
+        { id: 'manage', label: 'レーン管理', onClick: () => setShowColumnManager(true) },
+    ]
+
     const activeCard = activeId && activeType === 'card' ? cards.find((c) => c.id === activeId) : null
     const columnIds = useMemo(() => columns.map((col) => col.id), [columns])
 
@@ -546,7 +599,7 @@ export function App() {
                     )}
 
                     <MainArea $theme={theme} $boardColor={currentBoard?.color}>
-                        <HorizontalScroll data-horizontal-scroll>
+                        <HorizontalScroll data-horizontal-scroll onContextMenu={openBlankMenu}>
                             {!currentBoardId ? (
                                 <EmptyState>
                                     <EmptyIcon>
@@ -573,6 +626,7 @@ export function App() {
                                                     columnColor={column.color}
                                                     isCollapsed={collapsedColumns.has(column.id)}
                                                     onToggleCollapse={() => toggleColumnCollapse(column.id)}
+                                                    onManageColumns={() => setShowColumnManager(true)}
                                                 />
                                             )
                                         })}
@@ -594,6 +648,15 @@ export function App() {
                     <DragOverlay dropAnimation={dropAnimation}>
                         {activeCard ? <CardComponent card={activeCard} isDragging /> : null}
                     </DragOverlay>
+
+                    {blankMenuPos && (
+                        <ContextMenu
+                            x={blankMenuPos.x}
+                            y={blankMenuPos.y}
+                            items={buildBlankMenuItems()}
+                            onClose={() => setBlankMenuPos(null)}
+                        />
+                    )}
 
                     <ReloadPrompt isVisible={showReloadPrompt} onReload={handleHardReload} />
 
