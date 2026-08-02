@@ -202,7 +202,7 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
 
                     <MetadataRow>
                         {hasDueDate && (
-                            <DueDateBadge $isOverdue={isOverdue} $isDueSoon={isDueSoon && !isOverdue}>
+                            <DueDateBadge $theme={theme} $isOverdue={isOverdue} $isDueSoon={isDueSoon && !isOverdue}>
                                 <CalendarIcon />
                                 <span>
                                     {new Date(card.dueDate!).toLocaleDateString('ja-JP', {
@@ -214,7 +214,7 @@ export const Card = memo(function Card({ card, isDragging = false }: { card: Car
                         )}
 
                         {hasChecklist && (
-                            <ChecklistBadge $allCompleted={completedItems === totalItems}>
+                            <ChecklistBadge $theme={theme} $allCompleted={completedItems === totalItems}>
                                 <ListIcon />
                                 <span>
                                     {completedItems}/{totalItems}
@@ -377,12 +377,13 @@ const TitleEditArea = styled.textarea<{ $theme: Theme }>`
     }
 `
 
+// opacity で薄めると light で 3.88:1 / dark で 4.43:1 となり AA(4.5:1)を割るため、
+// トークン色をそのまま使う(トークン自体が二次テキストとして十分に淡い)
 const Description = styled.div<{ $theme: Theme }>`
     color: ${(props) => props.$theme.textSecondary};
     font-size: 12px;
     line-height: 1.4;
     word-break: break-word;
-    opacity: 0.85;
 `
 
 const ImageThumbnailRow = styled.div`
@@ -427,26 +428,30 @@ const MetaBadge = `
     }
 `
 
-const DueDateBadge = styled.div<{ $isOverdue?: boolean; $isDueSoon?: boolean }>`
+// バッジは opacity で薄めない。地色との実効コントラストが AA を割るため、
+// 「控えめに見せる」のは opacity ではなく textSecondary トークンで表現する(監査)。
+const DueDateBadge = styled.div<{ $theme: Theme; $isOverdue?: boolean; $isDueSoon?: boolean }>`
     ${MetaBadge}
     background: ${(props) =>
-        props.$isOverdue ? `${color.Red}20` : props.$isDueSoon ? '#FF9F1A20' : 'rgba(128, 128, 128, 0.12)'};
-    color: ${(props) => (props.$isOverdue ? color.Red : props.$isDueSoon ? '#FF9F1A' : 'inherit')};
-    opacity: ${(props) => (props.$isOverdue || props.$isDueSoon ? 1 : 0.6)};
+        props.$isOverdue
+            ? `${props.$theme.danger}20`
+            : props.$isDueSoon
+              ? `${props.$theme.warning}20`
+              : 'rgba(128, 128, 128, 0.12)'};
+    color: ${(props) =>
+        props.$isOverdue ? props.$theme.danger : props.$isDueSoon ? props.$theme.warning : props.$theme.textSecondary};
 `
 
-const ChecklistBadge = styled.div<{ $allCompleted: boolean }>`
+const ChecklistBadge = styled.div<{ $theme: Theme; $allCompleted: boolean }>`
     ${MetaBadge}
-    background: ${(props) => (props.$allCompleted ? `${color.Green}20` : 'rgba(128, 128, 128, 0.12)')};
-    color: ${(props) => (props.$allCompleted ? color.Green : 'inherit')};
-    opacity: ${(props) => (props.$allCompleted ? 1 : 0.6)};
+    background: ${(props) => (props.$allCompleted ? `${props.$theme.success}20` : 'rgba(128, 128, 128, 0.12)')};
+    color: ${(props) => (props.$allCompleted ? props.$theme.success : props.$theme.textSecondary)};
 `
 
 const DescriptionBadge = styled.div<{ $theme: Theme }>`
     ${MetaBadge}
     background: rgba(128, 128, 128, 0.1);
     color: ${(props) => props.$theme.textSecondary};
-    opacity: 0.6;
 `
 
 const HoverActions = styled.div`
