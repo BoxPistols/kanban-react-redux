@@ -8,19 +8,39 @@
 
 ## ① バックフィル・孤児整理
 
-`scripts/firestore-backfill.mjs` を使う。**既定は dry-run(読み取りのみ)**で、
-`--apply` を明示的に付けたときだけ書き込む。
+**既定は dry-run(読み取りのみ)**で、`--apply` を明示的に付けたときだけ書き込む。
+実行方法は 2 通りある。**GitHub Actions からの実行を推奨**(鍵をローカルに置かずに済む)。
+
+### 方法 A: GitHub Actions から実行(推奨)
+
+必要なのは `FIREBASE_SERVICE_ACCOUNT` secret だけで、これは②でどのみち要る。
+Node も Java もローカルに用意せず、サービスアカウント鍵を手元に置かなくてよい。
+
+1. `FIREBASE_CI_SETUP.md` の手順でサービスアカウント(Firebase Admin)を作り、
+   GitHub の `FIREBASE_SERVICE_ACCOUNT` secret に JSON の中身を登録
+2. Actions → **Firestore Backfill (#103)** → Run workflow
+3. まず既定のまま(`apply` = false)実行し、ログで件数を確認
+   - 2026-07-24 の本番実測では userId 欠落が boards 1件 / cards 2件、孤児 boardId カードが 5件
+4. ログの「既存 userId の分布」から所有者 UID を決め、`owner_uid` に入れて再実行(まだ dry-run)
+5. 内容に納得したら `apply` を true にして実行
+
+孤児カードを処理する場合は `orphans` を `reassign`(要 `target_board`)か `trash` にする。
+
+### 方法 B: ローカルから実行
 
 ### 準備
 
 ```bash
-npm i -D firebase-admin           # このスクリプト専用。通常のビルドには不要
+pnpm add -D firebase-admin        # このスクリプト専用。通常のビルドには不要
 
 # 認証(いずれか)
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 # または
 gcloud auth application-default login
 ```
+
+認証が未設定のまま実行すると、その場で設定方法を案内して終了する(いきなり
+スタックトレースは出ない)。
 
 サービスアカウントは `FIREBASE_CI_SETUP.md` の手順で作ったもの(Firebase Admin ロール)を流用できる。
 

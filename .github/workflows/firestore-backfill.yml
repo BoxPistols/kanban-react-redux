@@ -1,0 +1,108 @@
+# Firestore データ整備 (#103) を Actions から実行する。
+#
+# 目的: オーナーがローカルに Node/Java を用意したりサービスアカウント鍵を
+# 手元に置いたりせずに、#102(ルール反映)の前提となるバックフィルを実施できるようにする。
+# 必要なのは FIREBASE_SERVICE_ACCOUNT secret だけで、これは #102 でどのみち要る。
+#
+# 既定は dry-run(読み取りのみ)。書き込むには apply を明示的に true にする。
+name: Firestore Backfill (#103)
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner_uid:
+        description: 'userId を補完する所有者 UID(空なら現状表示のみ)'
+        required: false
+        type: string
+      orphans:
+        description: '孤児 boardId カードの扱い'
+        required: true
+        default: skip
+        type: choice
+        options:
+          - skip
+          - reassign
+          - trash
+      target_board:
+        description: 'orphans=reassign のときの移動先ボードID'
+        required: false
+        type: string
+      apply:
+        description: '実際に書き込む(false なら dry-run)'
+        required: true
+        default: false
+        type: boolean
+
+# 同時実行を禁止する。書き込みが競合すると原因追跡が困難になるため。
+concurrency:
+  group: firestore-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check credentials
+        id: creds
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret が未設定です。手順は FIREBASE_CI_SETUP.md を参照してください。"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # firebase-admin はこのスクリプト専用。通常の install を重くしないため
+      # devDependencies には入れず、ここでだけ追加する。
+      - name: Install firebase-admin
+        run: pnpm add -D firebase-admin --no-frozen-lockfile
+
+      - name: Show what will run
+        run: |
+          echo "owner_uid    : ${OWNER_UID:-(未指定: 現状表示のみ)}"
+          echo "orphans      : $ORPHANS"
+          echo "target_board : ${TARGET_BOARD:-(未指定)}"
+          echo "apply        : $APPLY"
+        env:
+          OWNER_UID: ${{ inputs.owner_uid }}
+          ORPHANS: ${{ inputs.orphans }}
+          TARGET_BOARD: ${{ inputs.target_board }}
+          APPLY: ${{ inputs.apply }}
+
+      - name: Run backfill
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          OWNER_UID: ${{ inputs.owner_uid }}
+          ORPHANS: ${{ inputs.orphans }}
+          TARGET_BOARD: ${{ inputs.target_board }}
+          APPLY: ${{ inputs.apply }}
+        run: |
+          set -euo pipefail
+          KEY_FILE="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$KEY_FILE"
+          export GOOGLE_APPLICATION_CREDENTIALS="$KEY_FILE"
+
+          ARGS=(--orphans "$ORPHANS")
+          if [ -n "$OWNER_UID" ]; then ARGS+=(--owner "$OWNER_UID"); fi
+          if [ -n "$TARGET_BOARD" ]; then ARGS+=(--target-board "$TARGET_BOARD"); fi
+          if [ "$APPLY" = "true" ]; then ARGS+=(--apply); fi
+
+          # 鍵ファイルは成功・失敗どちらでも必ず消す
+          trap 'rm -f "$KEY_FILE"' EXIT
+          node scripts/firestore-backfill.mjs "${ARGS[@]}"
+
+      - name: Next step
+        if: ${{ inputs.apply }}
+        run: |
+          echo "::notice::バックフィルを適用しました。次は #102(ルール/インデックスの本番反映)へ進めます。反映前に 'pnpm run test:rules' が緑であることを確認してください。"
