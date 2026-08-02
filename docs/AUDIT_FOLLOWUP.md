@@ -58,14 +58,21 @@ light モードで WCAG AA（4.5:1）未満のテキストがある。**テー�
   または明示的な移動ボタンの提供が必要（a11y 機能追加）。
 - **カラーピッカーの ARIA radio パターン**（`CardDetailModal.tsx`）: `role='radio'` は
   あるが `radiogroup` ＋ roving tabindex ＋ 矢印キー移動が未実装。
-- **URL メタデータの外部プロキシ流出**（`urlUtils.ts`）: カード内 URL のタイトル取得で
-  全 URL を公開プロキシ `api.allorigins.win` に送信（自動・クエリ文字列ごと）。
-  社内リンクや署名付き URL の漏洩・トークン消費リスク。opt-in 化／自己ホスト
-  プロキシ／クエリ除去・内部ホスト除外 のいずれかで再設計。
-- **base64 画像が Firestore 1MiB 制限超過**（`CardDetailModal.tsx`）: 5MB まで許可した
-  画像を base64 でカード文書に直書き。1MiB 超で `updateDoc` 全体が失敗しカード編集が
-  丸ごと失われる（cloud モード）。Firebase Storage へ退避し URL のみ保存、または
-  上限を ~600KB に下げる。
+- ~~**URL メタデータの外部プロキシ流出**（`urlUtils.ts`）~~ → **対応済み**（「クエリ除去・
+  内部ホスト除外」を採用）。`toProxySafeUrl()` が以下を実施する:
+  - プライベート/内部ホスト（localhost・RFC1918・169.254.169.254・`.local`/`.internal`/
+    `.corp` 等・ドット無しのイントラネット名）は**送信しない**
+  - 資格情報を運ぶ URL（`user:pass@`、`token`/`sig`/`X-Amz-*` 等のクエリ、
+    フラグメントの `access_token`）は削らず**丸ごと送信しない**
+  - 送る場合も `origin + pathname` のみ（クエリ・フラグメントは落とす）
+  - YouTube はホスト名で判定し、プロキシを経由せず oEmbed を直接叩く
+
+  送信内容は `urlUtils.fetch.test.ts` が fetch 実測で固定している。
+  残る改善余地は自己ホストプロキシ化（公開プロキシに URL を渡すこと自体をやめる）。
+- ~~**base64 画像が Firestore 1MiB 制限超過**（`CardDetailModal.tsx`）~~ →
+  **暫定対応済み**。1枚 600KB / カード合計 900KB で判定するよう是正（`imageLimits.ts`）。
+  従来の 5MB は base64 化（約 4/3 倍）を考慮しておらず、通せば必ず保存が失敗する値だった。
+  恒久対応（Firebase Storage へ退避し URL のみ保存）は Storage 有効化が必要なため未着手。
 - **Firestore ルールのフィールド/型/サイズ検証**: cross-user 分離は C5 で完了。残るは
   自分の領域内での型・サイズ検証（defense-in-depth）。
 - **`ai-auto-fix.yml` の再利用ワークフロー pin**: 外部テンプレートを `@main`（可変）で

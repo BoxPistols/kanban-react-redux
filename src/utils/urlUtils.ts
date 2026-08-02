@@ -42,6 +42,123 @@ export function parseUrls(text: string): Array<{
     return urls
 }
 
+// --- 外部プロキシへ渡してよい URL の判定 ---
+//
+// メタデータ取得は公開 CORS プロキシ(api.allorigins.win)を経由するため、
+// カードに書いた URL は「第三者に送信され、その第三者がサーバー側で実際に開く」。
+// 素通しにすると次が漏れる:
+//   - 社内ホスト名やプライベート IP(存在自体が情報。プロキシからは到達もできない)
+//   - 署名付き URL やワンタイムトークン(クエリに載る。開かれると消費される場合もある)
+// そのため「送らない URL」を明示的に弾き、送る場合もクエリとフラグメントを落とす。
+
+/** トークン/資格情報が入りやすいクエリパラメータ名(小文字で比較) */
+const CREDENTIAL_PARAM_HINTS = [
+    'token',
+    'access_token',
+    'id_token',
+    'refresh_token',
+    'auth',
+    'authorization',
+    'apikey',
+    'api_key',
+    'key',
+    'secret',
+    'password',
+    'passwd',
+    'pwd',
+    'sig',
+    'signature',
+    'session',
+    'sessionid',
+    'code',
+    'credential',
+    'unlock',
+]
+
+/** プライベート/内部ネットワークを指すホスト名か(送信も到達もさせない) */
+export function isPrivateOrInternalHost(hostname: string): boolean {
+    const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+
+    if (host === 'localhost' || host.endsWith('.localhost')) return true
+    // 内部向け TLD(mDNS / RFC 8375 / 慣習的な社内ドメイン)
+    if (/\.(local|internal|intranet|corp|home|lan|test|localdomain)$/.test(host)) return true
+    if (host.endsWith('.home.arpa')) return true
+    // ドットを含まない = 名前解決が社内 DNS 依存のイントラネット名
+    if (!host.includes('.') && !host.includes(':')) return true
+
+    // IPv6 ループバック/リンクローカル/ユニークローカル
+    if (host === '::1') return true
+    if (/^fe80:/.test(host) || /^f[cd][0-9a-f]{2}:/.test(host)) return true
+
+    // IPv4 の私的アドレス
+    const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+    if (v4) {
+        const [a, b] = [Number(v4[1]), Number(v4[2])]
+        if (a === 127 || a === 10 || a === 0) return true
+        if (a === 192 && b === 168) return true
+        if (a === 172 && b >= 16 && b <= 31) return true
+        if (a === 169 && b === 254) return true // リンクローカル(クラウドのメタデータエンドポイント)
+    }
+
+    return false
+}
+
+/** URL 自体が資格情報を運んでいるか(この場合は削るのではなく丸ごと送らない) */
+export function carriesCredentials(url: URL): boolean {
+    // user:pass@host
+    if (url.username || url.password) return true
+
+    const hasHint = (name: string) => {
+        const n = name.toLowerCase()
+        return CREDENTIAL_PARAM_HINTS.includes(n) || n.startsWith('x-amz-') || n.startsWith('x-goog-')
+    }
+    for (const name of url.searchParams.keys()) {
+        if (hasHint(name)) return true
+    }
+    // 暗黙フローの access_token などはフラグメントに載る
+    const fragment = url.hash.replace(/^#/, '')
+    if (fragment) {
+        for (const name of new URLSearchParams(fragment).keys()) {
+            if (hasHint(name)) return true
+        }
+    }
+    return false
+}
+
+/**
+ * 外部プロキシへ渡してよい形に整えた URL を返す。送ってはいけない URL は null。
+ *
+ * 送る場合も origin + pathname だけにする(クエリ/フラグメントは落とす)。
+ * その結果タイトルが URL 単位で不正確になることはあるが、未知のパラメータに
+ * 機微情報が載っていた場合の被害と釣り合わない。
+ */
+export function toProxySafeUrl(rawUrl: string): string | null {
+    let parsed: URL
+    try {
+        parsed = new URL(rawUrl)
+    } catch {
+        return null
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    if (isPrivateOrInternalHost(parsed.hostname)) return null
+    if (carriesCredentials(parsed)) return null
+
+    return `${parsed.origin}${parsed.pathname}`
+}
+
+/** ホスト名で YouTube を判定する */
+export function isYouTubeUrl(rawUrl: string): boolean {
+    try {
+        const { hostname, pathname } = new URL(rawUrl)
+        const host = hostname.toLowerCase().replace(/^www\./, '')
+        if (host === 'youtu.be') return true
+        return (host === 'youtube.com' || host === 'm.youtube.com') && pathname === '/watch'
+    } catch {
+        return false
+    }
+}
+
 /**
  * YouTube URLからvideo IDを抽出
  */
@@ -95,15 +212,24 @@ async function fetchYouTubeMetadata(url: string): Promise<{ title?: string; erro
  */
 export async function fetchUrlMetadata(url: string): Promise<{ title?: string; error?: boolean }> {
     try {
-        // YouTube URLの場合は専用処理
-        if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
+        // YouTube URLの場合は専用処理(プロキシを介さず YouTube の oEmbed を直接叩く)。
+        // 判定はホスト名で行う。文字列 includes だと他サイトの URL に "youtube.com/watch"
+        // が含まれるだけで YouTube 扱いになってしまう。
+        if (isYouTubeUrl(url)) {
             return await fetchYouTubeMetadata(url)
         }
 
         // CORS Proxyを使用してHTMLを取得
         // 注意: 外部サービス（api.allorigins.win）を使用しています
         // 本番環境では自己ホスト型のプロキシの使用を推奨します
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+        //
+        // 送信前に必ずサニタイズする。呼び出し側でも弾いているが、ここが最後の砦
+        // (新しい呼び出し経路が増えても素通ししない)。
+        const safeUrl = toProxySafeUrl(url)
+        if (!safeUrl) {
+            return { error: true }
+        }
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(safeUrl)}`
 
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
