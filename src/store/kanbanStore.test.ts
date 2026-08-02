@@ -292,4 +292,60 @@ describe('kanbanStore (offline / localStorage mode)', () => {
             unsub()
         })
     })
+
+    describe('moveCardsToBoard', () => {
+        function seedStorage(cards: Card[]) {
+            localStorage.setItem('kanban-cards', JSON.stringify(cards))
+        }
+        function readStorage(): Card[] {
+            return JSON.parse(localStorage.getItem('kanban-cards') ?? '[]') as Card[]
+        }
+
+        it('カードを別ボードへ移動し、他のカードは無傷・columnId は維持される', async () => {
+            // 移動先 b2 は boardStore 未登録 → getColumns は DEFAULT_COLUMNS(TODO/Done を含む)
+            // にフォールバックするため、columnId はそのまま維持される想定
+            seedStorage([
+                makeCard({ id: 'a', boardId: 'b1', columnId: 'TODO', order: 0 }),
+                makeCard({ id: 'b', boardId: 'b1', columnId: 'Done', order: 1 }),
+                makeCard({ id: 'keep', boardId: 'b1', columnId: 'TODO', order: 2 }),
+                makeCard({ id: 'x', boardId: 'b2', columnId: 'TODO', order: 0 }),
+            ])
+            const unsub = useKanbanStore.getState().subscribeToCards('b1')
+
+            await useKanbanStore.getState().moveCardsToBoard(['a', 'b'], 'b2')
+
+            // 現在ボード(b1)の表示から移動分が消える
+            expect(useKanbanStore.getState().cards.map((c) => c.id)).toEqual(['keep'])
+
+            // 永続化: b2 に a,b(columnId 維持)+ 既存 x が居る
+            const stored = readStorage()
+            expect(
+                stored
+                    .filter((c) => c.boardId === 'b2')
+                    .map((c) => c.id)
+                    .sort()
+            ).toEqual(['a', 'b', 'x'])
+            expect(stored.find((c) => c.id === 'a')?.columnId).toBe('TODO')
+            expect(stored.find((c) => c.id === 'b')?.columnId).toBe('Done')
+            // 既存カードより後ろに積まれる(タイムスタンプ基準 order)
+            const movedA = stored.find((c) => c.id === 'a')
+            const existingX = stored.find((c) => c.id === 'x')
+            expect(movedA!.order).toBeGreaterThan(existingX!.order)
+
+            unsub()
+        })
+
+        it('存在しないカードIDや空配列では何もしない', async () => {
+            seedStorage([makeCard({ id: 'a', boardId: 'b1', columnId: 'TODO', order: 0 })])
+            const unsub = useKanbanStore.getState().subscribeToCards('b1')
+
+            await useKanbanStore.getState().moveCardsToBoard([], 'b2')
+            await useKanbanStore.getState().moveCardsToBoard(['ghost'], 'b2')
+
+            expect(useKanbanStore.getState().cards.map((c) => c.id)).toEqual(['a'])
+            expect(readStorage().find((c) => c.id === 'a')?.boardId).toBe('b1')
+
+            unsub()
+        })
+    })
 })
