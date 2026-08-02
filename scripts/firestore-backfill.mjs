@@ -79,16 +79,46 @@ async function main() {
     const projectId = args.project ?? defaultProjectId()
     if (!projectId) throw new Error('プロジェクトIDを解決できません(--project で指定してください)')
 
-    let admin
+    // firebase-admin はモジュラー API(サブパス export)を使う。
+    // ルートの default 経由(admin.firestore())は現行バージョンでは解決できない。
+    let appMod, firestoreMod
     try {
-        admin = await import('firebase-admin')
+        appMod = await import('firebase-admin/app')
+        firestoreMod = await import('firebase-admin/firestore')
     } catch {
-        console.error('firebase-admin が見つかりません。`npm i -D firebase-admin` を実行してから再試行してください。')
+        console.error('firebase-admin が見つかりません。`pnpm add -D firebase-admin` を実行してから再試行してください。')
         process.exit(1)
     }
-    const { applicationDefault, initializeApp } = admin.default ?? admin
-    initializeApp({ credential: applicationDefault(), projectId })
-    const db = (admin.default ?? admin).firestore()
+    const { applicationDefault, initializeApp } = appMod
+    const { getFirestore } = firestoreMod
+
+    // 認証は「最初のクエリ」ではなくここで確かめる。
+    // gRPC はスタブ生成を遅延させるため、認証失敗が main() の外の
+    // 未処理 rejection として出てしまい、生スタックだけが表示される。
+    const credential = applicationDefault()
+    try {
+        await credential.getAccessToken()
+    } catch {
+        console.error(
+            [
+                '',
+                '認証情報が見つかりません。次のいずれかを設定してから再実行してください:',
+                '',
+                '  export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json',
+                '  # または',
+                '  gcloud auth application-default login',
+                '',
+                'サービスアカウントの作り方は FIREBASE_CI_SETUP.md を参照(Firebase Admin ロール)。',
+                'GitHub Actions から実行する場合は firestore-backfill ワークフローを使えます',
+                '(FIREBASE_SERVICE_ACCOUNT secret のみで動き、鍵をローカルに置かずに済みます)。',
+                '',
+            ].join('\n')
+        )
+        process.exit(1)
+    }
+
+    initializeApp({ credential, projectId })
+    const db = getFirestore()
 
     const mode = args.apply ? 'APPLY(書き込みます)' : 'DRY-RUN(書き込みません)'
     console.log(`\n=== Firestore backfill / project=${projectId} / ${mode} ===\n`)
