@@ -17,6 +17,7 @@ import { getTheme, Theme } from './theme'
 import { CARD_COLOR_LABELS } from './constants'
 import { getDueDateStatus } from './utils/dateUtils'
 import { isComposing } from './utils/keyboard'
+import { checkImageFileSize, checkImageTotalSize, MAX_IMAGE_FILE_BYTES, formatBytes } from './utils/imageLimits'
 import { BaseModal } from './BaseModal'
 import { LinkedText } from './LinkedText'
 import { useUrlMetadata } from './hooks/useUrlMetadata'
@@ -201,28 +202,39 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
             ? Math.round((checklist.filter((item) => item.completed).length / checklist.length) * 100)
             : 0
 
-    // 画像ペースト処理
-    const handlePaste = useCallback((e: React.ClipboardEvent) => {
-        const items = e.clipboardData?.items
-        if (!items) return
+    // 画像ペースト処理。
+    // 画像は base64 でカード文書に直書きされるため、Firestore の 1MiB 制限を超えると
+    // updateDoc 全体が失敗し、同じ保存に含まれる説明・チェックリストの編集ごと失われる。
+    // 保存できない画像は入口で断る(恒久対応は Firebase Storage への退避: #97)。
+    const handlePaste = useCallback(
+        (e: React.ClipboardEvent) => {
+            const items = e.clipboardData?.items
+            if (!items) return
 
-        for (let i = 0; i < items.length; i++) {
-            const item = items[i]
-            if (item.type.startsWith('image/')) {
-                e.preventDefault()
-                const file = item.getAsFile()
-                if (!file) continue
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i]
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault()
+                    const file = item.getAsFile()
+                    if (!file) continue
 
-                // 5MB制限
-                if (file.size > 5 * 1024 * 1024) {
-                    showToast('画像サイズは5MB以下にしてください', 'error')
-                    return
-                }
+                    const fileCheck = checkImageFileSize(file.size)
+                    if (!fileCheck.ok) {
+                        showToast(fileCheck.reason, 'error')
+                        return
+                    }
 
-                const reader = new FileReader()
-                reader.onload = (event) => {
-                    const dataUrl = event.target?.result as string
-                    if (dataUrl) {
+                    const reader = new FileReader()
+                    reader.onload = (event) => {
+                        const dataUrl = event.target?.result as string
+                        if (!dataUrl) return
+                        // base64 化で膨らんだ実サイズを、既存の添付と合算して再判定する。
+                        // 判定(と失敗時のトースト)は更新関数の外で行う(アップデーターは純粋に保つ)
+                        const totalCheck = checkImageTotalSize(images, dataUrl)
+                        if (!totalCheck.ok) {
+                            showToast(totalCheck.reason, 'error')
+                            return
+                        }
                         const newImage: ImageAttachment = {
                             id: uuidv4(),
                             dataUrl,
@@ -231,12 +243,13 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                         }
                         setImages((prev) => [...prev, newImage])
                     }
+                    reader.readAsDataURL(file)
+                    break
                 }
-                reader.readAsDataURL(file)
-                break
             }
-        }
-    }, [])
+        },
+        [images]
+    )
 
     const handleRemoveImage = useCallback((imageId: string) => {
         setImages((prev) => prev.filter((img) => img.id !== imageId))
@@ -655,7 +668,9 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 ))}
                             </ImageGallery>
                         )}
-                        <PasteHint $theme={theme}>Ctrl+V / Cmd+V で画像を貼り付けできます</PasteHint>
+                        <PasteHint $theme={theme}>
+                            Ctrl+V / Cmd+V で画像を貼り付けできます(1枚 {formatBytes(MAX_IMAGE_FILE_BYTES)} まで)
+                        </PasteHint>
                     </Section>
 
                     {/* Checklist Section */}
