@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, memo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useRef, memo, useEffect } from 'react'
 import styled from 'styled-components'
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
@@ -254,6 +254,44 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
     const handleRemoveImage = useCallback((imageId: string) => {
         setImages((prev) => prev.filter((img) => img.id !== imageId))
     }, [])
+
+    // --- カードの色(ARIA radiogroup) ---
+    // 「デフォルト(色なし)」を先頭に置いた1本のリストとして扱うと、
+    // roving tabindex と矢印キー移動をインデックス計算だけで書ける。
+    const colorOptions = useMemo(
+        () => [
+            { color: '', label: 'デフォルト色' },
+            ...CARD_COLOR_LABELS.map((l) => ({ color: l.color, label: `${l.name} - ${l.description}` })),
+        ],
+        []
+    )
+    const colorOptionRefs = useRef<(HTMLButtonElement | null)[]>([])
+    // タブ順に入る唯一の要素 = 選択中のもの。未選択なら先頭(APG の規定)
+    const selectedColorIndex = colorOptions.findIndex((o) => o.color === cardColor)
+    const focusedColorIndex = selectedColorIndex === -1 ? 0 : selectedColorIndex
+
+    const handleColorKeyDown = useCallback(
+        (e: React.KeyboardEvent, index: number) => {
+            const last = colorOptions.length - 1
+            let next: number | null = null
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = index === last ? 0 : index + 1
+            else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = index === 0 ? last : index - 1
+            else if (e.key === 'Home') next = 0
+            else if (e.key === 'End') next = last
+            else if (e.key === ' ' || e.key === 'Enter') {
+                // Space/Enter は「今フォーカスしているものを選択」
+                e.preventDefault()
+                setCardColor(colorOptions[index].color)
+                return
+            }
+            if (next === null) return
+            // 矢印キーは移動と同時に選択する(radiogroup の規定動作)
+            e.preventDefault()
+            setCardColor(colorOptions[next].color)
+            colorOptionRefs.current[next]?.focus()
+        },
+        [colorOptions]
+    )
 
     // --- 自動保存 ---
     // 「保存ボタンを押し忘れて全変更が消える」事故を根絶するため、
@@ -548,42 +586,26 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                     {/* Card Color Section */}
                     <Section>
                         <SectionTitle $theme={theme}>カードの色</SectionTitle>
-                        <ColorPicker>
-                            <ColorOption
-                                $color=''
-                                $selected={!cardColor}
-                                $theme={theme}
-                                onClick={() => setCardColor('')}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault()
-                                        setCardColor('')
-                                    }
-                                }}
-                                role='radio'
-                                aria-checked={!cardColor}
-                                tabIndex={0}
-                                title='デフォルト'
-                                aria-label='デフォルト色'
-                            />
-                            {CARD_COLOR_LABELS.map((label) => (
+                        {/* ARIA APG の radiogroup パターン: Tab でグループへ入り、矢印キーで
+                            選択を移動する。個々の radio を Tab で辿らせない(roving tabindex) */}
+                        <ColorPicker role='radiogroup' aria-label='カードの色'>
+                            {colorOptions.map((option, index) => (
                                 <ColorOption
-                                    key={label.color}
-                                    $color={label.color}
-                                    $selected={cardColor === label.color}
-                                    $theme={theme}
-                                    onClick={() => setCardColor(label.color)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault()
-                                            setCardColor(label.color)
-                                        }
+                                    key={option.color || 'default'}
+                                    ref={(el) => {
+                                        colorOptionRefs.current[index] = el
                                     }}
+                                    $color={option.color}
+                                    $selected={cardColor === option.color}
+                                    $theme={theme}
+                                    onClick={() => setCardColor(option.color)}
+                                    onKeyDown={(e) => handleColorKeyDown(e, index)}
                                     role='radio'
-                                    aria-checked={cardColor === label.color}
-                                    tabIndex={0}
-                                    title={`${label.name} - ${label.description}`}
-                                    aria-label={`${label.name} - ${label.description}`}
+                                    aria-checked={cardColor === option.color}
+                                    // 選択中の1つだけがタブ順に入る(未選択なら先頭)
+                                    tabIndex={index === focusedColorIndex ? 0 : -1}
+                                    title={option.label}
+                                    aria-label={option.label}
                                 />
                             ))}
                         </ColorPicker>
