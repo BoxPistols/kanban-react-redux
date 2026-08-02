@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { parseUrls, fetchUrlMetadata, isMetadataFresh } from '../utils/urlUtils'
+import { parseUrls, fetchUrlMetadata, isMetadataFresh, isYouTubeUrl, toProxySafeUrl } from '../utils/urlUtils'
 import type { UrlMetadata } from '../types'
 
 const DEBOUNCE_DELAY_MS = 500 // デバウンス遅延時間（500ms）
@@ -61,10 +61,14 @@ export function useUrlMetadata(
                     if (cached && isMetadataFresh(cached.fetchedAt) && !cached.error) {
                         // キャッシュが有効な場合は再利用
                         updates.push(cached)
-                    } else {
-                        // 新規取得が必要
-                        urlsToFetch.push(url)
+                        continue
                     }
+                    // 外部プロキシへ出せない URL(社内ホスト・署名付き等)は取得しない。
+                    // リンク自体は LinkedText が URL 文字列のまま表示するので機能は失われない。
+                    if (!isYouTubeUrl(url) && !toProxySafeUrl(url)) {
+                        continue
+                    }
+                    urlsToFetch.push(url)
                 }
 
                 // 並列で取得（最大3つまで同時）
