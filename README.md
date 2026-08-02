@@ -51,15 +51,15 @@ Vite + React 18 + TypeScript + Firebase + Zustandで構築されたモダンな�
 
 このプロジェクトはpnpmを使用しています。
 
-\`\`\`bash
+```bash
 pnpm install
-\`\`\`
+```
 
 pnpmがインストールされていない場合：
 
-\`\`\`bash
+```bash
 npm install -g pnpm
-\`\`\`
+```
 
 ### 2. Firebaseプロジェクトの作成
 
@@ -70,52 +70,77 @@ npm install -g pnpm
 
 ### 3. 環境変数の設定
 
-\`.env.example\`をコピーして\`.env.local\`を作成し、Firebaseの設定値を入力してください。
+`.env.example`をコピーして`.env.local`を作成し、Firebaseの設定値を入力してください。
 
-\`\`\`bash
+```bash
 cp .env.example .env.local
-\`\`\`
+```
 
-\`.env.local\`を編集：
+`.env.local`を編集：
 
-\`\`\`env
+```env
 VITE_FIREBASE_API_KEY=your-api-key-here
 VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your-project-id
 VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
 VITE_FIREBASE_APP_ID=your-app-id
-\`\`\`
+```
 
 ### 4. 開発サーバーの起動
 
-\`\`\`bash
+```bash
 pnpm dev
-\`\`\`
+```
 
 ブラウザで http://localhost:3000 を開きます。
 
 ## ビルド
 
-\`\`\`bash
+```bash
 pnpm build
-\`\`\`
+```
 
-ビルドされたファイルは\`dist\`ディレクトリに出力されます。
+ビルドされたファイルは`dist`ディレクトリに出力されます。
 
 ## プレビュー
 
 ビルドされたアプリをプレビュー：
 
-\`\`\`bash
+```bash
 pnpm preview
-\`\`\`
+```
+
+## テスト
+
+4 層に分かれている。**別マシンで作業を始めるときは、必要な前提もあわせて用意すること。**
+
+| コマンド | 対象 | 前提 |
+|---------|------|------|
+| `pnpm test:run` | ストア・ユーティリティの単体テスト（Vitest） | `pnpm install` のみ |
+| `pnpm test:e2e` | 実ブラウザでの描画・D&D・右クリック・フォーカスリング（Playwright） | `pnpm exec playwright install chromium` |
+| `pnpm test:rules` | Firestore セキュリティルール（エミュレータ実測） | **Java**（macOS: `brew install openjdk`） |
+| `pnpm typecheck` / `pnpm lint` | 型・静的検査 | `pnpm install` のみ |
+
+CI（`.github/workflows/ci.yml`）はこの 4 つをすべて実行する。
+
+### e2e がログインを回避できる理由
+
+`VITE_FIREBASE_*` が未設定のビルドは `isFirebaseEnabled=false` になり、ログイン画面を出さずに
+localStorage モードで起動する。Playwright は `pnpm build && pnpm preview` した本番バンドルを
+その状態で叩くため、**ログインなしで D&D やモーダル操作を実ブラウザ検証できる**。
+
+### ルールを変更したら
+
+`firestore.rules` を触ったら反映前に `pnpm test:rules` を通すこと。
+壊れたルールを本番反映すると「保存できない」が即ユーザー影響になる。
+詳細は [`docs/FIRESTORE_MAINTENANCE.md`](./docs/FIRESTORE_MAINTENANCE.md)。
 
 ## Firestoreデータ構造
 
 ### Boards Collection
 
-\`\`\`typescript
+```typescript
 {
   id: string          // Firestore auto-generated ID
   name: string        // ボード名
@@ -127,11 +152,11 @@ pnpm preview
   createdAt: number   // 作成日時（Unix timestamp）
   updatedAt: number   // 更新日時（Unix timestamp）
 }
-\`\`\`
+```
 
 ### Cards Collection
 
-\`\`\`typescript
+```typescript
 {
   id: string          // Firestore auto-generated ID
   title?: string      // カードタイトル（新規）
@@ -149,11 +174,11 @@ pnpm preview
   createdAt: number   // 作成日時（Unix timestamp）
   updatedAt: number   // 更新日時（Unix timestamp）
 }
-\`\`\`
+```
 
 ### Trash Collection
 
-\`\`\`typescript
+```typescript
 {
   id: string          // 元のカードID
   ...Card             // カードの全データ
@@ -161,11 +186,11 @@ pnpm preview
   originalColumnId: string   // 元のカラムID
   deletedAt: number          // 削除日時（30日後に自動削除）
 }
-\`\`\`
+```
 
 ## プロジェクト構造
 
-\`\`\`
+```
 src/
 ├── lib/
 │   └── firebase.ts          # Firebase設定・初期化
@@ -203,7 +228,7 @@ src/
 ├── constants.ts             # 定数定義
 ├── icon.tsx                 # アイコンコンポーネント
 └── main.tsx                 # エントリーポイント
-\`\`\`
+```
 
 ## 使い方
 

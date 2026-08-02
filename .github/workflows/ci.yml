@@ -33,6 +33,12 @@ jobs:
       - name: Unit tests (Vitest)
         run: pnpm run test:run
 
+      # セキュリティルールはアプリのテストが全部緑でも壊れているのが分かりにくく、
+      # 壊れたまま本番反映すると「読めない/書けない」が即ユーザー影響になる。
+      # エミュレータで許可/拒否を実際に確かめる。ubuntu ランナーには Java が同梱。
+      - name: Firestore rules tests (emulator)
+        run: pnpm run test:rules
+
       - name: Install Playwright (chromium)
         run: pnpm exec playwright install --with-deps chromium
 

@@ -1,40 +1,90 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // --- 共通ヘルパー ---
+    //
+    // 所有者判定は「保存前の userId が自分」と「保存後の userId が自分」を分けて使う。
+    // create は保存前が存在しないため後者のみ、update は両方(= 所有権の付け替え禁止)。
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function ownsExisting() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    function ownsIncoming() {
+      return isSignedIn() && request.resource.data.userId is string
+             && request.resource.data.userId == request.auth.uid;
+    }
+
+    // 任意フィールドの検証。存在しない場合は true を返す(部分更新を壊さないため)。
+    function optString(field, maxLen) {
+      return !(field in request.resource.data)
+             || (request.resource.data[field] is string && request.resource.data[field].size() <= maxLen);
+    }
+    function optList(field, maxLen) {
+      return !(field in request.resource.data)
+             || (request.resource.data[field] is list && request.resource.data[field].size() <= maxLen);
+    }
+    function optNumber(field) {
+      return !(field in request.resource.data) || request.resource.data[field] is number;
+    }
+
+    // カードの形。ここの上限は「1ドキュメント 1MiB」への防波堤であって UI の制限ではない。
+    // アプリ側の実際の上限(画像 600KB/枚・カード合計 900KB)は src/utils/imageLimits.ts。
+    function validCard() {
+      return request.resource.data.boardId is string
+             && request.resource.data.columnId is string
+             && request.resource.data.order is number
+             && optString('text', 100000)
+             && optString('title', 1000)
+             && optString('description', 100000)
+             && optString('color', 100)
+             && optNumber('createdAt')
+             && optNumber('updatedAt')
+             && optNumber('dueDate')
+             && optNumber('progress')
+             && optList('labels', 50)
+             && optList('checklist', 200)
+             && optList('images', 20)
+             && optList('urlMetadata', 100);
+    }
+
+    function validBoard() {
+      return optString('name', 1000)
+             && optString('description', 10000)
+             && optString('color', 100)
+             && optList('labels', 200)
+             && optList('columns', 50)
+             && optNumber('createdAt')
+             && optNumber('updatedAt');
+    }
+
     // カードコレクション: 自分が作成したカードのみアクセス可能
     match /cards/{cardId} {
       // read は所有者のみ。以前は `!('userId' in resource.data)` を OR で許可しており
       // userId 欠落ドキュメントを任意の認証ユーザーが読める fail-open だった(監査C5)。
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null &&
-                       request.resource.data.userId == request.auth.uid;
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming() && validCard();
       // update は所有者のみ。さらに userId の付け替え(所有権移転)を禁止する。
-      allow update: if request.auth != null &&
-                       resource.data.userId == request.auth.uid &&
-                       request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null &&
-                       resource.data.userId == request.auth.uid;
+      allow update: if ownsExisting() && ownsIncoming() && validCard();
+      allow delete: if ownsExisting();
     }
 
     // ボードコレクション: 自分が作成したボードのみアクセス可能
     match /boards/{boardId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null &&
-                       request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null &&
-                       resource.data.userId == request.auth.uid &&
-                       request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null &&
-                       resource.data.userId == request.auth.uid;
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming() && validBoard();
+      allow update: if ownsExisting() && ownsIncoming() && validBoard();
+      allow delete: if ownsExisting();
     }
 
-    // ゴミ箱コレクション: 自分が削除したカードのみアクセス可能
+    // ゴミ箱コレクション: 自分が削除したカードのみアクセス可能。
+    // update は意図的に許可しない(復元は「新規作成 + 元を削除」で行うため)。
     match /trash/{trashId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null &&
-                       request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null &&
-                       resource.data.userId == request.auth.uid;
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow delete: if ownsExisting();
     }
   }
 }
