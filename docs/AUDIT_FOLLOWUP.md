@@ -53,11 +53,11 @@ light モードで WCAG AA（4.5:1）未満のテキストがある。**テー�
 
 設計判断・大きめの実装・外部仕様/インフラが絡むため、方針確定後に着手する想定。
 
-- **キーボード DnD 対応**: 現状 `PointerSensor` のみで、カードのレーン間移動・並べ替えが
-  マウス専用。`@dnd-kit` の `KeyboardSensor` + `sortableKeyboardCoordinates` 追加、
-  または明示的な移動ボタンの提供が必要（a11y 機能追加）。
-- **カラーピッカーの ARIA radio パターン**（`CardDetailModal.tsx`）: `role='radio'` は
-  あるが `radiogroup` ＋ roving tabindex ＋ 矢印キー移動が未実装。
+- ~~**キーボード DnD 対応**~~ → **対応済み**（`App.tsx` に `KeyboardSensor` +
+  `sortableKeyboardCoordinates` を導入済み。この記述は古い）。
+- ~~**カラーピッカーの ARIA radio パターン**（`CardDetailModal.tsx`）~~ → **対応済み**。
+  `role='radiogroup'` ＋ roving tabindex ＋ 矢印キー/Home/End 移動を実装。
+  実ブラウザでのキーボード操作は `e2e/color-picker-a11y.spec.ts` が検証する。
 - ~~**URL メタデータの外部プロキシ流出**（`urlUtils.ts`）~~ → **対応済み**（「クエリ除去・
   内部ホスト除外」を採用）。`toProxySafeUrl()` が以下を実施する:
   - プライベート/内部ホスト（localhost・RFC1918・169.254.169.254・`.local`/`.internal`/
