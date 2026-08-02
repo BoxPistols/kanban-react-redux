@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fetchUrlMetadata } from './urlUtils'
 
@@ -7,7 +7,7 @@ import { fetchUrlMetadata } from './urlUtils'
  *
  * 純粋関数のテスト(toProxySafeUrl)だけだと、呼び出し側がサニタイズ結果を
  * 使い忘れていても気付けない。実際に fetch へ渡った URL を検証する。
- * happy-dom は DOMParser のために必要。
+ * jsdom 環境なのは fetchUrlMetadata が DOMParser を使うため。
  */
 describe('fetchUrlMetadata の送信内容', () => {
     let fetchMock: ReturnType<typeof vi.fn>
