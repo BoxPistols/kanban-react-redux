@@ -31,9 +31,14 @@ export const Column = memo(function Column({
     isCollapsed?: boolean
     onToggleCollapse?: () => void
 }) {
-    const { addCard } = useKanbanStore()
-    const { updateColumn } = useBoardStore()
-    const { isDarkMode } = useThemeStore()
+    // 必要なアクションだけ購読する(全ストア購読だと無関係な変化でもレーンごと再描画され、
+    // ドラッグ中の dnd-kit 再計測を増やしてしまう: #98/#101)。
+    const addCard = useKanbanStore((s) => s.addCard)
+    const updateColumn = useBoardStore((s) => s.updateColumn)
+    const isDarkMode = useThemeStore((s) => s.isDarkMode)
+
+    // dnd-kit の data は毎レンダー新規生成しない(再登録・再計測でドラッグがループするため)
+    const columnData = useMemo(() => ({ type: 'column' as const }), [])
 
     // レーン自体もボード上で直接ドラッグして並べ替えられるようにする(Trello同等)
     const {
@@ -45,7 +50,7 @@ export const Column = memo(function Column({
         isDragging: isColumnDragging,
     } = useSortable({
         id,
-        data: { type: 'column' },
+        data: columnData,
     })
 
     const sortableStyle = {
