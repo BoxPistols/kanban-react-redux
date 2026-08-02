@@ -6,6 +6,11 @@ export interface Theme {
     surfaceHover: string
     text: string
     textSecondary: string
+    // 状態色(テキスト用)。淡色タイント地(同色 12.5%)の上でも WCAG AA 4.5:1 を満たす値を
+    // テーマごとに持つ。実測は theme.contrast.test.ts が担保する。
+    warning: string
+    danger: string
+    success: string
     border: string
     cardBackground: string
     columnBackground: string
@@ -35,6 +40,10 @@ export const lightTheme: Theme = {
     surfaceHover: '#F3F4F8',
     text: '#1A1D23',
     textSecondary: '#5E6C84',
+    // 白地では #FF9F1A(2.05:1) / #FF4136(3.46:1) / #2ECC40 が AA 未満のため濃色を使う
+    warning: '#9A5B00',
+    danger: '#B42318',
+    success: '#166534',
     border: 'rgba(0, 0, 0, 0.08)',
     cardBackground: color.White,
     columnBackground: 'rgba(255, 255, 255, 0.55)',
@@ -62,6 +71,10 @@ export const darkTheme: Theme = {
     surfaceHover: '#1C2333',
     text: '#E6EDF3',
     textSecondary: '#8B949E',
+    // 暗地は明色。#FF4136 のみタイント地で 4.42:1 と僅かに足りないため明るくする
+    warning: '#FF9F1A',
+    danger: '#FF6B63',
+    success: '#2ECC40',
     border: 'rgba(255, 255, 255, 0.08)',
     cardBackground: '#161B22',
     columnBackground: 'rgba(13, 17, 23, 0.65)',

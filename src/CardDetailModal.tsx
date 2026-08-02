@@ -524,8 +524,12 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                                 </ClearDueDateButton>
                             )}
                         </DueDateRow>
-                        {isOverdue && <WarningText>期限切れです</WarningText>}
-                        {isDueSoon && !isOverdue && <WarningText $warning>まもなく期限です</WarningText>}
+                        {isOverdue && <WarningText $theme={theme}>期限切れです</WarningText>}
+                        {isDueSoon && !isOverdue && (
+                            <WarningText $theme={theme} $warning>
+                                まもなく期限です
+                            </WarningText>
+                        )}
                     </Section>
 
                     {/* Card Color Section */}
@@ -658,7 +662,7 @@ export const CardDetailModal = memo(function CardDetailModal({ card, onClose }: 
                     <Section>
                         <SectionTitle $theme={theme}>
                             チェックリスト
-                            {checklist.length > 0 && <ProgressText> ({progress}% 完了)</ProgressText>}
+                            {checklist.length > 0 && <ProgressText $theme={theme}> ({progress}% 完了)</ProgressText>}
                         </SectionTitle>
 
                         {checklist.length > 0 && (
@@ -856,10 +860,11 @@ const SectionTitle = styled.h3<{ $theme: Theme }>`
     align-items: center;
 `
 
-const ProgressText = styled.span`
+// #AAAAAA 直書きは白地で 2.32:1 と AA を大きく割る。テーマの二次テキスト色を使う(監査)
+const ProgressText = styled.span<{ $theme: Theme }>`
     margin-left: 8px;
     font-size: 12px;
-    color: ${color.Gray};
+    color: ${(props) => props.$theme.textSecondary};
     font-weight: normal;
     text-transform: none;
 `
@@ -976,10 +981,10 @@ const DueDateInput = styled.input<{ $isOverdue?: boolean; $isDueSoon?: boolean; 
     }
 `
 
-const WarningText = styled.div<{ $warning?: boolean }>`
+const WarningText = styled.div<{ $theme: Theme; $warning?: boolean }>`
     margin-top: 4px;
     font-size: 12px;
-    color: ${(props) => (props.$warning ? '#FF9F1A' : color.Red)};
+    color: ${(props) => (props.$warning ? props.$theme.warning : props.$theme.danger)};
     font-weight: 600;
 `
 
