@@ -12,8 +12,37 @@ on:
   workflow_dispatch:
 
 jobs:
+  # API キーが未設定なら再利用ワークフローを呼ばない。
+  # secrets コンテキストは job レベルの if で参照できないため、判定用の job を挟む
+  # （firebase-deploy.yml と同じ構成）。
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GOOGLE_API_KEY / ANTHROPIC_API_KEY のいずれも未設定のため AI Auto Fix をスキップしました。"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
   ai-auto-fix:
-    uses: BoxPistols/ai-auto-fix-template/.github/workflows/reusable-ai-auto-fix.yml@main
+    needs: check-secrets
+    if: needs.check-secrets.outputs.configured == 'true'
+    # 外部リポジトリの再利用ワークフローを可変の @main で参照すると、向こう側の main が
+    # 書き換わった瞬間に「こちらの API キー secret を渡したまま」別のコードが実行される。
+    # イミュータブルな SHA に固定する。
+    #
+    # 更新手順:
+    #   gh api repos/BoxPistols/ai-auto-fix-template/commits/main --jq .sha
+    #   で得た SHA に差し替え、末尾コメントの日付も更新する
+    uses: BoxPistols/ai-auto-fix-template/.github/workflows/reusable-ai-auto-fix.yml@6f01b1135efdd61b651674dd2a6f0045154ead15 # main @ 2025-12-02
     with:
       node_version: '20'
       package_manager: 'pnpm'
