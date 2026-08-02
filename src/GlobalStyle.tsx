@@ -134,7 +134,17 @@ export const GlobalStyle = createGlobalStyle<{ $theme: Theme }>`
     }
   }
 
-  /* フォーカスリング: キーボード操作時のみ表示 */
+  /* フォーカスリング: キーボード操作時のみ表示。
+     CDN の ress リセットが a/button/input/select/textarea に対して
+     \`要素:focus { outline-width: 0 }\`(特異度 0,1,1)を当てており、素の
+     \`:focus-visible\`(0,1,0)では負けてリングが一切出ない。要素セレクタを
+     付けて特異度を上げる(0,2,1)。role 付き div 等は [tabindex] で拾う。 */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible,
   :focus-visible {
     outline: 2px solid ${(props) => props.$theme.linkColor};
     outline-offset: 2px;
